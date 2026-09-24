@@ -9,12 +9,12 @@ API do Nexus: aplicativo que facilita o fluxo de trabalho do FUSEX
 
 ## 1. O que instalar (uma vez so)
 
-| Programa | Para que | Como conferir |
-|---|---|---|
-| **JDK 21** | rodar o Java | `java -version` mostra 21 |
-| **Git** | versionamento | `git --version` |
-| **IntelliJ IDEA Community** (ou VS Code + Extension Pack for Java) | editar codigo | - |
-| **Docker Desktop** *(opcional)* | MySQL sem instalar nada | `docker --version` |
+| Programa                                                           | Para que                | Como conferir             |
+| ------------------------------------------------------------------ | ----------------------- | ------------------------- |
+| **JDK 21**                                                         | rodar o Java            | `java -version` mostra 21 |
+| **Git**                                                            | versionamento           | `git --version`           |
+| **IntelliJ IDEA Community** (ou VS Code + Extension Pack for Java) | editar codigo           | -                         |
+| **Docker Desktop** *(opcional)*                                    | MySQL sem instalar nada | `docker --version`        |
 
 Maven **nao precisa instalar**: o projeto traz o `mvnw`.
 
@@ -22,7 +22,7 @@ Maven **nao precisa instalar**: o projeto traz o `mvnw`.
 
 ```bash
 git clone <URL-DO-REPOSITORIO>
-cd nexus
+cd BD_3S_BACKEND
 git checkout develop
 ```
 
@@ -87,10 +87,10 @@ Detalhes: `docs/GUIA_GIT.md` - `docs/GUIA_BANCO_DE_DADOS.md` - `docs/DECISOES_PE
 
 ## 6. Problemas comuns
 
-| Erro | O que fazer |
-|---|---|
-| `Port 8080 already in use` | Tem outro Nexus rodando. Feche-o. |
-| `Communications link failure` / nao conecta no MySQL | Rode `docker compose up -d` e espere 20s. Ou use a Opcao A (h2). |
-| `Migration checksum mismatch` | Alguem editou uma migration antiga. `docker compose down -v` e suba de novo; e avise o grupo. |
-| `LazyInitializationException` | Voce acessou `getOcs()`/`getProcedimentos()` fora de uma transacao. Coloque `@Transactional` no metodo do service. |
-| `release version 21 not supported` | Seu JDK nao e 21. Instale o JDK 21 e configure a IDE. |
+| Erro                                                 | O que fazer                                                                                                        |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `Port 8080 already in use`                           | Tem outro BD_3S_BACKEND rodando. Feche-o.                                                                          |
+| `Communications link failure` / nao conecta no MySQL | Rode `docker compose up -d` e espere 20s. Ou use a Opcao A (h2).                                                   |
+| `Migration checksum mismatch`                        | Alguem editou uma migration antiga. `docker compose down -v` e suba de novo; e avise o grupo.                      |
+| `LazyInitializationException`                        | Voce acessou `getOcs()`/`getProcedimentos()` fora de uma transacao. Coloque `@Transactional` no metodo do service. |
+| `release version 21 not supported`                   | Seu JDK nao e 21. Instale o JDK 21 e configure a IDE.                                                              |
