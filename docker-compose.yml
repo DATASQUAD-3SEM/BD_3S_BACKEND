@@ -1,0 +1,20 @@
+# MySQL para desenvolvimento. Subir: docker compose up -d | Parar: docker compose down
+# Apagar TODOS os dados e recomecar: docker compose down -v
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: nexus-mysql
+    environment:
+      MYSQL_DATABASE: nexus
+      MYSQL_USER: nexus
+      MYSQL_PASSWORD: nexus
+      MYSQL_ROOT_PASSWORD: root
+      TZ: America/Sao_Paulo
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - nexus-mysql-data:/var/lib/mysql
+
+volumes:
+  nexus-mysql-data:
