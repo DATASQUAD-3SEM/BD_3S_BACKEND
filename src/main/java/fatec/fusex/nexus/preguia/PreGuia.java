@@ -23,8 +23,11 @@ import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.procedimento.ProcedimentoExame;
 
 /**
- * Tabela pre_guia. O encaminhamento medico NAO e entidade: e apenas o arquivo (URL/caminho)
- * guardado em encaminhamentoUrl (decisao do URGENTE.pdf).
+ * Entidade responsável pela pré-guia.
+ *
+ * O encaminhamento médico não é uma entidade:
+ * é armazenado como arquivo através da URL/caminho
+ * no atributo encaminhamentoUrl.
  */
 @Entity
 @Table(name = "pre_guia")
@@ -56,29 +59,108 @@ public class PreGuia {
     @JoinTable(
             name = "pre_guia_procedimento",
             joinColumns = @JoinColumn(name = "pre_guia_id"),
-            inverseJoinColumns = @JoinColumn(name = "procedimento_id"))
+            inverseJoinColumns = @JoinColumn(name = "procedimento_id")
+    )
     private Set<ProcedimentoExame> procedimentos = new HashSet<>();
 
     public PreGuia() {
     }
 
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public StatusPreGuia getStatus() { return status; }
-    public void setStatus(StatusPreGuia status) { this.status = status; }
+    public StatusPreGuia getStatus() {
+        return status;
+    }
 
-    public LocalDateTime getDataEmissao() { return dataEmissao; }
-    public void setDataEmissao(LocalDateTime dataEmissao) { this.dataEmissao = dataEmissao; }
+    public void setStatus(StatusPreGuia status) {
+        this.status = status;
+    }
 
-    public String getEncaminhamentoUrl() { return encaminhamentoUrl; }
-    public void setEncaminhamentoUrl(String encaminhamentoUrl) { this.encaminhamentoUrl = encaminhamentoUrl; }
+    public LocalDateTime getDataEmissao() {
+        return dataEmissao;
+    }
 
-    public Beneficiario getBeneficiario() { return beneficiario; }
-    public void setBeneficiario(Beneficiario beneficiario) { this.beneficiario = beneficiario; }
+    public void setDataEmissao(LocalDateTime dataEmissao) {
+        this.dataEmissao = dataEmissao;
+    }
 
-    public Ocs getOcs() { return ocs; }
-    public void setOcs(Ocs ocs) { this.ocs = ocs; }
+    public String getEncaminhamentoUrl() {
+        return encaminhamentoUrl;
+    }
 
-    public Set<ProcedimentoExame> getProcedimentos() { return procedimentos; }
-    public void setProcedimentos(Set<ProcedimentoExame> procedimentos) { this.procedimentos = procedimentos; }
+    public void setEncaminhamentoUrl(String encaminhamentoUrl) {
+        this.encaminhamentoUrl = encaminhamentoUrl;
+    }
+
+    public Beneficiario getBeneficiario() {
+        return beneficiario;
+    }
+
+    public void setBeneficiario(Beneficiario beneficiario) {
+        this.beneficiario = beneficiario;
+    }
+
+    public Ocs getOcs() {
+        return ocs;
+    }
+
+    public void setOcs(Ocs ocs) {
+        this.ocs = ocs;
+    }
+
+    public Set<ProcedimentoExame> getProcedimentos() {
+        return procedimentos;
+    }
+
+    public void setProcedimentos(Set<ProcedimentoExame> procedimentos) {
+        this.procedimentos = procedimentos;
+    }
+
+    // ==========================================
+    // MÉTODOS DE TRANSIÇÃO DE STATUS
+    // ==========================================
+
+    //Confirma o envio da pré-guia.
+
+    //RASCUNHO -> PENDENTE
+
+    public void confirmarEnvio() {
+        if (status != StatusPreGuia.RASCUNHO) {
+            throw new IllegalStateException(
+                    "A pré-guia só pode ser enviada quando estiver em RASCUNHO."
+            );
+        }
+
+        status = StatusPreGuia.PENDENTE;
+    }
+
+    //Inicia a análise da pré-guia.
+
+    //PENDENTE -> EM_ANALISE
+
+    public void iniciarAnalise() {
+        if (status != StatusPreGuia.PENDENTE) {
+            throw new IllegalStateException(
+                    "A pré-guia só pode entrar em análise quando estiver PENDENTE."
+            );
+        }
+
+        status = StatusPreGuia.EM_ANALISE;
+    }
+
+    //Aprova a pré-guia.
+
+    //EM_ANALISE -> APROVADA
+
+    public void aprovar() {
+        if (status != StatusPreGuia.EM_ANALISE) {
+            throw new IllegalStateException(
+                    "A pré-guia só pode ser aprovada quando estiver EM_ANALISE."
+            );
+        }
+
+        status = StatusPreGuia.APROVADA;
+    }
 }
