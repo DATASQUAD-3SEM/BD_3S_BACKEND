@@ -27,4 +27,7 @@ public class OcsService {
         return ocsRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("OCS nao encontrada: id " + id));
     }
+    public List<Ocs> buscarPorNome(String nome) {
+        return ocsRepository.findByNomeContainingIgnoreCase(nome);
+    }
 }
