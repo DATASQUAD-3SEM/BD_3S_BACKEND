@@ -1,0 +1,26 @@
+name: Proteger main
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  verificar-origem:
+    name: Só aceita merge vindo da develop
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verificar branch de origem
+        run: |
+          ORIGEM="${{ github.event.pull_request.head.ref }}"
+          DESTINO="${{ github.event.pull_request.base.ref }}"
+          echo "PR de '$ORIGEM' para '$DESTINO'"
+          if [ "$DESTINO" != "main" ]; then
+            echo "Destino não é main. Nada a verificar."
+            exit 0
+          fi
+          if [ "$ORIGEM" != "develop" ]; then
+            echo "::error::A branch main só aceita PR vindo da develop. Este PR vem de '$ORIGEM'."
+            exit 1
+          fi
+          echo "OK: PR vindo da develop para a main."
