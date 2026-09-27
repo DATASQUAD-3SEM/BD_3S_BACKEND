@@ -1,16 +1,23 @@
 package fatec.fusex.nexus.preguia;
 
-/**
- * Situacao da pre-guia. PROPOSTA inicial (confirmar com o PO, veja docs/DECISOES_PENDENTES.md).
- * No banco e gravado como texto (ex: "PENDENTE").
- */
+//Status possíveis da pré-guia ao longo do fluxo.
+
 public enum StatusPreGuia {
-    /** Beneficiario ainda esta montando (pode reenviar o arquivo do encaminhamento). */
+
+    //Beneficiário ainda está montando a pré-guia.
+
     RASCUNHO,
-    /** Enviada ao setor de guias do FUSEX, aguardando analise. */
+
+    //Pré-guia enviada e aguardando análise.
+
     PENDENTE,
-    /** Aprovada pelo funcionario do FUSEX (a Guia pode ser gerada). */
-    APROVADA,
-    /** Recusada pelo funcionario do FUSEX. */
-    REJEITADA
+
+    //Pré-guia em processo de análise.
+
+    EM_ANALISE,
+
+
+    //Pré-guia aprovada.
+
+    APROVADA
 }
