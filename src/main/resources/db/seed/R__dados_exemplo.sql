@@ -34,3 +34,9 @@ SELECT o.id, p.id FROM ocs o, procedimento_exame p
 WHERE o.contrato_num = 'EXEMPLO-002'
   AND p.codigo_tuss = '40304361'
   AND NOT EXISTS (SELECT 1 FROM ocs_procedimento x WHERE x.ocs_id = o.id AND x.procedimento_id = p.id);
+
+-- Beneficiario de exemplo, so para testar POST /pre-guias sem precisar de cadastro.
+-- cpf/precCp SEM formatacao (so digitos) - e o formato que o backend espera.
+INSERT INTO beneficiario (cpf, telefone, idade, prec_cp, nome, senha)
+SELECT '12345678900', '(12) 98765-4321', 58, '45872213300', 'Antonio Carlos Ferreira', 'troque-depois' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM beneficiario WHERE cpf = '12345678900');
