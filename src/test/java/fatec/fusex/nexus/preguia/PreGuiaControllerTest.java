@@ -1,7 +1,6 @@
 package fatec.fusex.nexus.preguia;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -10,7 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,11 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.preguia.dto.PreGuiaResponse;
 
-/**
- * Slice test da camada web (SCRUM-30): confere que o endpoint aceita multipart
- * no formato que o front manda e devolve 201 com o corpo esperado.
- * Regra de negocio em si e testada em PreGuiaServiceTest.
- */
 @WebMvcTest(PreGuiaController.class)
 class PreGuiaControllerTest {
 
@@ -43,10 +36,9 @@ class PreGuiaControllerTest {
                 "PENDENTE",
                 LocalDateTime.of(2026, 9, 24, 10, 0),
                 "encaminhamentos/gerado.pdf",
-                10L,
-                List.of(1L));
+                10L);
 
-        when(preGuiaService.criar(anyString(), anyString(), anyLong(), anyList(), any()))
+        when(preGuiaService.criar(anyString(), anyString(), anyLong(), any()))
                 .thenReturn(resposta);
 
         MockMultipartFile arquivo =
@@ -56,8 +48,7 @@ class PreGuiaControllerTest {
                         .file(arquivo)
                         .param("cpf", "12345678901")
                         .param("precCp", "0001112223")
-                        .param("ocsId", "10")
-                        .param("procedimentoIds", "1", "2"))
+                        .param("ocsId", "10"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("PENDENTE"))
                 .andExpect(jsonPath("$.encaminhamentoUrl").value("encaminhamentos/gerado.pdf"))
@@ -66,7 +57,7 @@ class PreGuiaControllerTest {
 
     @Test
     void criar_quandoServiceRecusa_devolve400() throws Exception {
-        when(preGuiaService.criar(anyString(), anyString(), anyLong(), anyList(), any()))
+        when(preGuiaService.criar(anyString(), anyString(), anyLong(), any()))
                 .thenThrow(new RegraDeNegocioException("E necessario anexar o encaminhamento medico"));
 
         MockMultipartFile arquivo =
@@ -76,8 +67,7 @@ class PreGuiaControllerTest {
                         .file(arquivo)
                         .param("cpf", "12345678901")
                         .param("precCp", "0001112223")
-                        .param("ocsId", "10")
-                        .param("procedimentoIds", "1"))
+                        .param("ocsId", "10"))
                 .andExpect(status().isBadRequest());
     }
 
@@ -89,9 +79,7 @@ class PreGuiaControllerTest {
         mockMvc.perform(multipart("/pre-guias")
                         .file(arquivo)
                         .param("cpf", "12345678901")
-                        .param("precCp", "0001112223")
-                        .param("procedimentoIds", "1"))
-                // sem .param("ocsId", ...)
+                        .param("precCp", "0001112223"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detalhes[0]").value(org.hamcrest.Matchers.containsString("ocsId")));
     }
