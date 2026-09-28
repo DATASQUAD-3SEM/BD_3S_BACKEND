@@ -15,12 +15,6 @@ import jakarta.validation.Valid;
 
 /**
  * SCRUM-30: POST /pre-guias multipart/form-data.
- *
- * Contrato ja usado pelo front (docs/CONTRATO_API.md e features/preguia/api.ts):
- * cpf, precCp (texto), ocsId (numero), procedimentoIds (numero, repetido - um por
- * exame) e arquivo (PDF/JPG/PNG, ate 10MB), ligados aqui via CriarPreGuiaRequest
- * (@ModelAttribute). O antigo /encaminhamentos (SCRUM-18) ja foi removido do
- * develop - o arquivo agora so entra por aqui.
  */
 @RestController
 @RequestMapping("/pre-guias")
@@ -38,7 +32,6 @@ public class PreGuiaController {
                 request.getCpf(),
                 request.getPrecCp(),
                 request.getOcsId(),
-                request.getProcedimentoIds(),
                 request.getArquivo());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
