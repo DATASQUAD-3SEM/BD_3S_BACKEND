@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.when;
 
 import java.util.Optional;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,5 +48,22 @@ class OcsServiceTest {
         assertThatThrownBy(() -> ocsService.buscarPorId(99L))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
                 .hasMessageContaining("99");
+    }
+
+    @Test
+    void listar_deveRetornarTodasAsOcs() {
+        Ocs primeira = new Ocs();
+        primeira.setNome("Laboratorio X");
+
+        Ocs segunda = new Ocs();
+        segunda.setNome("Hospital Y");
+
+        when(ocsRepository.findAll())
+                .thenReturn(List.of(primeira, segunda));
+
+        List<Ocs> resultado = ocsService.listar();
+
+        assertThat(resultado)
+                .containsExactly(primeira, segunda);
     }
 }
