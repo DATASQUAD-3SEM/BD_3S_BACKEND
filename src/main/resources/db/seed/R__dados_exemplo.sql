@@ -1,42 +1,95 @@
--- Dados de EXEMPLO para desenvolvimento e testes (todo mundo fica com os mesmos dados).
--- "R__" = migration repetivel: roda de novo se este arquivo mudar. Por isso so insere se ainda nao existir.
--- NAO e carregado em producao (producao usa so classpath:db/migration).
+-- =====================================================================
+-- Procedimentos (ProcedimentoExame)
+-- rol_ans: ajuste para o valor real do rol quando tiver a informacao
+-- =====================================================================
+INSERT INTO ProcedimentoExame (codigo_tuss, terminologia_procedimento, rol_ans)
+SELECT '40304361', 'Hemograma com contagem de plaquetas ou estimativa', 'NAO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ProcedimentoExame WHERE codigo_tuss = '40304361');
 
-INSERT INTO procedimento_exame (codigo_tuss, terminologia_procedimento_evento, grupo)
-SELECT '40304361', 'Hemograma com contagem de plaquetas ou estimativa', 'Exames laboratoriais' FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM procedimento_exame WHERE codigo_tuss = '40304361');
+INSERT INTO ProcedimentoExame (codigo_tuss, terminologia_procedimento, rol_ans)
+SELECT '40302040', 'Glicose', 'NAO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ProcedimentoExame WHERE codigo_tuss = '40302040');
 
-INSERT INTO procedimento_exame (codigo_tuss, terminologia_procedimento_evento, grupo)
-SELECT '40302040', 'Glicose', 'Exames laboratoriais' FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM procedimento_exame WHERE codigo_tuss = '40302040');
+INSERT INTO ProcedimentoExame (codigo_tuss, terminologia_procedimento, rol_ans)
+SELECT '40301630', 'Colesterol total', 'NAO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ProcedimentoExame WHERE codigo_tuss = '40301630');
 
-INSERT INTO procedimento_exame (codigo_tuss, terminologia_procedimento_evento, grupo)
-SELECT '40301630', 'Colesterol total', 'Exames laboratoriais' FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM procedimento_exame WHERE codigo_tuss = '40301630');
 
-INSERT INTO ocs (contrato_num, nome, tipo, inicio_vigencia, termino_vigencia, dias_para_vencimento)
-SELECT 'EXEMPLO-001', 'Laboratorio Exemplo', 'LABORATORIO', '2026-01-01', '2027-01-01', 100 FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM ocs WHERE contrato_num = 'EXEMPLO-001');
+-- =====================================================================
+-- OCS (Ocs)
+-- =====================================================================
+INSERT INTO Ocs (contrato_num, nome, tipo)
+SELECT 'EXEMPLO-001', 'Laboratorio Exemplo', 'OCS' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Ocs WHERE contrato_num = 'EXEMPLO-001');
 
-INSERT INTO ocs (contrato_num, nome, tipo, inicio_vigencia, termino_vigencia, dias_para_vencimento)
-SELECT 'EXEMPLO-002', 'Hospital Exemplo', 'HOSPITAL', '2026-01-01', '2027-06-01', 250 FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM ocs WHERE contrato_num = 'EXEMPLO-002');
+INSERT INTO Ocs (contrato_num, nome, tipo)
+SELECT 'EXEMPLO-002', 'Hospital Exemplo', 'PSA' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Ocs WHERE contrato_num = 'EXEMPLO-002');
 
 -- EXEMPLO-001 realiza os 3 exames; EXEMPLO-002 realiza so o hemograma
-INSERT INTO ocs_procedimento (ocs_id, procedimento_id)
-SELECT o.id, p.id FROM ocs o, procedimento_exame p
+INSERT INTO OcsProcedimento (ocs_id, procedimento_id)
+SELECT o.id_ocs, p.id_procedimento_exame
+FROM Ocs o, ProcedimentoExame p
 WHERE o.contrato_num = 'EXEMPLO-001'
   AND p.codigo_tuss IN ('40304361', '40302040', '40301630')
-  AND NOT EXISTS (SELECT 1 FROM ocs_procedimento x WHERE x.ocs_id = o.id AND x.procedimento_id = p.id);
+  AND NOT EXISTS (
+    SELECT 1 FROM OcsProcedimento x
+    WHERE x.ocs_id = o.id_ocs AND x.procedimento_id = p.id_procedimento_exame);
 
-INSERT INTO ocs_procedimento (ocs_id, procedimento_id)
-SELECT o.id, p.id FROM ocs o, procedimento_exame p
+INSERT INTO OcsProcedimento (ocs_id, procedimento_id)
+SELECT o.id_ocs, p.id_procedimento_exame
+FROM Ocs o, ProcedimentoExame p
 WHERE o.contrato_num = 'EXEMPLO-002'
   AND p.codigo_tuss = '40304361'
-  AND NOT EXISTS (SELECT 1 FROM ocs_procedimento x WHERE x.ocs_id = o.id AND x.procedimento_id = p.id);
+  AND NOT EXISTS (
+    SELECT 1 FROM OcsProcedimento x
+    WHERE x.ocs_id = o.id_ocs AND x.procedimento_id = p.id_procedimento_exame);
 
--- Beneficiario de exemplo, so para testar POST /pre-guias sem precisar de cadastro.
--- cpf/precCp SEM formatacao (so digitos) - e o formato que o backend espera.
-INSERT INTO beneficiario (cpf, telefone, idade, prec_cp, nome, senha)
-SELECT '12345678900', '(12) 98765-4321', 58, '45872213300', 'Antonio Carlos Ferreira', 'troque-depois' FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM beneficiario WHERE cpf = '12345678900');
+
+-- =====================================================================
+-- Contas (Usuario) e perfis
+-- Logins de CPF usam 11 digitos. Chefe e setores usam nome de usuario.
+-- =====================================================================
+
+-- Beneficiario de teste
+INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
+SELECT '52998224725', 'HASH_BCRYPT_AQUI', 'BENEFICIARIO', NULL FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '52998224725');
+
+INSERT INTO Beneficiario (usuario_id, nome, prec_cp, data_nascimento, telefone)
+SELECT u.id_usuario, 'Antonio Carlos Ferreira', '45872213300', '1968-03-15', '12987654321'
+FROM Usuario u
+WHERE u.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Beneficiario b WHERE b.usuario_id = u.id_usuario);
+
+-- Medico de teste
+INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
+SELECT '11144477735', 'HASH_BCRYPT_AQUI', 'MEDICO', NULL FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '11144477735');
+
+INSERT INTO MedicoFusex (usuario_id, nome, prec_cp, patente, crm)
+SELECT u.id_usuario, 'Carlos Eduardo Lima', '11122233344', 'Capitao', '123456-SP'
+FROM Usuario u
+WHERE u.login = '11144477735'
+  AND NOT EXISTS (SELECT 1 FROM MedicoFusex m WHERE m.usuario_id = u.id_usuario);
+
+-- Chefe do FUSEX (conta de seed: nao ha tela para criar o primeiro chefe)
+INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
+SELECT 'chefe.fusex', 'HASH_BCRYPT_AQUI', 'CHEFE_FUSEX', NULL FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'chefe.fusex');
+
+INSERT INTO ChefeFusex (usuario_id, nome, patente)
+SELECT u.id_usuario, 'Maria Souza', 'Coronel'
+FROM Usuario u
+WHERE u.login = 'chefe.fusex'
+  AND NOT EXISTS (SELECT 1 FROM ChefeFusex c WHERE c.usuario_id = u.id_usuario);
+
+-- Setor de Guias (conta de setor: sem pessoa atribuida, sem assinatura)
+INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
+SELECT 'setor.guias', 'HASH_BCRYPT_AQUI', 'SETOR_GUIAS', NULL FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'setor.guias');
+
+-- Recepcao (conta de setor: sem pessoa atribuida, sem assinatura)
+INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
+SELECT 'recepcao', 'HASH_BCRYPT_AQUI', 'RECEPCAO', NULL FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'recepcao');
