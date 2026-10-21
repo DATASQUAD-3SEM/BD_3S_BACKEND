@@ -47,11 +47,11 @@ ALTER TABLE Beneficiario
     ADD CONSTRAINT ck_beneficiario_nome CHECK (CHAR_LENGTH(TRIM(nome)) > 0);
 
 ALTER TABLE Beneficiario
-    MODIFY prec_cp CHAR(11) NOT NULL,
+    MODIFY prec_cp VARCHAR(11) NOT NULL,
     ADD CONSTRAINT ck_beneficiario_prec_cp CHECK (REGEXP_LIKE(prec_cp, '^[0-9]{11}$'));
 
 ALTER TABLE Beneficiario
-    MODIFY telefone CHAR(11) NOT NULL,
+    MODIFY telefone VARCHAR(11) NOT NULL,
     ADD CONSTRAINT ck_beneficiario_telefone CHECK (REGEXP_LIKE(telefone, '^[1-9][1-9]9[0-9]{8}$'));
 
 ALTER TABLE Beneficiario ADD COLUMN data_nascimento DATE NOT NULL;
@@ -67,7 +67,7 @@ ALTER TABLE pre_guia ADD CONSTRAINT fk_preguia_beneficiario
 CREATE TABLE MedicoFusex (
     usuario_id BIGINT       NOT NULL,
     nome       VARCHAR(150) NOT NULL,
-    prec_cp    CHAR(11)     NOT NULL,
+    prec_cp    VARCHAR(11)     NOT NULL,
     patente    VARCHAR(50)  NOT NULL,
     crm        VARCHAR(20)  NOT NULL,
 
@@ -127,7 +127,7 @@ ALTER TABLE ProcedimentoExame
 ALTER TABLE ProcedimentoExame
     MODIFY codigo_tuss VARCHAR(10) NOT NULL,
     MODIFY subgrupo VARCHAR(150),
-    MODIFY rol_ans CHAR(3) NOT NULL,
+    MODIFY rol_ans VARCHAR(3) NOT NULL,
     ADD CONSTRAINT uk_procedimentoexame_codigo_tuss UNIQUE (codigo_tuss),
     ADD CONSTRAINT ck_procedimentoexame_rol_ans CHECK (rol_ans IN ('SIM', 'NAO'));
 
