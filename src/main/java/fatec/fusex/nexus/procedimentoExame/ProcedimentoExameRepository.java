@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.procedimento;
+package fatec.fusex.nexus.procedimentoExame;
 
 import java.util.List;
 
