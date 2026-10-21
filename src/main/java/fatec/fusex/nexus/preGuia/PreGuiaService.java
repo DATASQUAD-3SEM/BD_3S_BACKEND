@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.preguia;
+package fatec.fusex.nexus.preGuia;
 
 import java.util.List;
 
@@ -13,12 +13,9 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsService;
-import fatec.fusex.nexus.preguia.dto.PreGuiaResponse;
+import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
-/**
- * SCRUM-22 - Validacao do vinculo PreGuia <-> Beneficiario.
- * SCRUM-30 - Criacao da pre-guia (POST /pre-guias multipart).
- */
+
 @Service
 public class PreGuiaService {
 
@@ -41,14 +38,14 @@ public class PreGuiaService {
         if (!beneficiarioRepository.existsById(beneficiarioId)) {
             throw new RecursoNaoEncontradoException("Beneficiario nao encontrado: id " + beneficiarioId);
         }
-        return preGuiaRepository.findByBeneficiarioId(beneficiarioId);
+        return preGuiaRepository.findByBeneficiarioUsuarioId(beneficiarioId);
     }
 
     public PreGuia buscarDoBeneficiario(Long preGuiaId, Long beneficiarioId) {
         PreGuia preGuia = preGuiaRepository.findById(preGuiaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + preGuiaId));
 
-        if (!preGuia.getBeneficiario().getId().equals(beneficiarioId)) {
+        if (!preGuia.getBeneficiario().getUsuarioId().equals(beneficiarioId)) {
             throw new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + preGuiaId);
         }
         return preGuia;
@@ -67,7 +64,6 @@ public class PreGuiaService {
             preGuia.setBeneficiario(beneficiario);
             preGuia.setOcs(ocs);
             preGuia.setEncaminhamentoUrl(encaminhamentoUrl);
-            preGuia.confirmarEnvio();
 
             preGuiaRepository.save(preGuia);
 

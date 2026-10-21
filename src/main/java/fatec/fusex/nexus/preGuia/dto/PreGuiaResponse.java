@@ -1,12 +1,12 @@
-package fatec.fusex.nexus.preguia.dto;
+package fatec.fusex.nexus.preGuia.dto;
 
 import java.time.LocalDateTime;
 
-import fatec.fusex.nexus.preguia.PreGuia;
+import fatec.fusex.nexus.preGuia.PreGuia;
 
 /**
- * Nunca devolvemos a entidade PreGuia direto (ARQUITETURA.md).
- * IMPORTANTE: monte este DTO AINDA DENTRO do metodo @Transactional do Service.
+ * DTO de saida da pre-guia. Monte este DTO dentro do metodo @Transactional do Service,
+ * para nao acessar associacoes LAZY fora da transacao.
  */
 public record PreGuiaResponse(
         Long id,
@@ -17,10 +17,10 @@ public record PreGuiaResponse(
 
     public static PreGuiaResponse de(PreGuia preGuia) {
         return new PreGuiaResponse(
-                preGuia.getId(),
+                preGuia.getIdPreGuia(),
                 preGuia.getStatus().name(),
-                preGuia.getDataEmissao(),
+                preGuia.getDataCriacao(),
                 preGuia.getEncaminhamentoUrl(),
-                preGuia.getOcs().getId());
+                preGuia.getOcs().getIdOcs());
     }
 }

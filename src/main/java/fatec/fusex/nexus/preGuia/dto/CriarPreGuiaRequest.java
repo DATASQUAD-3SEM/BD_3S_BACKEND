@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.preguia.dto;
+package fatec.fusex.nexus.preGuia.dto;
 
 import org.springframework.web.multipart.MultipartFile;
 

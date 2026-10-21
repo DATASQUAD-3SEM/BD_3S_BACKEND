@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.preguia;
+package fatec.fusex.nexus.preGuia;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -18,7 +18,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
-import fatec.fusex.nexus.preguia.dto.PreGuiaResponse;
+import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
 @WebMvcTest(PreGuiaController.class)
 class PreGuiaControllerTest {

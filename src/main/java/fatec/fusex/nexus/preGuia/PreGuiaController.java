@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.preguia;
+package fatec.fusex.nexus.preGuia;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -8,8 +8,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import fatec.fusex.nexus.preguia.dto.CriarPreGuiaRequest;
-import fatec.fusex.nexus.preguia.dto.PreGuiaResponse;
+import fatec.fusex.nexus.preGuia.dto.CriarPreGuiaRequest;
+import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
 import jakarta.validation.Valid;
 

@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.preguia;
+package fatec.fusex.nexus.preGuia;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -16,7 +16,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
@@ -25,7 +24,7 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsService;
-import fatec.fusex.nexus.preguia.dto.PreGuiaResponse;
+import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
 @ExtendWith(MockitoExtension.class)
 class PreGuiaServiceTest {
@@ -38,9 +37,13 @@ class PreGuiaServiceTest {
     @InjectMocks
     private PreGuiaService preGuiaService;
 
-    private Beneficiario beneficiarioComId(Long id) {
+    private final MockMultipartFile arquivo =
+            new MockMultipartFile("arquivo", "encaminhamento.pdf", "application/pdf", "conteudo".getBytes());
+
+    private Beneficiario beneficiarioComId(Long usuarioId) {
         Beneficiario b = new Beneficiario();
-        ReflectionTestUtils.setField(b, "id", id);
+        b.setUsuarioId(usuarioId);
+        b.setPrecCp("0001112223");
         return b;
     }
 
@@ -52,7 +55,7 @@ class PreGuiaServiceTest {
 
     private Ocs ocsComId(Long id) {
         Ocs ocs = new Ocs();
-        ReflectionTestUtils.setField(ocs, "id", id);
+        ocs.setIdOcs(id);
         return ocs;
     }
 
@@ -62,7 +65,7 @@ class PreGuiaServiceTest {
         PreGuia pg = preGuiaDo(b);
 
         when(beneficiarioRepository.existsById(1L)).thenReturn(true);
-        when(preGuiaRepository.findByBeneficiarioId(1L)).thenReturn(List.of(pg));
+        when(preGuiaRepository.findByBeneficiarioUsuarioId(1L)).thenReturn(List.of(pg));
 
         List<PreGuia> resultado = preGuiaService.listarDoBeneficiario(1L);
 
@@ -87,7 +90,7 @@ class PreGuiaServiceTest {
 
         PreGuia resultado = preGuiaService.buscarDoBeneficiario(10L, 1L);
 
-        assertThat(resultado.getBeneficiario().getId()).isEqualTo(1L);
+        assertThat(resultado.getBeneficiario().getUsuarioId()).isEqualTo(1L);
     }
 
     @Test
@@ -110,14 +113,9 @@ class PreGuiaServiceTest {
                 .isInstanceOf(RecursoNaoEncontradoException.class);
     }
 
-    private final MockMultipartFile arquivo =
-            new MockMultipartFile("arquivo", "encaminhamento.pdf", "application/pdf", "conteudo".getBytes());
-
     @Test
     void criar_quandoTudoValido_criaPreGuiaPendente() {
         Beneficiario beneficiario = beneficiarioComId(1L);
-        beneficiario.setCpf("12345678901");
-        beneficiario.setPrecCp("0001112223");
         Ocs ocs = ocsComId(10L);
 
         when(ocsService.buscarPorId(10L)).thenReturn(ocs);
@@ -152,8 +150,6 @@ class PreGuiaServiceTest {
     @Test
     void criar_quandoSaveFalha_removeArquivoSalvo() {
         Beneficiario beneficiario = beneficiarioComId(1L);
-        beneficiario.setCpf("12345678901");
-        beneficiario.setPrecCp("0001112223");
         Ocs ocs = ocsComId(10L);
 
         when(ocsService.buscarPorId(10L)).thenReturn(ocs);
@@ -181,8 +177,6 @@ class PreGuiaServiceTest {
     @Test
     void criar_quandoPrecCpNaoConfereComOCpf_lancaRegraDeNegocio() {
         Beneficiario beneficiario = beneficiarioComId(1L);
-        beneficiario.setCpf("12345678901");
-        beneficiario.setPrecCp("0001112223");
         Ocs ocs = ocsComId(10L);
 
         when(ocsService.buscarPorId(10L)).thenReturn(ocs);
