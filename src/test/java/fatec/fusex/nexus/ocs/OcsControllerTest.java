@@ -39,12 +39,12 @@ class OcsControllerTest {
         Ocs primeira = new Ocs();
         primeira.setNome("Laboratorio X");
         primeira.setContratoNum("CTR-001");
-        primeira.setTipo("Laboratorio");
+        primeira.setTipo(OcsTipo.OCS);
 
         Ocs segunda = new Ocs();
         segunda.setNome("Hospital Y");
         segunda.setContratoNum("CTR-002");
-        segunda.setTipo("Hospital");
+        segunda.setTipo(OcsTipo.PSA);
 
         when(ocsService.listar()).thenReturn(List.of(primeira, segunda));
 
