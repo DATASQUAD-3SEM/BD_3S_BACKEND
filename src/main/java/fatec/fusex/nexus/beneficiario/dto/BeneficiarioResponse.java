@@ -24,7 +24,7 @@ public record BeneficiarioResponse(
                 b.getPrecCp(),
                 b.getTelefone(),
                 b.getDataNascimento(),
-                u.getPerfil().name(),
+                BeneficiarioMedicoResponse.GRUPO,
                 u.getAssinaturaUrl() != null
         );
     }
