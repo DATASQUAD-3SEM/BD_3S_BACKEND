@@ -1,6 +1,18 @@
 package fatec.fusex.nexus.beneficiario;
 
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import fatec.fusex.nexus.beneficiario.dto.BeneficiarioResponse;
+import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
+import fatec.fusex.nexus.usuario.PerfilUsuario;
+import fatec.fusex.nexus.usuario.Usuario;
+import fatec.fusex.nexus.usuario.UsuarioRepository;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
 import org.springframework.stereotype.Service;
@@ -12,9 +24,15 @@ import java.util.List;
 public class BeneficiarioService {
 
     private final BeneficiarioRepository beneficiarioRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final SimulacaoLogin simulacaoLogin;
 
-    public BeneficiarioService(BeneficiarioRepository beneficiarioRepository) {
+    public BeneficiarioService(BeneficiarioRepository beneficiarioRepository,
+                               UsuarioRepository usuarioRepository,
+                               SimulacaoLogin simulacaoLogin) {
         this.beneficiarioRepository = beneficiarioRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.simulacaoLogin = simulacaoLogin;
     }
 
     public List<Beneficiario> listar() {
@@ -40,8 +58,26 @@ public class BeneficiarioService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
     }
 
-    public Beneficiario buscarPorCpf(String cpf){
+    public Beneficiario buscarPorCpf(String cpf) {
         return beneficiarioRepository.findByCpf(cpf)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
+    }
+
+    @Transactional(readOnly = true)
+    public BeneficiarioResponse buscarLogado() {
+        String login = simulacaoLogin.loginAtual();
+
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
+
+        if (usuario.getPerfil() != PerfilUsuario.BENEFICIARIO) {
+            throw new AcessoNegadoException(
+                    "Acesso negado: este endpoint e exclusivo do perfil BENEFICIARIO");
+        }
+
+        Beneficiario beneficiario = beneficiarioRepository.findById(usuario.getIdUsuario())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
+
+        return BeneficiarioResponse.de(beneficiario);
     }
 }
