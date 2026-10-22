@@ -10,7 +10,11 @@ final class PrecCp {
     private PrecCp() {
     }
 
-
+    /**
+     * @return os 11 digitos do Prec CP, sem mascara
+     * @throws RegraDeNegocioException (400) se vazio ou fora do formato.
+     *         A mensagem nao repete o valor recebido.
+     */
     static String normalizar(String informado) {
         if (informado == null || informado.isBlank()) {
             throw new RegraDeNegocioException("Informe o Prec CP");
