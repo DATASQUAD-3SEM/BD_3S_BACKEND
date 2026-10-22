@@ -1,21 +1,14 @@
 package fatec.fusex.nexus.ocs;
 
-import java.util.List;
-
+import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.ocs.dto.OcsBuscaResponse;
+import fatec.fusex.nexus.usuario.PerfilUsuario;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import fatec.fusex.nexus.ocs.dto.OcsResponse;
-
-/**
- * SCRUM-29b: endpoint de consulta de OCS. A decisao de fonte dos dados
- * esta em docs/SPIKE_OCS.md (SCRUM-29a): cadastro interno no banco.
- *
- * Contrato (docs/CONTRATO_API.md):
- *   GET /ocs -> Ocs[]
- * O front chama /api/ocs (o http.ts coloca o prefixo /api; o Vite remove).
- */
 @RestController
 @RequestMapping("/ocs")
 public class OcsController {
@@ -27,9 +20,15 @@ public class OcsController {
     }
 
     @GetMapping
-    public List<OcsResponse> listar() {
-        return ocsService.listar().stream()
-                .map(OcsResponse::de)
-                .toList();
+    public OcsBuscaResponse buscar(
+            @RequestParam(required = false) String busca,
+            HttpServletRequest requisicao) {
+
+        // Mantém o padrão de segurança do MedicoBeneficiarioController
+        if (!requisicao.isUserInRole(PerfilUsuario.MEDICO.name())) {
+            throw new AcessoNegadoException("Acesso restrito a medicos");
+        }
+
+        return ocsService.buscar(busca);
     }
 }
