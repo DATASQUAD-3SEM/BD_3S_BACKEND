@@ -1,11 +1,12 @@
-package fatec.fusex.nexus.beneficiario;
+package fatec.fusex.nexus.medicoFusex;
 
+import fatec.fusex.nexus.beneficiario.BeneficiarioService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import fatec.fusex.nexus.beneficiario.dto.BeneficiarioMedicoResponse;
+import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 

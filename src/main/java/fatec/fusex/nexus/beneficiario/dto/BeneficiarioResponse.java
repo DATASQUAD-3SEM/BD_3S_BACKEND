@@ -2,6 +2,7 @@ package fatec.fusex.nexus.beneficiario.dto;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 
+import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 import fatec.fusex.nexus.usuario.Usuario;
 
 import java.time.LocalDate;
