@@ -12,6 +12,7 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import jakarta.servlet.http.HttpServletRequest;
 
 
+//T2-BE1: GET /medicos/beneficiarios?precCp={valor}
 @RestController
 @RequestMapping("/medicos/beneficiarios")
 public class MedicoBeneficiarioController {
@@ -30,7 +31,7 @@ public class MedicoBeneficiarioController {
 
         // O perfil e checado ANTES de validar/buscar: quem nao e medico nao descobre se o Prec CP existe.
         if (!requisicao.isUserInRole(PerfilUsuario.MEDICO.name())) {
-            throw new AcessoNegadoException("Acesso restrito a medicos");
+           throw new AcessoNegadoException("Acesso restrito a medicos");
         }
         return BeneficiarioMedicoResponse.de(beneficiarioService.buscarAtivoPorPrecCp(precCp));
     }
