@@ -1,6 +1,8 @@
 package fatec.fusex.nexus.ocs;
 
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -17,6 +19,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
+import fatec.fusex.nexus.ocs.dto.OcsBuscaResponse;
+import fatec.fusex.nexus.ocs.dto.OcsResponse;
 
 class OcsControllerTest {
 
@@ -35,34 +39,50 @@ class OcsControllerTest {
     }
 
     @Test
-    void listar_deveRetornarListaDeOcs() throws Exception {
-        Ocs primeira = new Ocs();
-        primeira.setNome("Laboratorio X");
-        primeira.setContratoNum("CTR-001");
-        primeira.setTipo(OcsTipo.OCS);
+    void buscar_semTermo_deveRetornarListaInicial() throws Exception {
+        OcsResponse primeira = new OcsResponse(1L, "CTR-001", "Laboratorio X", "OCS");
+        OcsResponse segunda = new OcsResponse(2L, "CTR-002", "Hospital Y", "PSA");
 
-        Ocs segunda = new Ocs();
-        segunda.setNome("Hospital Y");
-        segunda.setContratoNum("CTR-002");
-        segunda.setTipo(OcsTipo.PSA);
+        when(ocsService.buscar(isNull())).thenReturn(new OcsBuscaResponse(List.of(primeira, segunda), 2L));
 
-        when(ocsService.listar()).thenReturn(List.of(primeira, segunda));
-
-        mockMvc.perform(get("/ocs"))
+        // AQUI: usamos .addUserRole("MEDICO") para simular o perfil do usuário logado
+        mockMvc.perform(get("/ocs")
+                        .with(request -> { request.addUserRole("MEDICO"); return request; }))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].nome").value("Laboratorio X"))
-                .andExpect(jsonPath("$[1].nome").value("Hospital Y"));
+                .andExpect(jsonPath("$.total").value(2))
+                .andExpect(jsonPath("$.resultados", hasSize(2)))
+                .andExpect(jsonPath("$.resultados[0].nome").value("Laboratorio X"))
+                .andExpect(jsonPath("$.resultados[1].nome").value("Hospital Y"));
 
-        verify(ocsService).listar();
+        verify(ocsService).buscar(isNull());
     }
 
     @Test
-    void listar_quandoNaoExistemOcs_deveRetornarListaVazia() throws Exception {
-        when(ocsService.listar()).thenReturn(List.of());
+    void buscar_comTermo_deveFiltrarPeloParametro() throws Exception {
+        OcsResponse primeira = new OcsResponse(1L, "CTR-001", "Laboratorio X", "OCS");
 
-        mockMvc.perform(get("/ocs"))
+        when(ocsService.buscar("lab")).thenReturn(new OcsBuscaResponse(List.of(primeira), 1L));
+
+        mockMvc.perform(get("/ocs")
+                        .param("busca", "lab")
+                        .with(request -> { request.addUserRole("MEDICO"); return request; }))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(0)));
+                .andExpect(jsonPath("$.total").value(1))
+                .andExpect(jsonPath("$.resultados", hasSize(1)))
+                .andExpect(jsonPath("$.resultados[0].nome").value("Laboratorio X"));
+
+        verify(ocsService).buscar("lab");
+    }
+
+    @Test
+    void buscar_quandoNaoEncontra_deveRetornarListaVazia() throws Exception {
+        when(ocsService.buscar(anyString())).thenReturn(new OcsBuscaResponse(List.of(), 0L));
+
+        mockMvc.perform(get("/ocs")
+                        .param("busca", "inexistente")
+                        .with(request -> { request.addUserRole("MEDICO"); return request; }))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(0))
+                .andExpect(jsonPath("$.resultados", hasSize(0)));
     }
 }
