@@ -7,6 +7,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.context.annotation.Import;
+import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 
 import java.time.LocalDateTime;
 
@@ -21,6 +23,7 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
 @WebMvcTest(PreGuiaController.class)
+@Import(SimulacaoLogin.class)
 class PreGuiaControllerTest {
 
     @Autowired
