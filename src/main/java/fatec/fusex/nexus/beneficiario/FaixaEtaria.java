@@ -1,6 +1,5 @@
 package fatec.fusex.nexus.beneficiario;
 
-
 public enum FaixaEtaria {
 
     MENOR_DE_18("Menor de 18", 0, 17),
