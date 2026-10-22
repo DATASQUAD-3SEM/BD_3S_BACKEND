@@ -26,6 +26,15 @@ class ApiExceptionHandlerTest {
     }
 
     @Test
+    void acessoNegado_devolve403ComMensagem() {
+        ResponseEntity<ErrorResponse> resposta = handler.acessoNegado(new AcessoNegadoException("so medico"));
+
+        assertThat(resposta.getStatusCode().value()).isEqualTo(403);
+        assertThat(resposta.getBody()).isNotNull();
+        assertThat(resposta.getBody().mensagem()).isEqualTo("so medico");
+    }
+
+    @Test
     void conflito_devolve409() {
         ResponseEntity<ErrorResponse> resposta = handler.conflito(new ConflitoException("CPF ja cadastrado"));
 
