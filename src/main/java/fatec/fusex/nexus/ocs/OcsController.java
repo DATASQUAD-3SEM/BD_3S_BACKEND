@@ -1,6 +1,6 @@
 package fatec.fusex.nexus.ocs;
 
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.security.ContextoAutenticacao;
 import fatec.fusex.nexus.ocs.dto.OcsBuscaResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,11 +24,9 @@ public class OcsController {
             @RequestParam(required = false) String busca,
             HttpServletRequest requisicao) {
 
-        // Mantém o padrão de segurança do MedicoBeneficiarioController
-        if (!requisicao.isUserInRole(PerfilUsuario.MEDICO.name())) {
-            throw new AcessoNegadoException("Acesso restrito a medicos");
-        }
+        ContextoAutenticacao.exigirPerfil(requisicao, PerfilUsuario.MEDICO);
 
         return ocsService.buscar(busca);
+
     }
 }
