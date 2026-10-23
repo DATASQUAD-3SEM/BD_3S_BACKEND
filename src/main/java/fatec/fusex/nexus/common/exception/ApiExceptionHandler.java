@@ -31,6 +31,11 @@ public class ApiExceptionHandler {
         return montar(409, "Conflict", ex.getMessage(), List.of());
     }
 
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ErrorResponse> acessoNegado(AcessoNegadoException ex) {
+        return montar(403, "Forbidden", ex.getMessage(), List.of());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> validacao(MethodArgumentNotValidException ex) {
         List<String> detalhes = ex.getBindingResult().getFieldErrors().stream()
