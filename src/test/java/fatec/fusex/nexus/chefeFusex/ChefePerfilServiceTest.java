@@ -21,6 +21,7 @@ import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 @ExtendWith(MockitoExtension.class)
 class ChefePerfilServiceTest {
@@ -37,6 +38,9 @@ class ChefePerfilServiceTest {
     @Mock
     private SimulacaoLogin simulacaoLogin;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     private ChefePerfilService service;
 
     @BeforeEach
@@ -44,7 +48,8 @@ class ChefePerfilServiceTest {
         service = new ChefePerfilService(
                 chefeFusexRepository,
                 usuarioRepository,
-                simulacaoLogin);
+                simulacaoLogin,
+                passwordEncoder);
     }
 
     @Test
