@@ -13,6 +13,7 @@ import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
+import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
 @Service
 public class BeneficiarioService {
@@ -20,6 +21,11 @@ public class BeneficiarioService {
     private final BeneficiarioRepository beneficiarioRepository;
     private final UsuarioRepository usuarioRepository;
     private final SimulacaoLogin simulacaoLogin;
+
+    private static final String PADRAO_TELEFONE =
+            "(?:[1-9][1-9]9[0-9]{8}"
+                    + "|\\([1-9][1-9]\\) ?9[0-9]{4}-?[0-9]{4}"
+                    + "|[1-9][1-9] 9[0-9]{4}-?[0-9]{4})";
 
     public BeneficiarioService(BeneficiarioRepository beneficiarioRepository,
                                UsuarioRepository usuarioRepository,
@@ -72,5 +78,37 @@ public class BeneficiarioService {
 
         return beneficiarioRepository.findById(usuario.getIdUsuario())
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
+    }
+
+    @Transactional
+    public String atualizarTelefoneLogado(String telefoneInformado) {
+        Beneficiario beneficiario = beneficiarioLogado();
+
+        String telefone = normalizarTelefone(telefoneInformado);
+
+        beneficiario.setTelefone(telefone);
+        beneficiarioRepository.save(beneficiario);
+
+        return telefone;
+    }
+
+    private String normalizarTelefone(String telefoneInformado) {
+        if (telefoneInformado == null || telefoneInformado.isBlank()) {
+            throw new DadosInvalidosException(
+                    "telefone",
+                    "Informe o telefone."
+            );
+        }
+
+        String telefone = telefoneInformado.trim();
+
+        if (!telefone.matches(PADRAO_TELEFONE)) {
+            throw new DadosInvalidosException(
+                    "telefone",
+                    "Informe um telefone celular valido com DDD."
+            );
+        }
+
+        return telefone.replaceAll("\\D", "");
     }
 }

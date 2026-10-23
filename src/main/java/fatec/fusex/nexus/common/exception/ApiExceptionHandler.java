@@ -51,6 +51,18 @@ public class ApiExceptionHandler {
         return montar(413, "Payload Too Large", "Arquivo maior que o limite permitido (10MB)", List.of());
     }
 
+    @ExceptionHandler(DadosInvalidosException.class)
+    public ResponseEntity<ErrorResponse> dadosInvalidos(
+            DadosInvalidosException ex) {
+
+        return montar(
+                422,
+                "Unprocessable Entity",
+                "Dados invalidos",
+                List.of(ex.getCampo() + ": " + ex.getMessage())
+        );
+    }
+
     private ResponseEntity<ErrorResponse> montar(int status, String erro, String mensagem, List<String> detalhes) {
         ErrorResponse corpo = new ErrorResponse(status, erro, mensagem, detalhes, LocalDateTime.now());
         return ResponseEntity.status(status).body(corpo);
