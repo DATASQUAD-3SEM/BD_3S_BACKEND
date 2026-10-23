@@ -63,6 +63,23 @@ public class ApiExceptionHandler {
         );
     }
 
+    @ExceptionHandler(MuitasTentativasException.class)
+    public ResponseEntity<ErrorResponse> muitasTentativas(
+            MuitasTentativasException ex) {
+
+        ErrorResponse corpo = new ErrorResponse(
+                429,
+                "Too Many Requests",
+                ex.getMessage(),
+                List.of(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(429)
+                .header("Retry-After", "900")
+                .body(corpo);
+    }
+
     private ResponseEntity<ErrorResponse> montar(int status, String erro, String mensagem, List<String> detalhes) {
         ErrorResponse corpo = new ErrorResponse(status, erro, mensagem, detalhes, LocalDateTime.now());
         return ResponseEntity.status(status).body(corpo);
