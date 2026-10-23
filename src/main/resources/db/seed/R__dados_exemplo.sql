@@ -49,11 +49,12 @@ WHERE o.contrato_num = 'EXEMPLO-002'
 -- =====================================================================
 -- Contas (Usuario) e perfis
 -- Logins de CPF usam 11 digitos. Chefe e setores usam nome de usuario.
+-- Senha de todas as contas de exemplo: senha123
 -- =====================================================================
 
 -- Beneficiario de teste
 INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT '52998224725', 'HASH_BCRYPT_AQUI', 'BENEFICIARIO', NULL FROM DUAL
+SELECT '52998224725', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'BENEFICIARIO', NULL FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '52998224725');
 
 INSERT INTO Beneficiario (usuario_id, nome, prec_cp, data_nascimento, telefone)
@@ -64,7 +65,7 @@ WHERE u.login = '52998224725'
 
 -- Medico de teste
 INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT '11144477735', 'HASH_BCRYPT_AQUI', 'MEDICO', NULL FROM DUAL
+SELECT '11144477735', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'MEDICO', NULL FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '11144477735');
 
 INSERT INTO MedicoFusex (usuario_id, nome, prec_cp, patente, crm)
@@ -75,7 +76,7 @@ WHERE u.login = '11144477735'
 
 -- Chefe do FUSEX (conta de seed: nao ha tela para criar o primeiro chefe)
 INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT 'chefe.fusex', 'HASH_BCRYPT_AQUI', 'CHEFE_FUSEX', NULL FROM DUAL
+SELECT 'chefe.fusex', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'CHEFE_FUSEX', NULL FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'chefe.fusex');
 
 INSERT INTO ChefeFusex (usuario_id, nome, patente)
@@ -86,10 +87,15 @@ WHERE u.login = 'chefe.fusex'
 
 -- Setor de Guias (conta de setor: sem pessoa atribuida, sem assinatura)
 INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT 'setor.guias', 'HASH_BCRYPT_AQUI', 'SETOR_GUIAS', NULL FROM DUAL
+SELECT 'setor.guias', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'SETOR_GUIAS', NULL FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'setor.guias');
 
 -- Recepcao (conta de setor: sem pessoa atribuida, sem assinatura)
 INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT 'recepcao', 'HASH_BCRYPT_AQUI', 'RECEPCAO', NULL FROM DUAL
+SELECT 'recepcao', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RECEPCAO', NULL FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'recepcao');
+
+-- Contas criadas por versoes antigas deste seed ficaram com o placeholder.
+-- Este UPDATE corrige so essas linhas; senhas ja trocadas pelos usuarios nao sao tocadas.
+UPDATE Usuario SET senha_hash = '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO'
+WHERE senha_hash = 'HASH_BCRYPT_AQUI';
