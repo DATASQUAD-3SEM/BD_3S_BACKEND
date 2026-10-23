@@ -9,10 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
-/**
- * Transforma excecoes em respostas JSON padronizadas.
- * Por isso NAO precisa de try/catch no controller: basta lancar a excecao certa.
- */
+
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -29,6 +26,11 @@ public class ApiExceptionHandler {
     @ExceptionHandler(ConflitoException.class)
     public ResponseEntity<ErrorResponse> conflito(ConflitoException ex) {
         return montar(409, "Conflict", ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(NaoAutenticadoException.class)
+    public ResponseEntity<ErrorResponse> naoAutenticado(NaoAutenticadoException ex) {
+        return montar(401, "Unauthorized", ex.getMessage(), List.of());
     }
 
     @ExceptionHandler(AcessoNegadoException.class)

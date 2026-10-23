@@ -1,6 +1,8 @@
 package fatec.fusex.nexus.beneficiario;
 
 import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -43,4 +45,14 @@ public class Beneficiario {
 
     @Column(nullable = false, length = 11)
     private String telefone;
+
+    public static final ZoneId FUSO = ZoneId.of("America/Sao_Paulo");
+
+    public static LocalDate hoje() {
+        return LocalDate.now(FUSO);
+    }
+
+    public int idadeEm(LocalDate data) {
+        return Period.between(dataNascimento, data).getYears();
+    }
 }
