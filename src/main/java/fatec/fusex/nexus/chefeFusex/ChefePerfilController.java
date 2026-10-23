@@ -3,8 +3,13 @@ package fatec.fusex.nexus.chefeFusex;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import jakarta.validation.Valid;
 
 import fatec.fusex.nexus.chefeFusex.dto.ChefePerfilResponse;
+import fatec.fusex.nexus.chefeFusex.dto.AtualizarChefeRequest;
 
 @RestController
 @RequestMapping("/chefe")
@@ -19,5 +24,12 @@ public class ChefePerfilController {
     @GetMapping("/me")
     public ChefePerfilResponse meuPerfil() {
         return chefePerfilService.buscarPerfilLogado();
+    }
+
+    @PutMapping("/me")
+    public ChefePerfilResponse atualizarMeuPerfil(
+            @Valid @RequestBody AtualizarChefeRequest request
+    ) {
+        return chefePerfilService.atualizarPerfil(request);
     }
 }
