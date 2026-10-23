@@ -19,6 +19,7 @@ import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
+import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
 @RequiredArgsConstructor
 @Service
@@ -84,6 +85,13 @@ public class ChefePerfilService {
                 && novaSenha.length() < 8) {
             throw new RegraDeNegocioException(
                     "A nova senha deve ter pelo menos 8 caracteres."
+            );
+        }
+
+        if (novoLogin.chars().anyMatch(Character::isWhitespace)) {
+            throw new DadosInvalidosException(
+                    "login",
+                    "O login não pode conter espaços."
             );
         }
 
