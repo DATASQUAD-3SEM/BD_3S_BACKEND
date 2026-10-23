@@ -85,4 +85,14 @@ class OcsControllerTest {
                 .andExpect(jsonPath("$.total").value(0))
                 .andExpect(jsonPath("$.resultados", hasSize(0)));
     }
+
+    @Test
+    void buscar_semPerfilMedico_deveRetornar403() throws Exception {
+        mockMvc.perform(get("/ocs")
+                        .param("busca", "lab")
+                        .with(request -> { request.addUserRole("BENEFICIARIO"); return request; }))
+                .andExpect(status().isForbidden());
+
+        org.mockito.Mockito.verifyNoInteractions(ocsService);
+    }
 }
