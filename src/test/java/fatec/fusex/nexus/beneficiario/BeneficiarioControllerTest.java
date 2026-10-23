@@ -31,8 +31,8 @@ class BeneficiarioControllerTest {
     @Test
     void me_quandoTudoCerto_devolve200ComDados() throws Exception {
         BeneficiarioResponse resposta = new BeneficiarioResponse(
-                "Antonio Carlos", "52998224725", "45872213300", "12987654321",
-                LocalDate.of(1968, 3, 15), "BENEFICIARIO", false);
+                "Antonio Carlos", "Exercito", "52998224725", "45872213300",
+                LocalDate.of(1968, 3, 15), 58, "51 a 60", "12987654321", false);
         when(beneficiarioService.buscarLogado()).thenReturn(resposta);
 
         mockMvc.perform(get("/beneficiarios/me")
@@ -43,15 +43,17 @@ class BeneficiarioControllerTest {
                 .andExpect(jsonPath("$.precCp").value("45872213300"))
                 .andExpect(jsonPath("$.telefone").value("12987654321"))
                 .andExpect(jsonPath("$.dataNascimento").value("1968-03-15"))
-                .andExpect(jsonPath("$.grupo").value("BENEFICIARIO"))
+                .andExpect(jsonPath("$.idade").value(58))
+                .andExpect(jsonPath("$.faixaEtaria").value("51 a 60"))
+                .andExpect(jsonPath("$.grupo").value("Exercito"))
                 .andExpect(jsonPath("$.assinaturaCadastrada").value(false));
     }
 
     @Test
     void me_quandoAssinaturaCadastrada_retornaTrue() throws Exception {
         BeneficiarioResponse resposta = new BeneficiarioResponse(
-                "Antonio Carlos", "52998224725", "45872213300", "12987654321",
-                LocalDate.of(1968, 3, 15), "BENEFICIARIO", true);
+                "Antonio Carlos", "Exercito", "52998224725", "45872213300",
+                LocalDate.of(1968, 3, 15), 58, "51 a 60", "12987654321", true);
         when(beneficiarioService.buscarLogado()).thenReturn(resposta);
 
         mockMvc.perform(get("/beneficiarios/me")

@@ -1,32 +1,44 @@
 package fatec.fusex.nexus.beneficiario.dto;
 
-import fatec.fusex.nexus.beneficiario.Beneficiario;
-
-import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
-import fatec.fusex.nexus.usuario.Usuario;
-
 import java.time.LocalDate;
+
+import fatec.fusex.nexus.beneficiario.Beneficiario;
+import fatec.fusex.nexus.beneficiario.FaixaEtaria;
+import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 
 public record BeneficiarioResponse(
         String nome,
+        String grupo,
         String cpf,
         String precCp,
-        String telefone,
         LocalDate dataNascimento,
-        String grupo,
-        Boolean assinaturaCadastrada) {
+        int idade,
+        String faixaEtaria,
+        String telefone,
+        boolean assinaturaCadastrada) {
 
     public static BeneficiarioResponse de(Beneficiario b) {
-        Usuario u = b.getUsuario();
+        return de(b, Beneficiario.hoje());
+    }
+
+    public static BeneficiarioResponse de(Beneficiario b, LocalDate hoje) {
+        int idade = b.idadeEm(hoje);
 
         return new BeneficiarioResponse(
                 b.getNome(),
-                u.getLogin(),
-                b.getPrecCp(),
-                b.getTelefone(),
-                b.getDataNascimento(),
                 BeneficiarioMedicoResponse.GRUPO,
-                u.getAssinaturaUrl() != null
-        );
+                b.getUsuario().getLogin(),
+                b.getPrecCp(),
+                b.getDataNascimento(),
+                idade,
+                FaixaEtaria.de(idade).getRotulo(),
+                b.getTelefone(),
+                b.getUsuario().getAssinaturaUrl() != null);
+    }
+
+    // CPF e telefone nao podem ir para log.
+    @Override
+    public String toString() {
+        return "BeneficiarioResponse[idade=" + idade + ", assinaturaCadastrada=" + assinaturaCadastrada + "]";
     }
 }
