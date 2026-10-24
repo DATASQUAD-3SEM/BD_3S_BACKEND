@@ -14,6 +14,11 @@ INSERT INTO ProcedimentoExame (codigo_tuss, terminologia_procedimento, rol_ans)
 SELECT '40301630', 'Colesterol total', 'NAO' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM ProcedimentoExame WHERE codigo_tuss = '40301630');
 
+-- Procedimento com acento e fora de qualquer OCS (T2-BE3: busca sem acento e no catalogo inteiro)
+INSERT INTO ProcedimentoExame (codigo_tuss, terminologia_procedimento, rol_ans)
+SELECT '40301150', 'Ácido úrico', 'NAO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM ProcedimentoExame WHERE codigo_tuss = '40301150');
+
 
 -- =====================================================================
 -- OCS (Ocs)
