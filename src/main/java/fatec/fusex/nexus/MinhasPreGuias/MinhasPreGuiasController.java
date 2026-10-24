@@ -1,9 +1,17 @@
 package fatec.fusex.nexus.MinhasPreGuias;
 
+import fatec.fusex.nexus.MinhasPreGuias.dto.GuiaPdf;
 import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
+
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -22,5 +30,24 @@ public class MinhasPreGuiasController {
     public ResponseEntity<List<MinhaPreGuiaResponse>> listar() {
         List<MinhaPreGuiaResponse> response = minhasPreGuiasService.listar();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/guia/pdf")
+    public ResponseEntity<Resource> baixarGuiaPdf(
+            @PathVariable Long id,
+            @RequestParam(required = false) String modo) {
+
+        GuiaPdf pdf = minhasPreGuiasService.baixarGuiaPdf(id, modo);
+
+        ContentDisposition disposition = (pdf.inline()
+                ? ContentDisposition.inline()
+                : ContentDisposition.attachment())
+                .filename(pdf.filename())
+                .build();
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(pdf.resource());
     }
 }
