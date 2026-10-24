@@ -36,6 +36,13 @@ public class PreGuia {
     @Column(name = "id_pre_guia")
     private Long idPreGuia;
 
+    @Column(length = 20, unique = true)
+    private String numero;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private OrigemPreGuia origem = OrigemPreGuia.BENEFICIARIO;
+
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(nullable = false, length = 12)
@@ -44,8 +51,23 @@ public class PreGuia {
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao = LocalDateTime.now();
 
+    @Column(columnDefinition = "TEXT")
+    private String observacao;
+
+    @Column(name = "data_registro_observacao")
+    private LocalDateTime dataRegistroObservacao;
+
+    @Column(name = "encaminhamento_nome")
+    private String encaminhamentoNome;
+
+    @Column(name = "encaminhamento_tipo")
+    private String encaminhamentoTipo;
+
     @Column(name = "encaminhamento_url", length = 500)
     private String encaminhamentoUrl;
+
+    @Column(name = "data_envio_encaminhamento")
+    private LocalDateTime dataEnvioEncaminhamento;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "beneficiario_id", nullable = false)
@@ -58,4 +80,5 @@ public class PreGuia {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medico_id")
     private MedicoFusex medicoFusex;
+
 }

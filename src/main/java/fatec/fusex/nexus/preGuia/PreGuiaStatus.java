@@ -1,5 +1,9 @@
-package fatec.fusex.nexus.preGuia;
+package fatec.fusex.nexus.preguia;
 
-public enum PreGuiaStatus {
-    PENDENTE, EM_ANALISE, ATENCAO, CONCLUIDA
+public enum StatusPreGuia {
+    RASCUNHO,
+    PENDENTE,
+    EM_ANALISE,
+    ATENCAO,
+    APROVADA
 }
