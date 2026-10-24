@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 
 public interface GuiaRepository extends JpaRepository<Guia, Long> {
@@ -29,4 +30,15 @@ public interface GuiaRepository extends JpaRepository<Guia, Long> {
                                             @Param("termo") String termo,
                                             @Param("precCp") String precCp,
                                             Pageable pageable);
+
+    @Query("""
+            select g from Guia g
+            join fetch g.preGuia pg
+            join fetch pg.beneficiario b
+            where not exists (
+                select a.idAssinaturaGuia from AssinaturaGuia a
+                where a.guia = g and a.papel = :papel)
+            order by g.dataInsercao asc, g.idGuia asc
+            """)
+    List<Guia> buscarSemAssinatura(@Param("papel") AssinaturaGuiaPapel papel);
 }
