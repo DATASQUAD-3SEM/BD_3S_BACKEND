@@ -1,4 +1,6 @@
 package fatec.fusex.nexus.MinhasPreGuias.dto;
 
-public class GuiaPdf {
+import org.springframework.core.io.Resource;
+
+public record GuiaPdf(Resource resource, String filename, boolean inline) {
 }
