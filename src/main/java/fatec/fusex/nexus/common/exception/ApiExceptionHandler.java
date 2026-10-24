@@ -8,6 +8,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.security.access.AccessDeniedException;
 
 
 @RestControllerAdvice
@@ -78,6 +79,11 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(429)
                 .header("Retry-After", "900")
                 .body(corpo);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> acessoNegado(AccessDeniedException ex) {
+        return montar(403, "Forbidden", ex.getMessage() != null ? ex.getMessage() : "Acesso negado", List.of());
     }
 
     private ResponseEntity<ErrorResponse> montar(int status, String erro, String mensagem, List<String> detalhes) {
