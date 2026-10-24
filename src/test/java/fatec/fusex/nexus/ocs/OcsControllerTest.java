@@ -10,7 +10,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
+import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexService;
 import fatec.fusex.nexus.medicoFusex.dto.MedicoMeResponse;
 import fatec.fusex.nexus.ocs.dto.OcsBuscaResponse;
@@ -59,5 +61,25 @@ class OcsControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total").value(2))
                 .andExpect(jsonPath("$.resultados", hasSize(2)));
+    }
+
+    @Test
+    void buscar_comPerfilErrado_retorna403() throws Exception {
+        when(simulacaoLogin.loginAtual()).thenReturn("52998224725"); // login de beneficiário
+        when(medicoService.validarAcessoMedico("52998224725"))
+                .thenThrow(new AcessoNegadoException("Acesso restrito a medicos"));
+
+        mockMvc.perform(get("/ocs")
+                        .header("X-Usuario-Login", "52998224725"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void buscar_semUsuario_retorna401() throws Exception {
+        when(simulacaoLogin.loginAtual())
+                .thenThrow(new NaoAutenticadoException("Nenhum usuario logado"));
+
+        mockMvc.perform(get("/ocs"))
+                .andExpect(status().isUnauthorized());
     }
 }
