@@ -13,6 +13,7 @@ import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
+import fatec.fusex.nexus.medicoFusex.MedicoFusex;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexService;
 import fatec.fusex.nexus.medicoFusex.dto.MedicoMeResponse;
 import fatec.fusex.nexus.ocs.dto.OcsBuscaResponse;
@@ -50,7 +51,8 @@ class OcsControllerTest {
     void buscar_semTermo_deveRetornarListaInicial() throws Exception {
         // Mocka a autenticação simulada
         when(simulacaoLogin.loginAtual()).thenReturn("11144477735");
-        when(medicoService.buscarLogado("11144477735")).thenReturn(new MedicoMeResponse(7L, "Carlos", "Capitao", "CRM", "PrecCp"));
+        // CORRETO (4 parâmetros)
+        when(medicoService.validarAcessoMedico("11144477735")).thenReturn(new MedicoFusex());
 
         OcsResponse primeira = new OcsResponse(1L, "CTR-001", "Laboratorio X", "OCS");
         OcsResponse segunda = new OcsResponse(2L, "CTR-002", "Hospital Y", "PSA");
