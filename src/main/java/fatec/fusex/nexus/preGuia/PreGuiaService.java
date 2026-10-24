@@ -2,6 +2,10 @@ package fatec.fusex.nexus.preGuia;
 
 import java.util.List;
 
+import fatec.fusex.nexus.common.exception.AccessDeniedException;
+import fatec.fusex.nexus.common.exception.ConflitoException;
+import fatec.fusex.nexus.preGuia.dto.CorrecaoPreGuiaResponse;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +19,7 @@ import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsService;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
+CorrecaoPreGuiaResponse, ConflitoException e AccessDeniedException
 
 @Service
 public class PreGuiaService {
@@ -92,5 +97,36 @@ public class PreGuiaService {
         if (arquivo == null || arquivo.isEmpty()) {
             throw new RegraDeNegocioException("E necessario anexar o encaminhamento medico para criar a pre-guia");
         }
+    }
+
+    public fatec.fusex.nexus.preguia.dto.CorrecaoPreGuiaResponse buscarDadosCorrecao(Long preGuiaId, String cpfLogado) {
+        PreGuia preGuia = preGuiaRepository.findById(preGuiaId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Pré-guia não encontrada: id " + preGuiaId));
+
+        if (!preGuia.getBeneficiario().getCpf().equals(cpfLogado)) {
+            throw new RecursoNaoEncontradoException("Pré-guia não encontrada: id " + preGuiaId);
+        }
+
+        if (preGuia.getOrigem() == OrigemPreGuia.MEDICO) {
+            throw new org.springframework.security.access.AccessDeniedException("Pré-guia criada por médico não pode ser alterada pelo beneficiário");
+        }
+
+        if (preGuia.getStatus() != StatusPreGuia.ATENCAO) {
+            throw new fatec.fusex.nexus.common.exception.ConflitoException("A pré-guia não está em Atenção");
+        }
+
+        return new fatec.fusex.nexus.preguia.dto.CorrecaoPreGuiaResponse(
+                preGuia.getNumero(),
+                preGuia.getStatus().name(),
+                new fatec.fusex.nexus.preguia.dto.CorrecaoPreGuiaResponse.BeneficiarioResumo(
+                        preGuia.getBeneficiario().getNome(), preGuia.getBeneficiario().getPrecCp()),
+                preGuia.getDataEmissao(),
+                new fatec.fusex.nexus.preguia.dto.CorrecaoPreGuiaResponse.ObservacaoResumo(
+                        preGuia.getObservacao(), preGuia.getDataRegistroObservacao()),
+                new fatec.fusex.nexus.preguia.dto.CorrecaoPreGuiaResponse.EncaminhamentoResumo(
+                        preGuia.getEncaminhamentoNome(), preGuia.getEncaminhamentoTipo(), preGuia.getDataEnvioEncaminhamento()),
+                new fatec.fusex.nexus.preguia.dto.CorrecaoPreGuiaResponse.OcsResumo(
+                        preGuia.getOcs().getId(), preGuia.getOcs().getNome())
+        );
     }
 }
