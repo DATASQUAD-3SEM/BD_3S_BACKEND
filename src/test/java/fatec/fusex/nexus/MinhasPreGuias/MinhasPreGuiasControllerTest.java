@@ -1,8 +1,12 @@
 package fatec.fusex.nexus.MinhasPreGuias;
 
+import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuia;
+import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
+import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
+import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.medicoFusex.MedicoFusex;
@@ -25,15 +29,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -51,24 +61,27 @@ class MinhasPreGuiasControllerTest {
     @Autowired private MedicoFusexRepository medicoFusexRepository;
     @Autowired private PreGuiaHistoricoRepository historicoRepository;
     @Autowired private GuiaRepository guiaRepository;
+    @Autowired private AssinaturaGuiaRepository assinaturaGuiaRepository;
+    @Autowired private ArmazenamentoArquivo armazenamentoArquivo;
 
     private Beneficiario joao;
     private Beneficiario maria;
     private Ocs ocsPadrao;
     private MedicoFusex medicoFusex;
     private Usuario usuarioJoao;
-    private Long idPreGuiaMaria;
 
-    // Datas fixas e distintas para testar ordenação sem ambiguidade
-    private static final LocalDateTime D1 = LocalDateTime.of(2026, 10, 22, 10, 0); // mais recente
+    private Long idPreGuiaMaria;
+    private Long idPreGuiaConcluidaJoao;
+    private Long idPreGuiaPendenteJoao;
+
+    private static final LocalDateTime D1 = LocalDateTime.of(2026, 10, 22, 10, 0);
     private static final LocalDateTime D2 = LocalDateTime.of(2026, 10, 21, 10, 0);
     private static final LocalDateTime D3 = LocalDateTime.of(2026, 10, 20, 10, 0);
     private static final LocalDateTime D4 = LocalDateTime.of(2026, 10, 19, 10, 0);
-    private static final LocalDateTime D5 = LocalDateTime.of(2026, 10, 18, 10, 0); // mais antiga
+    private static final LocalDateTime D5 = LocalDateTime.of(2026, 10, 18, 10, 0);
 
     @BeforeEach
     void setUp() {
-        // --- JOÃO (BENEFICIARIO) ---
         usuarioJoao = new Usuario();
         usuarioJoao.setLogin("11111111111");
         usuarioJoao.setSenhaHash("hash");
@@ -84,7 +97,6 @@ class MinhasPreGuiasControllerTest {
         joao.setTelefone("11999999991");
         joao = beneficiarioRepository.save(joao);
 
-        // --- MARIA (BENEFICIARIA) ---
         Usuario usuarioMaria = new Usuario();
         usuarioMaria.setLogin("22222222222");
         usuarioMaria.setSenhaHash("hash");
@@ -100,7 +112,6 @@ class MinhasPreGuiasControllerTest {
         maria.setTelefone("11999999992");
         maria = beneficiarioRepository.save(maria);
 
-        // --- MÉDICO ---
         Usuario usuarioMedico = new Usuario();
         usuarioMedico.setLogin("33333333333");
         usuarioMedico.setSenhaHash("hash");
@@ -116,40 +127,51 @@ class MinhasPreGuiasControllerTest {
         medicoFusex.setCrm("123456-SP");
         medicoFusex = medicoFusexRepository.save(medicoFusex);
 
-        // --- OCS ---
         ocsPadrao = new Ocs();
         ocsPadrao.setNome("Hospital Central");
         ocsPadrao.setContratoNum("123456789");
         ocsPadrao.setTipo(OcsTipo.OCS);
         ocsPadrao = ocsRepository.save(ocsPadrao);
 
-        // --- PRÉ-GUIAS DO JOÃO (5, uma por status/combinação) ---
-
-        // $[0] CONCLUIDA (com Guia) — D1 (mais recente)
+        // CONCLUIDA + Guia (PDF real) + 2 assinaturas
         PreGuia concluida = criarPreGuia(joao, PreGuiaStatus.CONCLUIDA, D1, null);
         Guia guia = new Guia();
         guia.setPreGuia(concluida);
         guia.setNumero("00042");
-        guia.setArquivoUrl("guias/00042.pdf");
+        guia.setArquivoUrl(salvarPdfFake("guia.pdf"));
         guia.setDataInsercao(D1);
         guia.setUsuario(usuarioJoao);
         guiaRepository.save(guia);
+        idPreGuiaConcluidaJoao = concluida.getIdPreGuia();
 
-        // $[1] ATENCAO + histórico + origem MEDICO — D2
+        AssinaturaGuia aMed = new AssinaturaGuia();
+        aMed.setGuia(guia);
+        aMed.setPapel(AssinaturaGuiaPapel.MEDICO);
+        aMed.setUsuario(usuarioJoao);
+        assinaturaGuiaRepository.save(aMed);
+
+        AssinaturaGuia aChefe = new AssinaturaGuia();
+        aChefe.setGuia(guia);
+        aChefe.setPapel(AssinaturaGuiaPapel.CHEFE);
+        aChefe.setUsuario(usuarioJoao);
+        assinaturaGuiaRepository.save(aChefe);
+
+        // ATENCAO origem MEDICO + histórico
         PreGuia atencaoMedico = criarPreGuia(joao, PreGuiaStatus.ATENCAO, D2, medicoFusex);
         criarHistorico(atencaoMedico, usuarioJoao, "Documento do médico ilegível, reenviar");
 
-        // $[2] ATENCAO + histórico, origem BENEFICIARIO — D3
+        // ATENCAO origem BENEFICIARIO + histórico
         PreGuia atencaoSo = criarPreGuia(joao, PreGuiaStatus.ATENCAO, D3, null);
         criarHistorico(atencaoSo, usuarioJoao, "Faltou assinatura, corrigir");
 
-        // $[3] PENDENTE — D4
-        criarPreGuia(joao, PreGuiaStatus.PENDENTE, D4, null);
+        // PENDENTE
+        PreGuia pendente = criarPreGuia(joao, PreGuiaStatus.PENDENTE, D4, null);
+        idPreGuiaPendenteJoao = pendente.getIdPreGuia();
 
-        // $[4] EM_ANALISE — D5 (mais antiga)
+        // EM_ANALISE
         criarPreGuia(joao, PreGuiaStatus.EM_ANALISE, D5, null);
 
-        // --- PRÉ-GUIA DA MARIA (não deve aparecer para o João) ---
+        // Maria (não deve aparecer para o João)
         PreGuia daMaria = criarPreGuia(maria, PreGuiaStatus.PENDENTE, D1, null);
         idPreGuiaMaria = daMaria.getIdPreGuia();
     }
@@ -178,7 +200,13 @@ class MinhasPreGuiasControllerTest {
         historicoRepository.save(h);
     }
 
-    // ---------- Testes ----------
+    private String salvarPdfFake(String nome) {
+        byte[] bytes = "%PDF-1.4\nfake\n%%EOF".getBytes(StandardCharsets.UTF_8);
+        MockMultipartFile f = new MockMultipartFile("arquivo", nome, "application/pdf", bytes);
+        return armazenamentoArquivo.salvar(f, "guias");
+    }
+
+    // ========== T1-BE1 ==========
 
     @Test
     @DisplayName("Sem header X-Usuario-Login retorna 401")
@@ -248,11 +276,11 @@ class MinhasPreGuiasControllerTest {
         mockMvc.perform(get("/beneficiarios/me/pre-guias")
                         .header(SimulacaoLoginFilter.HEADER, "11111111111"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].observacao").doesNotExist())               // CONCLUIDA
+                .andExpect(jsonPath("$[0].observacao").doesNotExist())
                 .andExpect(jsonPath("$[1].observacao").value("Documento do médico ilegível, reenviar"))
                 .andExpect(jsonPath("$[2].observacao").value("Faltou assinatura, corrigir"))
-                .andExpect(jsonPath("$[3].observacao").doesNotExist())               // PENDENTE
-                .andExpect(jsonPath("$[4].observacao").doesNotExist());              // EM_ANALISE
+                .andExpect(jsonPath("$[3].observacao").doesNotExist())
+                .andExpect(jsonPath("$[4].observacao").doesNotExist());
     }
 
     @Test
@@ -294,5 +322,126 @@ class MinhasPreGuiasControllerTest {
                 .andExpect(jsonPath("$[*].id",
                         org.hamcrest.Matchers.not(
                                 org.hamcrest.Matchers.hasItem(idPreGuiaMaria.intValue()))));
+    }
+
+    // ========== T1-BE2 ==========
+
+    @Test
+    @DisplayName("PDF guia: 200 attachment com bytes do PDF")
+    void pdfGuia_modoBaixar_retornaAttachment() throws Exception {
+        var result = mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaConcluidaJoao)
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment")))
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("guia-00042.pdf")))
+                .andReturn();
+
+        byte[] corpo = result.getResponse().getContentAsByteArray();
+        org.assertj.core.api.Assertions.assertThat(corpo)
+                .startsWith("%PDF".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    @DisplayName("PDF guia: 200 inline em modo visualizar")
+    void pdfGuia_modoVisualizar_retornaInline() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaConcluidaJoao)
+                        .param("modo", "visualizar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("inline")));
+    }
+
+    @Test
+    @DisplayName("PDF guia: 422 sem modo")
+    void pdfGuia_semModo_retorna422() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaConcluidaJoao)
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 422 com modo invalido")
+    void pdfGuia_modoInvalido_retorna422() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaConcluidaJoao)
+                        .param("modo", "tocar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 401 sem header")
+    void pdfGuia_semHeader_retorna401() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaConcluidaJoao)
+                        .param("modo", "baixar"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 403 perfil errado")
+    void pdfGuia_perfilErrado_retorna403() throws Exception {
+        Usuario setor = new Usuario();
+        setor.setLogin("setor.pdf");
+        setor.setSenhaHash("hash");
+        setor.setPerfil(PerfilUsuario.SETOR_GUIAS);
+        setor.setAtivo(true);
+        usuarioRepository.save(setor);
+
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaConcluidaJoao)
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "setor.pdf"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 403 pre-guia nao concluida")
+    void pdfGuia_naoConcluida_retorna403() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaPendenteJoao)
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 403 concluida com 1 assinatura")
+    void pdfGuia_umaAssinatura_retorna403() throws Exception {
+        PreGuia concluida1Ass = criarPreGuia(joao, PreGuiaStatus.CONCLUIDA, D1.minusMinutes(1), null);
+        Guia guia1Ass = new Guia();
+        guia1Ass.setPreGuia(concluida1Ass);
+        guia1Ass.setNumero("00043");
+        guia1Ass.setArquivoUrl(salvarPdfFake("guia1ass.pdf"));
+        guia1Ass.setDataInsercao(D1.minusMinutes(1));
+        guia1Ass.setUsuario(usuarioJoao);
+        guiaRepository.save(guia1Ass);
+
+        AssinaturaGuia aMed = new AssinaturaGuia();
+        aMed.setGuia(guia1Ass);
+        aMed.setPapel(AssinaturaGuiaPapel.MEDICO);
+        aMed.setUsuario(usuarioJoao);
+        assinaturaGuiaRepository.save(aMed);
+
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf",
+                        concluida1Ass.getIdPreGuia())
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 404 pre-guia de outro beneficiario")
+    void pdfGuia_deOutroBeneficiario_retorna404() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaMaria)
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 404 pre-guia inexistente")
+    void pdfGuia_inexistente_retorna404() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", 99999L)
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isNotFound());
     }
 }
