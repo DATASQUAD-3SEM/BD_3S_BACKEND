@@ -8,8 +8,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface OcsRepository extends JpaRepository<Ocs, Long> {
 
-    @Query("SELECT o FROM Ocs o WHERE LOWER(o.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(o.contratoNum) LIKE LOWER(CONCAT('%', :busca, '%')) " +
-            "OR LOWER(CAST(o.tipo AS String)) LIKE LOWER(CONCAT('%', :busca, '%'))")
+    @Query("SELECT o FROM Ocs o WHERE o.ativo = true AND (LOWER(o.nome) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(o.contratoNum) LIKE LOWER(CONCAT('%', :busca, '%')) OR LOWER(CAST(o.tipo AS String)) LIKE LOWER(CONCAT('%', :busca, '%')))")
     Page<Ocs> buscarPorTermo(@Param("busca") String busca, Pageable pageable);
+    Page<Ocs> findByAtivoTrue(Pageable pageable);
+
 }
 
