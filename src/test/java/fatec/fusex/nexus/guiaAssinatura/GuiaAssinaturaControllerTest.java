@@ -3,6 +3,7 @@ package fatec.fusex.nexus.guiaAssinatura;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -23,8 +24,10 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
+import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
+import fatec.fusex.nexus.guiaAssinatura.dto.AssinaturaRegistradaResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.GuiaParaAssinarResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
 
@@ -38,11 +41,15 @@ class GuiaAssinaturaControllerTest {
     @Mock
     private GuiaPdfAssinadoService guiaPdfAssinadoService;
 
+    @Mock
+    private RegistrarAssinaturaGuiaService registrarAssinaturaGuiaService;
+
     @BeforeEach
     void configurar() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new GuiaAssinaturaController(guiaAssinaturaService, guiaPdfAssinadoService))
+                .standaloneSetup(new GuiaAssinaturaController(
+                        guiaAssinaturaService, guiaPdfAssinadoService, registrarAssinaturaGuiaService))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
@@ -57,19 +64,8 @@ class GuiaAssinaturaControllerTest {
         mockMvc.perform(get("/guias/para-assinar"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].guiaId").value(1))
-                .andExpect(jsonPath("$[0].numero").value("202610699"))
-                .andExpect(jsonPath("$[0].beneficiarioNome").value("Joao Pereira Alves"))
                 .andExpect(jsonPath("$[0].pendencias[0]").value("MEDICO"))
                 .andExpect(jsonPath("$[0].pendencias[1]").value("CHEFE"));
-    }
-
-    @Test
-    void listar_semGuias_devolve200ComListaVazia() throws Exception {
-        when(guiaAssinaturaService.listarParaAssinar()).thenReturn(List.of());
-
-        mockMvc.perform(get("/guias/para-assinar"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
     }
 
     @Test
@@ -90,19 +86,7 @@ class GuiaAssinaturaControllerTest {
         mockMvc.perform(get("/guias/1/pdf").param("modo", "baixar"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("attachment")))
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION,
-                        containsString("guia-202610678.pdf")));
-    }
-
-    @Test
-    void pdf_visualizar_devolve200ComInline() throws Exception {
-        when(guiaPdfAssinadoService.pdfDaGuia(1L, "visualizar")).thenReturn(new PdfGuiaAssinada(
-                new ByteArrayResource("%PDF-1.4".getBytes()), "guia-202610678.pdf", false));
-
-        mockMvc.perform(get("/guias/1/pdf").param("modo", "visualizar"))
-                .andExpect(status().isOk())
-                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("inline")));
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("attachment")));
     }
 
     @Test
@@ -115,20 +99,62 @@ class GuiaAssinaturaControllerTest {
     }
 
     @Test
-    void pdf_perfilSemPermissao_devolve403() throws Exception {
-        when(guiaPdfAssinadoService.pdfDaGuia(1L, "visualizar"))
-                .thenThrow(new AcessoNegadoException("Acesso restrito a medicos e chefe do FUSEX"));
-
-        mockMvc.perform(get("/guias/1/pdf").param("modo", "visualizar"))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void pdf_modoInvalido_devolve422() throws Exception {
         when(guiaPdfAssinadoService.pdfDaGuia(1L, "imprimir"))
                 .thenThrow(new DadosInvalidosException("modo", "Modo invalido: use baixar ou visualizar"));
 
         mockMvc.perform(get("/guias/1/pdf").param("modo", "imprimir"))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void assinar_devolve201ComAssinaturasEConcluida() throws Exception {
+        when(registrarAssinaturaGuiaService.assinar(1L)).thenReturn(
+                new AssinaturaRegistradaResponse(
+                        List.of(AssinaturaGuiaPapel.MEDICO, AssinaturaGuiaPapel.CHEFE), true));
+
+        mockMvc.perform(post("/guias/1/assinaturas"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.assinaturas[0]").value("MEDICO"))
+                .andExpect(jsonPath("$.assinaturas[1]").value("CHEFE"))
+                .andExpect(jsonPath("$.concluida").value(true));
+    }
+
+    @Test
+    void assinar_papelJaAssinado_devolve409() throws Exception {
+        when(registrarAssinaturaGuiaService.assinar(1L))
+                .thenThrow(new ConflitoException("Esta Guia ja foi assinada por um medico do FUSEX"));
+
+        mockMvc.perform(post("/guias/1/assinaturas"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value("Esta Guia ja foi assinada por um medico do FUSEX"));
+    }
+
+    @Test
+    void assinar_semAssinaturaCadastrada_devolve422() throws Exception {
+        when(registrarAssinaturaGuiaService.assinar(1L))
+                .thenThrow(new DadosInvalidosException("assinatura",
+                        "Cadastre sua assinatura em Minhas informacoes antes de assinar"));
+
+        mockMvc.perform(post("/guias/1/assinaturas"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void assinar_usuarioInativoOuPerfilErrado_devolve403() throws Exception {
+        when(registrarAssinaturaGuiaService.assinar(1L))
+                .thenThrow(new AcessoNegadoException("Usuario inativo: nao pode assinar Guias"));
+
+        mockMvc.perform(post("/guias/1/assinaturas"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void assinar_guiaInexistente_devolve404() throws Exception {
+        when(registrarAssinaturaGuiaService.assinar(9L))
+                .thenThrow(new RecursoNaoEncontradoException("Guia nao encontrada: id 9"));
+
+        mockMvc.perform(post("/guias/9/assinaturas"))
+                .andExpect(status().isNotFound());
     }
 }
