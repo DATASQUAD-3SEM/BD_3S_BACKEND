@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.MinhasPreGuias;
 
+import fatec.fusex.nexus.MinhasPreGuias.dto.CorrecaoPreGuiaResponse;
 import fatec.fusex.nexus.MinhasPreGuias.dto.GuiaPdf;
 import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
 
@@ -30,6 +31,11 @@ public class MinhasPreGuiasController {
     public ResponseEntity<List<MinhaPreGuiaResponse>> listar() {
         List<MinhaPreGuiaResponse> response = minhasPreGuiasService.listar();
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/correcao")
+    public ResponseEntity<CorrecaoPreGuiaResponse> buscarCorrecao(@PathVariable Long id) {
+        return ResponseEntity.ok(minhasPreGuiasService.buscarCorrecao(id));
     }
 
     @GetMapping("/{id}/guia/pdf")
