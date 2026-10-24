@@ -9,6 +9,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +29,9 @@ class OcsRepositoryMysqlTest {
 
     @Autowired
     private OcsRepository ocsRepository;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
 
     private void salvar(String nome, String contrato) {
         Ocs ocs = new Ocs();
@@ -49,5 +53,18 @@ class OcsRepositoryMysqlTest {
                 .contains("Ortopédia Teste Acento");
         assertThat(buscar("ORTOPÉDIA TESTE").getContent()).extracting(Ocs::getNome)
                 .contains("Ortopédia Teste Acento");
+    }
+
+    @Test
+    void colunasDeTexto_usamCollationQueIgnoraAcentoEMaiuscula() {
+        // Garante a migration V4: as colunas pesquisadas precisam ser utf8mb4_unicode_ci (accent e case insensitive)
+        var collations = jdbcTemplate.queryForList(
+                "SELECT COLUMN_NAME, COLLATION_NAME FROM information_schema.COLUMNS "
+                        + "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'Ocs' "
+                        + "AND COLUMN_NAME IN ('nome', 'contrato_num', 'tipo')");
+
+        assertThat(collations).hasSize(3);
+        assertThat(collations).allSatisfy(coluna ->
+                assertThat(coluna.get("COLLATION_NAME")).isEqualTo("utf8mb4_unicode_ci"));
     }
 }
