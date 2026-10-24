@@ -15,6 +15,7 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
+import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -114,6 +115,27 @@ class ChefeAtualizacaoServiceTest {
         verify(passwordEncoder, never()).encode(anyString());
         verify(chefeFusexRepository).save(chefe);
         verify(usuarioRepository).save(usuario);
+    }
+
+    @Test
+    void atualizarPerfil_quandoLoginTemEspacos_lancaDadosInvalidosNoCampoLogin() {
+        prepararChefeExistente();
+
+        assertThatThrownBy(() ->
+                chefePerfilService.atualizarPerfil(
+                        requisicao(
+                                "Nome Novo",
+                                "Major",
+                                "chefe novo",
+                                ""
+                        )
+                )
+        ).isInstanceOf(DadosInvalidosException.class)
+                .satisfies(erro -> assertThat(
+                        ((DadosInvalidosException) erro).getCampo()).isEqualTo("login"));
+
+        verify(usuarioRepository, never()).save(any(Usuario.class));
+        verify(chefeFusexRepository, never()).save(any(ChefeFusex.class));
     }
 
     @Test
