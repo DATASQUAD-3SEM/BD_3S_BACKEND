@@ -99,3 +99,11 @@ WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'recepcao');
 -- Este UPDATE corrige so essas linhas; senhas ja trocadas pelos usuarios nao sao tocadas.
 UPDATE Usuario SET senha_hash = '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO'
 WHERE senha_hash = 'HASH_BCRYPT_AQUI';
+
+
+-- Pré-guia de exemplo em ATENÇÃO para testar a T9
+INSERT INTO pre_guia (numero, status, data_emissao, encaminhamento_url, beneficiario_id, ocs_id, origem, observacao, data_registro_observacao, encaminhamento_nome, encaminhamento_tipo, data_envio_encaminhamento)
+SELECT 'PRE-2024-001', 'ATENCAO', '2026-09-01 10:00:00', 'encaminhamentos/teste.pdf', b.id, o.id, 'BENEFICIARIO', 'A foto enviada está ilegível.', '2026-09-02 14:00:00', 'encaminhamento_antigo.pdf', 'application/pdf', '2026-09-01 10:05:00'
+FROM beneficiario b, ocs o
+WHERE b.cpf = '12345678900' AND o.contrato_num = 'EXEMPLO-001'
+AND NOT EXISTS (SELECT 1 FROM pre_guia WHERE numero = 'PRE-2024-001');
