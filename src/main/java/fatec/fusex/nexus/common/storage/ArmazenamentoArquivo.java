@@ -5,9 +5,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface ArmazenamentoArquivo {
 
+
     String salvar(MultipartFile arquivo, String pasta);
 
-    Resource carregar(String caminhoRelativo);
-
     void remover(String caminhoRelativo);
+
+
+    Resource carregar(String caminhoRelativo);
 }
