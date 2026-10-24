@@ -1,6 +1,7 @@
 package fatec.fusex.nexus.MinhasPreGuias;
 
 import fatec.fusex.nexus.MinhasPreGuias.dto.CorrecaoPreGuiaResponse;
+import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
 import fatec.fusex.nexus.MinhasPreGuias.dto.GuiaPdf;
 import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
@@ -25,6 +26,7 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 import org.springframework.core.io.Resource;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -134,6 +136,32 @@ public class MinhasPreGuiasService {
     }
 
     @Transactional(readOnly = true)
+    public EncaminhamentoArquivo baixarEncaminhamento(Long idPreGuia) {
+        Beneficiario beneficiario = beneficiarioLogado();
+
+        PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
+                .filter(p -> p.getBeneficiario().getUsuarioId().equals(beneficiario.getUsuarioId()))
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada"));
+
+        if (preGuia.getMedicoFusex() != null) {
+            throw new AcessoNegadoException(
+                    "Pre-guia criada por medico nao pode ser acessada pelo beneficiario");
+        }
+
+        String caminho = preGuia.getEncaminhamentoUrl();
+        if (caminho == null || caminho.isBlank()) {
+            throw new RecursoNaoEncontradoException("Encaminhamento nao encontrado");
+        }
+
+        String extensao = extensaoDo(caminho);
+        Resource recurso = armazenamentoArquivo.carregar(caminho);
+        String filename = "encaminhamento-" + String.format("%04d", preGuia.getIdPreGuia())
+                + "." + extensao;
+
+        return new EncaminhamentoArquivo(recurso, mediaTypeDe(extensao), filename);
+    }
+
+    @Transactional(readOnly = true)
     public GuiaPdf baixarGuiaPdf(Long idPreGuia, String modoRaw) {
         ModoDownload modo = ModoDownload.from(modoRaw);
         Beneficiario beneficiario = beneficiarioLogado();
@@ -199,6 +227,20 @@ public class MinhasPreGuiasService {
     private static String tipoDoArquivo(String caminho) {
         int ponto = caminho.lastIndexOf('.');
         return ponto < 0 ? null : caminho.substring(ponto + 1).toUpperCase(Locale.ROOT);
+    }
+
+    private static String extensaoDo(String caminho) {
+        int ponto = caminho.lastIndexOf('.');
+        return ponto < 0 ? "" : caminho.substring(ponto + 1).toLowerCase(Locale.ROOT);
+    }
+
+    private static MediaType mediaTypeDe(String extensao) {
+        return switch (extensao) {
+            case "pdf" -> MediaType.APPLICATION_PDF;
+            case "jpg", "jpeg" -> MediaType.IMAGE_JPEG;
+            case "png" -> MediaType.IMAGE_PNG;
+            default -> MediaType.APPLICATION_OCTET_STREAM;
+        };
     }
 
     private Beneficiario beneficiarioLogado() {
