@@ -3,6 +3,7 @@ package fatec.fusex.nexus.ocs;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -62,5 +63,25 @@ class OcsRepositoryTest {
         Page<Ocs> pagina = buscar("inexistente");
         assertThat(pagina.getContent()).isEmpty();
         assertThat(pagina.getTotalElements()).isZero();
+    }
+
+    @Test
+    @Disabled("H2 não suporta collation accent-insensitive. Validar no MySQL (dev).")
+    void buscaPorNome_ignoraAcentos() {
+        salvar("Ortopédia Exemplo", "EXEMPLO-003", OcsTipo.OCS);
+        assertThat(buscar("ortopedia").getContent()).extracting(Ocs::getNome)
+                .containsExactly("Ortopédia Exemplo");
+    }
+
+    @Test
+    void ocsInativa_naoApareceNaBusca() {
+        Ocs inativa = new Ocs();
+        inativa.setNome("Laboratorio Inativo");
+        inativa.setContratoNum("EXEMPLO-999");
+        inativa.setTipo(OcsTipo.OCS);
+        inativa.setAtivo(false);
+        ocsRepository.save(inativa);
+
+        assertThat(buscar("inativo").getContent()).isEmpty();
     }
 }
