@@ -14,4 +14,10 @@ public interface PreGuiaHistoricoRepository extends JpaRepository<PreGuiaHistori
             Long idPreGuia,
             PreGuiaStatus status
     );
+
+    Optional<PreGuiaHistorico> findFirstByPreGuiaIdPreGuiaAndEncaminhamentoUrlAndStatusNotOrderByDataHoraDesc(
+            Long idPreGuia,
+            String encaminhamentoUrl,
+            PreGuiaStatus status
+    );
 }
