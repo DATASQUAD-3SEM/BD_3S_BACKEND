@@ -2,10 +2,10 @@ package fatec.fusex.nexus.ocs.dto;
 
 import fatec.fusex.nexus.ocs.Ocs;
 
-/** DTO de saida de OCS. */
+
 public record OcsResponse(
         Long id,
-        String contratoNum,
+        String contrato,
         String nome,
         String tipo) {
 
