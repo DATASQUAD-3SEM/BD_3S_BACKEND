@@ -25,14 +25,22 @@ public class OcsService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("OCS não encontrada com o id: " + id));
     }
 
+    private static final int LIMITE_RESULTADOS = 30;
+
+
     public OcsBuscaResponse buscar(String termo) {
-        Pageable pageable = PageRequest.of(0, 30, Sort.by("nome").ascending());
+        Pageable pageable = PageRequest.of(0, LIMITE_RESULTADOS, Sort.by("nome").ascending());
         Page<Ocs> pagina = (termo == null || termo.isBlank())
                 ? ocsRepository.findByAtivoTrue(pageable)
-                : ocsRepository.buscarPorTermo(termo.trim(), pageable);
+                : ocsRepository.buscarPorTermo(escaparCuringas(termo.trim()), pageable);
 
         List<OcsResponse> resultados = pagina.getContent().stream().map(OcsResponse::de).toList();
         return new OcsBuscaResponse(resultados, pagina.getTotalElements());
+    }
+
+
+    private static String escaparCuringas(String termo) {
+        return termo.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 
 }
