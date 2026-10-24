@@ -1,6 +1,6 @@
 package fatec.fusex.nexus.usuario;
 
-import java.awt.Color;
+import java.awt.AlphaComposite;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -199,7 +199,7 @@ public class AssinaturaImagemService {
                         imagem.getHeight() * Math.min(1.0, escala)));
 
                 for (int tentativa = 0; tentativa < 30; tentativa++) {
-                    BufferedImage normalizada = desenharEmFundoBranco(
+                    BufferedImage normalizada = desenharSobreFundoTransparente(
                             imagem, largura, altura);
 
                     byte[] resultado = escreverPng(normalizada);
@@ -227,17 +227,16 @@ public class AssinaturaImagemService {
         }
     }
 
-    private BufferedImage desenharEmFundoBranco(
+    private BufferedImage desenharSobreFundoTransparente(
             BufferedImage original, int largura, int altura) {
 
         BufferedImage resultado = new BufferedImage(
-                largura, altura, BufferedImage.TYPE_INT_RGB);
+                largura, altura, BufferedImage.TYPE_INT_ARGB);
 
         Graphics2D graficos = resultado.createGraphics();
 
         try {
-            graficos.setColor(Color.WHITE);
-            graficos.fillRect(0, 0, largura, altura);
+            graficos.setComposite(AlphaComposite.Src);
 
             graficos.setRenderingHint(
                     RenderingHints.KEY_INTERPOLATION,
@@ -252,7 +251,30 @@ public class AssinaturaImagemService {
             graficos.dispose();
         }
 
+        tornarFundoClaroTransparente(resultado);
+
         return resultado;
+    }
+
+    private void tornarFundoClaroTransparente(BufferedImage imagem) {
+        for (int y = 0; y < imagem.getHeight(); y++) {
+            for (int x = 0; x < imagem.getWidth(); x++) {
+                int cor = imagem.getRGB(x, y);
+
+                int alfa = (cor >>> 24) & 0xFF;
+                int vermelho = (cor >>> 16) & 0xFF;
+                int verde = (cor >>> 8) & 0xFF;
+                int azul = cor & 0xFF;
+
+                if (alfa > 0
+                        && vermelho >= 245
+                        && verde >= 245
+                        && azul >= 245) {
+
+                    imagem.setRGB(x, y, 0x00FFFFFF);
+                }
+            }
+        }
     }
 
     private boolean contemAssinatura(BufferedImage imagem) {

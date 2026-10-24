@@ -25,7 +25,7 @@ class AssinaturaImagemServiceTest {
             new AssinaturaImagemService(2 * 1024 * 1024L, 1200, 600);
 
     @Test
-    void normalizarUpload_quandoAssinaturaPngTransparente_criaFundoBranco()
+    void normalizarUpload_quandoAssinaturaPng_geraFundoTransparenteComTracoOpaco()
             throws IOException {
 
         byte[] original = criarAssinaturaPng(640, 180);
@@ -43,11 +43,9 @@ class AssinaturaImagemServiceTest {
         assertThat(imagem.getHeight()).isEqualTo(180);
 
         Color canto = new Color(imagem.getRGB(0, 0), true);
+        assertThat(canto.getAlpha()).isEqualTo(0);
 
-        assertThat(canto.getRed()).isEqualTo(255);
-        assertThat(canto.getGreen()).isEqualTo(255);
-        assertThat(canto.getBlue()).isEqualTo(255);
-        assertThat(canto.getAlpha()).isEqualTo(255);
+        assertThat(contarPixelsOpacos(imagem)).isGreaterThan(0);
     }
 
     @Test
@@ -67,6 +65,8 @@ class AssinaturaImagemServiceTest {
         assertThat(imagem).isNotNull();
         assertThat(imagem.getWidth()).isEqualTo(300);
         assertThat(resultado.length).isLessThanOrEqualTo(2 * 1024 * 1024);
+        assertThat(new Color(imagem.getRGB(0, 0), true).getAlpha()).isEqualTo(0);
+        assertThat(contarPixelsOpacos(imagem)).isGreaterThan(0);
     }
 
     @Test
@@ -182,6 +182,20 @@ class AssinaturaImagemServiceTest {
 
         assertThatThrownBy(() -> service.normalizarUpload(arquivo))
                 .isInstanceOf(DadosInvalidosException.class);
+    }
+
+    private long contarPixelsOpacos(BufferedImage imagem) {
+        long total = 0;
+
+        for (int y = 0; y < imagem.getHeight(); y++) {
+            for (int x = 0; x < imagem.getWidth(); x++) {
+                if (new Color(imagem.getRGB(x, y), true).getAlpha() == 255) {
+                    total++;
+                }
+            }
+        }
+
+        return total;
     }
 
     private byte[] criarAssinaturaPng(int largura, int altura)
