@@ -29,6 +29,7 @@ class MedicoFusexControllerTest {
     @BeforeEach
     void configurar() {
         MockitoAnnotations.openMocks(this);
+        // Instancia o Controller passando os mocks
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new MedicoFusexController(service, simulacaoLogin))
                 .setControllerAdvice(new ApiExceptionHandler())
