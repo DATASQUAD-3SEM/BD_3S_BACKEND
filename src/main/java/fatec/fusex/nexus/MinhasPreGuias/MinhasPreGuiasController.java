@@ -2,8 +2,6 @@ package fatec.fusex.nexus.MinhasPreGuias;
 
 import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,9 +19,8 @@ public class MinhasPreGuiasController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('BENEFICIARIO')")
-    public ResponseEntity<List<MinhaPreGuiaResponse>> listar(Authentication authentication) {
-        List<MinhaPreGuiaResponse> response = minhasPreGuiasService.listar(authentication.getName());
+    public ResponseEntity<List<MinhaPreGuiaResponse>> listar() {
+        List<MinhaPreGuiaResponse> response = minhasPreGuiasService.listar();
         return ResponseEntity.ok(response);
     }
 }
