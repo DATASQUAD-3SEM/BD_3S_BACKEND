@@ -2,21 +2,29 @@ package fatec.fusex.nexus.MinhasPreGuias;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
+import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
+import fatec.fusex.nexus.guia.Guia;
+import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.medicoFusex.MedicoFusex;
+import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
 import fatec.fusex.nexus.ocs.OcsTipo;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaRepository;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
+import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistorico;
+import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +33,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,118 +43,171 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class MinhasPreGuiasControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private PreGuiaRepository preGuiaRepository;
+    @Autowired private BeneficiarioRepository beneficiarioRepository;
+    @Autowired private OcsRepository ocsRepository;
+    @Autowired private UsuarioRepository usuarioRepository;
+    @Autowired private MedicoFusexRepository medicoFusexRepository;
+    @Autowired private PreGuiaHistoricoRepository historicoRepository;
+    @Autowired private GuiaRepository guiaRepository;
 
-    @Autowired
-    private PreGuiaRepository preGuiaRepository;
-
-    @Autowired
-    private BeneficiarioRepository beneficiarioRepository;
-
-    @Autowired
-    private OcsRepository ocsRepository;
-
-    @Autowired
-    private UsuarioRepository usuarioRepository;
-
-    private Beneficiario beneficioLogado;
-    private Beneficiario outroBeneficiario;
+    private Beneficiario joao;
+    private Beneficiario maria;
     private Ocs ocsPadrao;
+    private MedicoFusex medicoFusex;
+    private Usuario usuarioJoao;
+    private Long idPreGuiaMaria;
+
+    // Datas fixas e distintas para testar ordenação sem ambiguidade
+    private static final LocalDateTime D1 = LocalDateTime.of(2026, 10, 22, 10, 0); // mais recente
+    private static final LocalDateTime D2 = LocalDateTime.of(2026, 10, 21, 10, 0);
+    private static final LocalDateTime D3 = LocalDateTime.of(2026, 10, 20, 10, 0);
+    private static final LocalDateTime D4 = LocalDateTime.of(2026, 10, 19, 10, 0);
+    private static final LocalDateTime D5 = LocalDateTime.of(2026, 10, 18, 10, 0); // mais antiga
 
     @BeforeEach
     void setUp() {
-        // Sem deleteAll(): @Transactional reverte cada teste
-        // e o profile "test" usa H2 em memória, sem seed.
+        // --- JOÃO (BENEFICIARIO) ---
+        usuarioJoao = new Usuario();
+        usuarioJoao.setLogin("11111111111");
+        usuarioJoao.setSenhaHash("hash");
+        usuarioJoao.setPerfil(PerfilUsuario.BENEFICIARIO);
+        usuarioJoao.setAtivo(true);
+        usuarioJoao = usuarioRepository.save(usuarioJoao);
 
-        // --- 1. USUÁRIO E BENEFICIÁRIO LOGADO (u1) ---
-        Usuario u1 = new Usuario();
-        u1.setLogin("11111111111");
-        u1.setSenhaHash("senha123");
-        u1.setPerfil(PerfilUsuario.BENEFICIARIO);
-        u1.setAtivo(true);
-        u1 = usuarioRepository.save(u1);
+        joao = new Beneficiario();
+        joao.setUsuario(usuarioJoao);
+        joao.setNome("João Logado");
+        joao.setPrecCp("11111111111");
+        joao.setDataNascimento(LocalDate.of(1990, 1, 1));
+        joao.setTelefone("11999999991");
+        joao = beneficiarioRepository.save(joao);
 
-        beneficioLogado = new Beneficiario();
-        beneficioLogado.setUsuario(u1);
-        beneficioLogado.setNome("João Logado");
-        beneficioLogado.setPrecCp("11111111111");
-        beneficioLogado.setDataNascimento(LocalDate.of(1990, 1, 1));
-        beneficioLogado.setTelefone("11999999991");
-        beneficioLogado = beneficiarioRepository.save(beneficioLogado);
+        // --- MARIA (BENEFICIARIA) ---
+        Usuario usuarioMaria = new Usuario();
+        usuarioMaria.setLogin("22222222222");
+        usuarioMaria.setSenhaHash("hash");
+        usuarioMaria.setPerfil(PerfilUsuario.BENEFICIARIO);
+        usuarioMaria.setAtivo(true);
+        usuarioMaria = usuarioRepository.save(usuarioMaria);
 
-        // --- 2. OUTRO USUÁRIO E BENEFICIÁRIO (u2) ---
-        Usuario u2 = new Usuario();
-        u2.setLogin("22222222222");
-        u2.setSenhaHash("senha123");
-        u2.setPerfil(PerfilUsuario.BENEFICIARIO);
-        u2.setAtivo(true);
-        u2 = usuarioRepository.save(u2);
+        maria = new Beneficiario();
+        maria.setUsuario(usuarioMaria);
+        maria.setNome("Maria Outra");
+        maria.setPrecCp("22222222222");
+        maria.setDataNascimento(LocalDate.of(1985, 5, 20));
+        maria.setTelefone("11999999992");
+        maria = beneficiarioRepository.save(maria);
 
-        outroBeneficiario = new Beneficiario();
-        outroBeneficiario.setUsuario(u2);
-        outroBeneficiario.setNome("Maria Outra");
-        outroBeneficiario.setPrecCp("22222222222");
-        outroBeneficiario.setDataNascimento(LocalDate.of(1985, 5, 20));
-        outroBeneficiario.setTelefone("11999999992");
-        outroBeneficiario = beneficiarioRepository.save(outroBeneficiario);
+        // --- MÉDICO ---
+        Usuario usuarioMedico = new Usuario();
+        usuarioMedico.setLogin("33333333333");
+        usuarioMedico.setSenhaHash("hash");
+        usuarioMedico.setPerfil(PerfilUsuario.MEDICO);
+        usuarioMedico.setAtivo(true);
+        usuarioMedico = usuarioRepository.save(usuarioMedico);
 
-        // --- 3. OCS ---
+        medicoFusex = new MedicoFusex();
+        medicoFusex.setUsuario(usuarioMedico);
+        medicoFusex.setNome("Dr. Carlos");
+        medicoFusex.setPrecCp("33333333333");
+        medicoFusex.setPatente("Capitão");
+        medicoFusex.setCrm("123456-SP");
+        medicoFusex = medicoFusexRepository.save(medicoFusex);
+
+        // --- OCS ---
         ocsPadrao = new Ocs();
         ocsPadrao.setNome("Hospital Central");
         ocsPadrao.setContratoNum("123456789");
         ocsPadrao.setTipo(OcsTipo.OCS);
         ocsPadrao = ocsRepository.save(ocsPadrao);
 
-        // --- 4. PRÉ-GUIAS DO JOÃO ---
-        PreGuia p1 = new PreGuia();
-        p1.setBeneficiario(beneficioLogado);
-        p1.setOcs(ocsPadrao);
-        p1.setStatus(PreGuiaStatus.PENDENTE);
-        p1.setDataCriacao(LocalDateTime.now().minusDays(5));
-        p1.setEncaminhamentoUrl("http://exemplo.com/encaminhamento1.pdf");
-        preGuiaRepository.save(p1);
+        // --- PRÉ-GUIAS DO JOÃO (5, uma por status/combinação) ---
 
-        PreGuia p2 = new PreGuia();
-        p2.setBeneficiario(beneficioLogado);
-        p2.setOcs(ocsPadrao);
-        p2.setStatus(PreGuiaStatus.ATENCAO);
-        p2.setDataCriacao(LocalDateTime.now().minusDays(2));
-        p2.setEncaminhamentoUrl("http://exemplo.com/encaminhamento2.pdf");
-        preGuiaRepository.save(p2);
+        // $[0] CONCLUIDA (com Guia) — D1 (mais recente)
+        PreGuia concluida = criarPreGuia(joao, PreGuiaStatus.CONCLUIDA, D1, null);
+        Guia guia = new Guia();
+        guia.setPreGuia(concluida);
+        guia.setNumero("00042");
+        guia.setArquivoUrl("guias/00042.pdf");
+        guia.setDataInsercao(D1);
+        guia.setUsuario(usuarioJoao);
+        guiaRepository.save(guia);
 
-        PreGuia p3 = new PreGuia();
-        p3.setBeneficiario(beneficioLogado);
-        p3.setOcs(ocsPadrao);
-        p3.setStatus(PreGuiaStatus.CONCLUIDA);
-        p3.setDataCriacao(LocalDateTime.now());
-        p3.setEncaminhamentoUrl("http://exemplo.com/encaminhamento3.pdf");
-        preGuiaRepository.save(p3);
+        // $[1] ATENCAO + histórico + origem MEDICO — D2
+        PreGuia atencaoMedico = criarPreGuia(joao, PreGuiaStatus.ATENCAO, D2, medicoFusex);
+        criarHistorico(atencaoMedico, usuarioJoao, "Documento do médico ilegível, reenviar");
 
-        // --- 5. PRÉ-GUIA DA MARIA ---
-        PreGuia pOutro = new PreGuia();
-        pOutro.setBeneficiario(outroBeneficiario);
-        pOutro.setOcs(ocsPadrao);
-        pOutro.setStatus(PreGuiaStatus.PENDENTE);
-        pOutro.setDataCriacao(LocalDateTime.now());
-        pOutro.setEncaminhamentoUrl("http://exemplo.com/encaminhamento_maria.pdf");
-        preGuiaRepository.save(pOutro);
+        // $[2] ATENCAO + histórico, origem BENEFICIARIO — D3
+        PreGuia atencaoSo = criarPreGuia(joao, PreGuiaStatus.ATENCAO, D3, null);
+        criarHistorico(atencaoSo, usuarioJoao, "Faltou assinatura, corrigir");
+
+        // $[3] PENDENTE — D4
+        criarPreGuia(joao, PreGuiaStatus.PENDENTE, D4, null);
+
+        // $[4] EM_ANALISE — D5 (mais antiga)
+        criarPreGuia(joao, PreGuiaStatus.EM_ANALISE, D5, null);
+
+        // --- PRÉ-GUIA DA MARIA (não deve aparecer para o João) ---
+        PreGuia daMaria = criarPreGuia(maria, PreGuiaStatus.PENDENTE, D1, null);
+        idPreGuiaMaria = daMaria.getIdPreGuia();
+    }
+
+    private PreGuia criarPreGuia(Beneficiario b, PreGuiaStatus s, LocalDateTime data, MedicoFusex medico) {
+        PreGuia pg = new PreGuia();
+        pg.setBeneficiario(b);
+        pg.setOcs(ocsPadrao);
+        pg.setStatus(s);
+        pg.setDataCriacao(data);
+        pg.setEncaminhamentoUrl("encaminhamentos/x.pdf");
+        pg.setMedicoFusex(medico);
+        return preGuiaRepository.save(pg);
+    }
+
+    private void criarHistorico(PreGuia pg, Usuario usuario, String observacao) {
+        PreGuiaHistorico h = new PreGuiaHistorico(
+                null,
+                pg,
+                PreGuiaStatus.ATENCAO,
+                observacao,
+                "encaminhamentos/x.pdf",
+                usuario,
+                LocalDateTime.now()
+        );
+        historicoRepository.save(h);
+    }
+
+    // ---------- Testes ----------
+
+    @Test
+    @DisplayName("Sem header X-Usuario-Login retorna 401")
+    void semHeader_retorna401() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("Deve retornar 403 se o perfil for errado")
-    void deveRetornar403ParaPerfilErrado() throws Exception {
+    @DisplayName("Perfil não-BENEFICIARIO retorna 403")
+    void perfilErrado_retorna403() throws Exception {
+        Usuario setor = new Usuario();
+        setor.setLogin("setor.guias");
+        setor.setSenhaHash("hash");
+        setor.setPerfil(PerfilUsuario.SETOR_GUIAS);
+        setor.setAtivo(true);
+        usuarioRepository.save(setor);
+
         mockMvc.perform(get("/beneficiarios/me/pre-guias")
-                        .with(user("11111111111").roles("SETOR_GUIAS")))
+                        .header(SimulacaoLoginFilter.HEADER, "setor.guias"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("Lista vazia deve retornar 200 e array vazio")
-    void deveRetornarListaVazia() throws Exception {
+    @DisplayName("Beneficiário sem pré-guias recebe lista vazia")
+    void listaVazia_retornaArrayVazio() throws Exception {
         Usuario u3 = new Usuario();
-        u3.setLogin("33333333333");
-        u3.setSenhaHash("senha123");
+        u3.setLogin("44444444444");
+        u3.setSenhaHash("hash");
         u3.setPerfil(PerfilUsuario.BENEFICIARIO);
         u3.setAtivo(true);
         u3 = usuarioRepository.save(u3);
@@ -155,26 +215,84 @@ class MinhasPreGuiasControllerTest {
         Beneficiario semGuias = new Beneficiario();
         semGuias.setUsuario(u3);
         semGuias.setNome("Sem Guias");
-        semGuias.setPrecCp("33333333333");
+        semGuias.setPrecCp("44444444444");
         semGuias.setDataNascimento(LocalDate.of(2000, 1, 1));
-        semGuias.setTelefone("11999999993");
+        semGuias.setTelefone("11999999994");
         beneficiarioRepository.save(semGuias);
 
         mockMvc.perform(get("/beneficiarios/me/pre-guias")
-                        .with(user("33333333333").roles("BENEFICIARIO")))
+                        .header(SimulacaoLoginFilter.HEADER, "44444444444"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(0)));
     }
 
     @Test
-    @DisplayName("Deve listar apenas do beneficiário logado, ordenado, e filtrar campos por status")
-    void deveListarMinhasPreGuiasComRegrasDeStatus() throws Exception {
+    @DisplayName("Lista vem ordenada por dataCriacao DESC")
+    void ordenacaoPorData() throws Exception {
         mockMvc.perform(get("/beneficiarios/me/pre-guias")
-                        .with(user("11111111111").roles("BENEFICIARIO")))
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
+                .andExpect(jsonPath("$", hasSize(5)))
                 .andExpect(jsonPath("$[0].status").value("CONCLUIDA"))
                 .andExpect(jsonPath("$[1].status").value("ATENCAO"))
-                .andExpect(jsonPath("$[2].status").value("PENDENTE"));
+                .andExpect(jsonPath("$[2].status").value("ATENCAO"))
+                .andExpect(jsonPath("$[3].status").value("PENDENTE"))
+                .andExpect(jsonPath("$[4].status").value("EM_ANALISE"))
+                .andExpect(jsonPath("$[0].dataCriacao").value("2026-10-22T10:00:00"))
+                .andExpect(jsonPath("$[4].dataCriacao").value("2026-10-18T10:00:00"));
+    }
+
+    @Test
+    @DisplayName("observacao só é preenchida quando status = ATENCAO")
+    void observacaoApenasEmAtencao() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].observacao").doesNotExist())               // CONCLUIDA
+                .andExpect(jsonPath("$[1].observacao").value("Documento do médico ilegível, reenviar"))
+                .andExpect(jsonPath("$[2].observacao").value("Faltou assinatura, corrigir"))
+                .andExpect(jsonPath("$[3].observacao").doesNotExist())               // PENDENTE
+                .andExpect(jsonPath("$[4].observacao").doesNotExist());              // EM_ANALISE
+    }
+
+    @Test
+    @DisplayName("origem MEDICO preenche criadoPorMedico com nome e patente")
+    void origemMedicoPreencheDadosDoMedico() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].origem").value("BENEFICIARIO"))
+                .andExpect(jsonPath("$[0].criadoPorMedico").doesNotExist())
+                .andExpect(jsonPath("$[1].origem").value("MEDICO"))
+                .andExpect(jsonPath("$[1].criadoPorMedico.nome").value("Dr. Carlos"))
+                .andExpect(jsonPath("$[1].criadoPorMedico.patente").value("Capitão"))
+                .andExpect(jsonPath("$[2].origem").value("BENEFICIARIO"))
+                .andExpect(jsonPath("$[2].criadoPorMedico").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("guia só é preenchida quando status = CONCLUIDA e validade = insercao + 2 meses")
+    void guiaApenasEmConcluida() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].guia.numero").value("00042"))
+                .andExpect(jsonPath("$[0].guia.validadeAte").value("2026-12-22"))
+                .andExpect(jsonPath("$[1].guia").doesNotExist())
+                .andExpect(jsonPath("$[2].guia").doesNotExist())
+                .andExpect(jsonPath("$[3].guia").doesNotExist())
+                .andExpect(jsonPath("$[4].guia").doesNotExist());
+    }
+
+    @Test
+    @DisplayName("Não expõe pré-guias de outro beneficiário")
+    void isolamentoEntreBeneficiarios() throws Exception {
+        mockMvc.perform(get("/beneficiarios/me/pre-guias")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(5)))
+                .andExpect(jsonPath("$[*].id",
+                        org.hamcrest.Matchers.not(
+                                org.hamcrest.Matchers.hasItem(idPreGuiaMaria.intValue()))));
     }
 }
