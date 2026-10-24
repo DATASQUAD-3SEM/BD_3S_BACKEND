@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -51,6 +52,15 @@ public class ArmazenamentoLocal implements ArmazenamentoArquivo {
     }
 
     @Override
+    public Resource carregar(String caminhoRelativo) {
+        Path arquivo = resolverDentroDaRaiz(caminhoRelativo);
+        if (!Files.isRegularFile(arquivo)) {
+            throw new RecursoNaoEncontradoException("Arquivo nao encontrado no armazenamento");
+        }
+        return new FileSystemResource(arquivo);
+    }
+
+    @Override
     public void remover(String caminhoRelativo) {
         Path arquivo = resolverDentroDaRaiz(caminhoRelativo);
         try {
@@ -58,15 +68,6 @@ public class ArmazenamentoLocal implements ArmazenamentoArquivo {
         } catch (IOException e) {
             throw new UncheckedIOException("Falha ao remover o arquivo", e);
         }
-    }
-
-    @Override
-    public Resource carregar(String caminhoRelativo) {
-        Path arquivo = resolverDentroDaRaiz(caminhoRelativo);
-        if (!Files.isRegularFile(arquivo)) {
-            throw new RecursoNaoEncontradoException("Arquivo nao encontrado");
-        }
-        return new FileSystemResource(arquivo);
     }
 
     private Path resolverDentroDaRaiz(String caminho) {
