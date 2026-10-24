@@ -100,10 +100,19 @@ WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'recepcao');
 UPDATE Usuario SET senha_hash = '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO'
 WHERE senha_hash = 'HASH_BCRYPT_AQUI';
 
+-- =====================================================================
+-- Pre-guia em ATENCAO do beneficiario de teste (T9: tela de correcao)
+-- GET /beneficiarios/me/pre-guias/{id}/correcao com X-Usuario-Login: 52998224725
+-- O arquivo e so de exemplo: nao existe em ./uploads.
+-- =====================================================================
+INSERT INTO PreGuia (status, data_criacao, encaminhamento_url, beneficiario_id, ocs_id)
+SELECT 'ATENCAO', '2026-09-01 10:00:00', 'encaminhamentos/exemplo-atencao.jpg', u.id_usuario, o.id_ocs
+FROM Usuario u, Ocs o
+WHERE u.login = '52998224725' AND o.contrato_num = 'EXEMPLO-001'
+  AND NOT EXISTS (SELECT 1 FROM PreGuia WHERE encaminhamento_url = 'encaminhamentos/exemplo-atencao.jpg');
 
--- Pré-guia de exemplo em ATENÇÃO para testar a T9
-INSERT INTO pre_guia (numero, status, data_emissao, encaminhamento_url, beneficiario_id, ocs_id, origem, observacao, data_registro_observacao, encaminhamento_nome, encaminhamento_tipo, data_envio_encaminhamento)
-SELECT 'PRE-2024-001', 'ATENCAO', '2026-09-01 10:00:00', 'encaminhamentos/teste.pdf', b.id, o.id, 'BENEFICIARIO', 'A foto enviada está ilegível.', '2026-09-02 14:00:00', 'encaminhamento_antigo.pdf', 'application/pdf', '2026-09-01 10:05:00'
-FROM beneficiario b, ocs o
-WHERE b.cpf = '12345678900' AND o.contrato_num = 'EXEMPLO-001'
-AND NOT EXISTS (SELECT 1 FROM pre_guia WHERE numero = 'PRE-2024-001');
+INSERT INTO PreGuiaHistorico (pre_guia_id, status, observacao, encaminhamento_url, usuario_id, data_hora)
+SELECT p.id_pre_guia, 'ATENCAO', 'A foto enviada esta ilegivel. Envie uma nova foto do encaminhamento.', NULL, u.id_usuario, '2026-09-02 14:00:00'
+FROM PreGuia p, Usuario u
+WHERE p.encaminhamento_url = 'encaminhamentos/exemplo-atencao.jpg' AND u.login = 'setor.guias'
+  AND NOT EXISTS (SELECT 1 FROM PreGuiaHistorico h WHERE h.pre_guia_id = p.id_pre_guia AND h.status = 'ATENCAO');
