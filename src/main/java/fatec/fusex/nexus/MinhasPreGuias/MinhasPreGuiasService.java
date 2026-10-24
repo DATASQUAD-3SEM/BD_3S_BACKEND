@@ -1,11 +1,17 @@
 package fatec.fusex.nexus.MinhasPreGuias;
 
+import fatec.fusex.nexus.MinhasPreGuias.dto.GuiaPdf;
+import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
+import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
+import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
+import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
+import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaRepository;
@@ -15,12 +21,13 @@ import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
-import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
 
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 public class MinhasPreGuiasService {
@@ -31,23 +38,30 @@ public class MinhasPreGuiasService {
     private final GuiaRepository guiaRepository;
     private final UsuarioRepository usuarioRepository;
     private final SimulacaoLogin simulacaoLogin;
+    private final AssinaturaGuiaRepository assinaturaGuiaRepository;
+    private final ArmazenamentoArquivo armazenamentoArquivo;
 
     public MinhasPreGuiasService(PreGuiaRepository preGuiaRepository,
                                  BeneficiarioRepository beneficiarioRepository,
                                  PreGuiaHistoricoRepository historicoRepository,
                                  GuiaRepository guiaRepository,
                                  UsuarioRepository usuarioRepository,
-                                 SimulacaoLogin simulacaoLogin) {
+                                 SimulacaoLogin simulacaoLogin,
+                                 AssinaturaGuiaRepository assinaturaGuiaRepository,
+                                 ArmazenamentoArquivo armazenamentoArquivo) {
         this.preGuiaRepository = preGuiaRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.historicoRepository = historicoRepository;
         this.guiaRepository = guiaRepository;
         this.usuarioRepository = usuarioRepository;
         this.simulacaoLogin = simulacaoLogin;
+        this.assinaturaGuiaRepository = assinaturaGuiaRepository;
+        this.armazenamentoArquivo = armazenamentoArquivo;
     }
 
     @Transactional(readOnly = true)
     public List<MinhaPreGuiaResponse> listar() {
+        // ... igual ao T1-BE1 (mantém)
         Beneficiario beneficiario = beneficiarioLogado();
 
         List<PreGuia> preGuias = preGuiaRepository
@@ -75,8 +89,46 @@ public class MinhasPreGuiasService {
             }
 
             return MinhaPreGuiaResponse.fromEntity(preGuia, obs, guiaDto);
-
         }).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public GuiaPdf baixarGuiaPdf(Long idPreGuia, String modoRaw) {
+        ModoDownload modo = ModoDownload.from(modoRaw);
+        Beneficiario beneficiario = beneficiarioLogado();
+
+        PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Pre-guia nao encontrada"));
+
+        if (!preGuia.getBeneficiario().getUsuarioId().equals(beneficiario.getUsuarioId())) {
+            throw new RecursoNaoEncontradoException("Pre-guia nao encontrada");
+        }
+
+        if (preGuia.getStatus() != PreGuiaStatus.CONCLUIDA) {
+            throw new AcessoNegadoException(
+                    "Pre-guia ainda nao esta concluida: PDF da guia indisponivel");
+        }
+
+        long assinaturas = assinaturaGuiaRepository.countByGuiaPreGuiaIdPreGuia(idPreGuia);
+        if (assinaturas < 2) {
+            throw new AcessoNegadoException(
+                    "Guia sem as 2 assinaturas necessarias: PDF indisponivel");
+        }
+
+        Guia guia = guiaRepository.findByPreGuiaIdPreGuia(idPreGuia)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Guia nao encontrada"));
+
+        String caminho = guia.getArquivoUrl();
+        if (caminho == null || !caminho.toLowerCase(Locale.ROOT).endsWith(".pdf")) {
+            throw new RegraDeNegocioException("Arquivo da guia nao e um PDF");
+        }
+
+        Resource resource = armazenamentoArquivo.carregar(caminho);
+        String filename = "guia-" + sanitizar(guia.getNumero()) + ".pdf";
+
+        return new GuiaPdf(resource, filename, modo == ModoDownload.VISUALIZAR);
     }
 
     private Beneficiario beneficiarioLogado() {
@@ -94,5 +146,12 @@ public class MinhasPreGuiasService {
         return beneficiarioRepository.findById(usuario.getIdUsuario())
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Beneficiario nao encontrado"));
+    }
+
+    private static String sanitizar(String valor) {
+        if (valor == null || valor.isBlank()) {
+            return "sem-numero";
+        }
+        return valor.replaceAll("[^a-zA-Z0-9._-]", "_");
     }
 }
