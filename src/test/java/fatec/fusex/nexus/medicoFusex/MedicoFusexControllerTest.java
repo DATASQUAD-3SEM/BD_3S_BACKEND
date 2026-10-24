@@ -42,15 +42,15 @@ class MedicoFusexControllerTest {
     void me_comMedicoLogado_retorna200ComDadosSemPrecCp() throws Exception {
         when(simulacaoLogin.loginAtual()).thenReturn("11144477735");
         when(service.buscarLogado("11144477735")).thenReturn(
-                new MedicoMeResponse(7L, "Carlos Eduardo Lima", "Capitao", "123456-SP"));
+                new MedicoMeResponse("Carlos Eduardo Lima", "Capitao", "123456-SP"));
 
         mockMvc.perform(get("/medicos/me")
                         .header("X-Usuario-Login", "11144477735"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(7))
                 .andExpect(jsonPath("$.nome").value("Carlos Eduardo Lima"))
                 .andExpect(jsonPath("$.patente").value("Capitao"))
                 .andExpect(jsonPath("$.crm").value("123456-SP"))
+                .andExpect(jsonPath("$.id").doesNotExist())
                 .andExpect(jsonPath("$.precCp").doesNotExist());
     }
 
