@@ -1,32 +1,27 @@
-package fatec.fusex.nexus.preguia;
+package fatec.fusex.nexus.preGuia;
 
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.preGuia.dto.CorrecaoPreGuiaResponse;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import fatec.fusex.nexus.preguia.dto.CorrecaoPreGuiaResponse;
 
 @RestController
 @RequestMapping("/beneficiarios/me/pre-guias")
 public class BeneficiarioPreGuiaController {
 
     private final PreGuiaService preGuiaService;
+    private final SimulacaoLogin simulacaoLogin;
 
-    public BeneficiarioPreGuiaController(PreGuiaService preGuiaService) {
+    public BeneficiarioPreGuiaController(PreGuiaService preGuiaService, SimulacaoLogin simulacaoLogin) {
         this.preGuiaService = preGuiaService;
+        this.simulacaoLogin = simulacaoLogin;
     }
 
     @GetMapping("/{id}/correcao")
-    @PreAuthorize("hasRole('BENEFICIARIO')")
-    public ResponseEntity<CorrecaoPreGuiaResponse> buscarCorrecao(
-            @PathVariable Long id,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        // O username no token (ou mock) será o CPF do beneficiário
-        return ResponseEntity.ok(preGuiaService.buscarDadosCorrecao(id, userDetails.getUsername()));
+    public CorrecaoPreGuiaResponse buscarCorrecao(@PathVariable Long id) {
+        // Pega o login do header X-Usuario-Login (se não tiver, lança 401)
+        return preGuiaService.buscarDadosCorrecao(id, simulacaoLogin.loginAtual());
     }
 }
