@@ -7,15 +7,13 @@ public record OcsResponse(
         Long id,
         String contratoNum,
         String nome,
-        String tipo,
-	Boolean ativa) {
+        String tipo) {
 
     public static OcsResponse de(Ocs ocs) {
         return new OcsResponse(
                 ocs.getIdOcs(),
                 ocs.getContratoNum(),
                 ocs.getNome(),
-                ocs.getTipo().name(),
-		ocs.getAtiva());
+                ocs.getTipo().name());
     }
 }
