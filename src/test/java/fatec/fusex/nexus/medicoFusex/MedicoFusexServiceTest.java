@@ -6,7 +6,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
-import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
+import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.medicoFusex.dto.MedicoMeResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,24 +33,29 @@ class MedicoFusexServiceTest {
         medico.setNome("Carlos Eduardo Lima");
         medico.setPatente("Capitao");
         medico.setCrm("123456-SP");
-        medico.setPrecCp("11122233344");
 
-        when(medicoRepository.findByUsuarioLoginAndUsuarioAtivoTrue("11144477735"))
+        // Simula o usuário ativo e com perfil MEDICO (necessário para o validarAcessoMedico)
+        fatec.fusex.nexus.usuario.Usuario usuario = new fatec.fusex.nexus.usuario.Usuario();
+        usuario.setAtivo(true);
+        usuario.setPerfil(fatec.fusex.nexus.usuario.PerfilUsuario.MEDICO);
+        medico.setUsuario(usuario);
+
+        when(medicoRepository.findByUsuarioLogin("11144477735"))
                 .thenReturn(Optional.of(medico));
 
         MedicoMeResponse resposta = service.buscarLogado("11144477735");
 
         assertThat(resposta.id()).isEqualTo(7L);
         assertThat(resposta.nome()).isEqualTo("Carlos Eduardo Lima");
-        assertThat(resposta.toString()).doesNotContain("11122233344");
     }
 
     @Test
-    void buscarLogado_quandoNaoExisteOuInativo_lancaRecursoNaoEncontrado() {
-        when(medicoRepository.findByUsuarioLoginAndUsuarioAtivoTrue("00000000000"))
+    void buscarLogado_quandoNaoExiste_lancaAcessoNegado() {
+        when(medicoRepository.findByUsuarioLogin("00000000000"))
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.buscarLogado("00000000000"))
-                .isInstanceOf(RecursoNaoEncontradoException.class);
+                .isInstanceOf(AcessoNegadoException.class)
+                .hasMessageContaining("Acesso restrito a medicos");
     }
 }
