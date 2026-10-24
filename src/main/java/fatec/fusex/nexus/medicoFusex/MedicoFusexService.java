@@ -1,21 +1,37 @@
 package fatec.fusex.nexus.medicoFusex;
 
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.medicoFusex.dto.MedicoMeResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
+import fatec.fusex.nexus.usuario.Usuario;
+import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MedicoFusexService {
 
     private final MedicoFusexRepository medicoRepository;
+    private final UsuarioRepository usuarioRepository;
 
-    // Construtor recebendo APENAS o repositório necessário para a T2-BE2
-    public MedicoFusexService(MedicoFusexRepository medicoRepository) {
+    public MedicoFusexService(MedicoFusexRepository medicoRepository,
+                              UsuarioRepository usuarioRepository) {
         this.medicoRepository = medicoRepository;
+        this.usuarioRepository = usuarioRepository;
     }
 
-    // Valida se o usuário logado é médico e está ativo.
+
+    public Usuario validarPerfilMedico(String login) {
+        Usuario usuario = usuarioRepository.findByLogin(login)
+                .orElseThrow(() -> new AcessoNegadoException("Acesso restrito a medicos"));
+
+        if (!Boolean.TRUE.equals(usuario.getAtivo()) || usuario.getPerfil() != PerfilUsuario.MEDICO) {
+            throw new AcessoNegadoException("Acesso restrito a medicos");
+        }
+        return usuario;
+    }
+
+    // Valida se o usuário logado é médico e está ativo (exige tambem o cadastro em MedicoFusex).
     public MedicoFusex validarAcessoMedico(String login) {
         MedicoFusex medico = medicoRepository.findByUsuarioLogin(login)
                 .orElseThrow(() -> new AcessoNegadoException("Acesso restrito a medicos"));
@@ -26,9 +42,11 @@ public class MedicoFusexService {
         return medico;
     }
 
-    //Dados do medico logado. O login vem do Header. */
+
     public MedicoMeResponse buscarLogado(String login) {
-        MedicoFusex medico = validarAcessoMedico(login);
+        validarPerfilMedico(login);
+        MedicoFusex medico = medicoRepository.findByUsuarioLogin(login)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Cadastro de medico nao encontrado"));
         return MedicoMeResponse.de(medico);
     }
 }
