@@ -10,16 +10,15 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
-/**
- * Implementacao PROVISORIA: guarda no disco, na pasta nexus.storage.local-dir.
- * A decisao final de storage e o spike SCRUM 19 (docs/DECISOES_PENDENTES.md).
- * O nome original do arquivo e ignorado (usamos UUID) para evitar nomes repetidos e ataques.
- */
+
 @Service
 public class ArmazenamentoLocal implements ArmazenamentoArquivo {
 
@@ -51,6 +50,15 @@ public class ArmazenamentoLocal implements ArmazenamentoArquivo {
             throw new UncheckedIOException("Falha ao salvar o arquivo", e);
         }
         return pasta + "/" + nomeNovo;
+    }
+
+    @Override
+    public Resource carregar(String caminhoRelativo) {
+        Path arquivo = resolverDentroDaRaiz(caminhoRelativo);
+        if (!Files.isRegularFile(arquivo)) {
+            throw new RecursoNaoEncontradoException("Arquivo nao encontrado no armazenamento");
+        }
+        return new FileSystemResource(arquivo);
     }
 
     @Override
