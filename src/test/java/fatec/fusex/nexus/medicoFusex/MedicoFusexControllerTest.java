@@ -1,5 +1,9 @@
 package fatec.fusex.nexus.medicoFusex;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,7 +14,11 @@ import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
+import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.medicoFusex.dto.MedicoMeResponse;
+import fatec.fusex.nexus.medicoFusex.dto.ProcedimentoMedicoResponse;
+import fatec.fusex.nexus.procedimentoExame.ProcedimentoExameService;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -26,6 +34,9 @@ class MedicoFusexControllerTest {
     private MedicoFusexService service;
 
     @Mock
+    private ProcedimentoExameService procedimentoService;
+
+    @Mock
     private SimulacaoLogin simulacaoLogin;
 
     @BeforeEach
@@ -33,7 +44,7 @@ class MedicoFusexControllerTest {
         MockitoAnnotations.openMocks(this);
         // Instancia o Controller passando os mocks
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new MedicoFusexController(service, simulacaoLogin))
+                .standaloneSetup(new MedicoFusexController(service, procedimentoService, simulacaoLogin))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
@@ -82,5 +93,69 @@ class MedicoFusexControllerTest {
         mockMvc.perform(get("/medicos/me")
                         .header("X-Usuario-Login", "11144477735"))
                 .andExpect(status().isNotFound());
+    }
+
+    // ===== GET /medicos/procedimentos - T2-BE3 =====
+
+    @Test
+    void procedimentos_comMedicoLogado_retorna200ComCodigoTussENome() throws Exception {
+        when(simulacaoLogin.loginAtual()).thenReturn("11144477735");
+        when(procedimentoService.buscar("glic")).thenReturn(
+                List.of(new ProcedimentoMedicoResponse("40302040", "Glicose")));
+
+        mockMvc.perform(get("/medicos/procedimentos").param("busca", "glic")
+                        .header("X-Usuario-Login", "11144477735"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codigoTuss").value("40302040"))
+                .andExpect(jsonPath("$[0].nome").value("Glicose"))
+                .andExpect(jsonPath("$[0].id").doesNotExist());
+
+        verify(service).validarPerfilMedico("11144477735");
+    }
+
+    @Test
+    void procedimentos_semResultado_retorna200ComListaVazia() throws Exception {
+        when(simulacaoLogin.loginAtual()).thenReturn("11144477735");
+        when(procedimentoService.buscar("inexistente")).thenReturn(List.of());
+
+        mockMvc.perform(get("/medicos/procedimentos").param("busca", "inexistente")
+                        .header("X-Usuario-Login", "11144477735"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void procedimentos_termoCurto_retorna400() throws Exception {
+        when(simulacaoLogin.loginAtual()).thenReturn("11144477735");
+        when(procedimentoService.buscar("a"))
+                .thenThrow(new RegraDeNegocioException("A busca deve ter no minimo 2 caracteres"));
+
+        mockMvc.perform(get("/medicos/procedimentos").param("busca", "a")
+                        .header("X-Usuario-Login", "11144477735"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void procedimentos_comPerfilErrado_retorna403SemBuscar() throws Exception {
+        when(simulacaoLogin.loginAtual()).thenReturn("52998224725");
+        doThrow(new AcessoNegadoException("Acesso restrito a medicos"))
+                .when(service).validarPerfilMedico("52998224725");
+
+        // termo curto de proposito: o 403 vem antes da validacao da busca
+        mockMvc.perform(get("/medicos/procedimentos").param("busca", "a")
+                        .header("X-Usuario-Login", "52998224725"))
+                .andExpect(status().isForbidden());
+
+        verify(procedimentoService, never()).buscar(any());
+    }
+
+    @Test
+    void procedimentos_semUsuario_retorna401() throws Exception {
+        when(simulacaoLogin.loginAtual()).thenThrow(new NaoAutenticadoException("Nenhum usuario logado"));
+
+        mockMvc.perform(get("/medicos/procedimentos").param("busca", "glic"))
+                .andExpect(status().isUnauthorized());
+
+        verify(procedimentoService, never()).buscar(any());
     }
 }
