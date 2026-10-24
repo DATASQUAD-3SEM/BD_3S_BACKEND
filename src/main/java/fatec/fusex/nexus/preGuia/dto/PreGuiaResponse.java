@@ -10,31 +10,17 @@ import fatec.fusex.nexus.preGuia.PreGuia;
  */
 public record PreGuiaResponse(
         Long id,
-        String numero,
-        String origem,
         String status,
         LocalDateTime dataEmissao,
-        String observacao,
-        LocalDateTime dataRegistroObservacao,
-        String encaminhamentoNome,
-        String encaminhamentoTipo,
         String encaminhamentoUrl,
-        LocalDateTime dataEnvioEncaminhamento,
         Long ocsId) {
 
     public static PreGuiaResponse de(PreGuia preGuia) {
         return new PreGuiaResponse(
                 preGuia.getIdPreGuia(),
-                preGuia.getNumero(),
-                preGuia.getOrigem() != null ? preGuia.getOrigem().name() : null,
                 preGuia.getStatus().name(),
                 preGuia.getDataCriacao(),
-                preGuia.getObservacao(),
-                preGuia.getDataRegistroObservacao(),
-                preGuia.getEncaminhamentoNome(),
-                preGuia.getEncaminhamentoTipo(),
                 preGuia.getEncaminhamentoUrl(),
-                preGuia.getDataEnvioEncaminhamento(),
                 preGuia.getOcs().getIdOcs());
     }
 }
