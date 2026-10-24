@@ -18,13 +18,24 @@ WHERE NOT EXISTS (SELECT 1 FROM ProcedimentoExame WHERE codigo_tuss = '40301630'
 -- =====================================================================
 -- OCS (Ocs)
 -- =====================================================================
-INSERT INTO Ocs (contrato_num, nome, tipo)
-SELECT 'EXEMPLO-001', 'Laboratorio Exemplo', 'OCS' FROM DUAL
+INSERT INTO Ocs (contrato_num, nome, tipo, ativo)
+SELECT 'EXEMPLO-001', 'Laboratorio Exemplo', 'OCS', TRUE FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Ocs WHERE contrato_num = 'EXEMPLO-001');
 
-INSERT INTO Ocs (contrato_num, nome, tipo)
-SELECT 'EXEMPLO-002', 'Hospital Exemplo', 'PSA' FROM DUAL
+INSERT INTO Ocs (contrato_num, nome, tipo, ativo)
+SELECT 'EXEMPLO-002', 'Hospital Exemplo', 'PSA', TRUE FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Ocs WHERE contrato_num = 'EXEMPLO-002');
+
+-- OCS INATIVA (Para testar o filtro da T2-BE2 do revisor)
+INSERT INTO Ocs (contrato_num, nome, tipo, ativo)
+SELECT 'EXEMPLO-003', 'Clinica Inativa Exemplo', 'OCS', FALSE FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Ocs WHERE contrato_num = 'EXEMPLO-003');
+
+-- OCS com acento (Para testar a busca accent-insensitive)
+INSERT INTO Ocs (contrato_num, nome, tipo, ativo)
+SELECT 'EXEMPLO-004', 'Ortopédia e Clínica Médica', 'OCS', TRUE FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Ocs WHERE contrato_num = 'EXEMPLO-004');
+
 
 -- EXEMPLO-001 realiza os 3 exames; EXEMPLO-002 realiza so o hemograma
 INSERT INTO OcsProcedimento (ocs_id, procedimento_id)
