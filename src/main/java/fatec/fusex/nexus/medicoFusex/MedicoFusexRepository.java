@@ -22,6 +22,15 @@ public interface MedicoFusexRepository extends JpaRepository<MedicoFusex, Long> 
 
     boolean existsByCrm(String crm);
 
+    // T8-BE3: na edicao, so conta duplicidade de OUTRO medico
+    boolean existsByPrecCpAndUsuarioIdNot(String precCp, Long usuarioId);
+
+    boolean existsByCrmAndUsuarioIdNot(String crm, Long usuarioId);
+
+    // T8-BE3: carrega o usuario junto (login, senha e ativo sao alterados na edicao)
+    @EntityGraph(attributePaths = "usuario")
+    Optional<MedicoFusex> findWithUsuarioByUsuarioId(Long usuarioId);
+
     // T8-BE1: lista do chefe. ativo nulo = todos; digitos vazio = a busca nao parece CPF/Prec CP
     @Query(value = """
             SELECT m FROM MedicoFusex m JOIN FETCH m.usuario u

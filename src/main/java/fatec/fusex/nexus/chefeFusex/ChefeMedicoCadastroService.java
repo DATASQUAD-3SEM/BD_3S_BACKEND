@@ -28,8 +28,8 @@ public class ChefeMedicoCadastroService {
 
     private static final int SENHA_MINIMO = 8;
     private static final int SENHA_MAXIMO = 72; // limite do BCrypt
-    private static final int NOME_MAXIMO = 150;
-    private static final int PATENTE_MAXIMO = 50;
+    static final int NOME_MAXIMO = 150;
+    static final int PATENTE_MAXIMO = 50;
 
     // CRM: 4 a 7 digitos + UF, com ou sem separador ("123456-SP", "123456/sp", "123456 SP")
     private static final Pattern CRM = Pattern.compile("^(\\d{4,7})[-/ ]?([A-Z]{2})$");
@@ -104,7 +104,8 @@ public class ChefeMedicoCadastroService {
         return new MedicoCadastradoResponse(medico.getUsuarioId());
     }
 
-    private void validarChefe() {
+    // Usado tambem pela edicao (T8-BE3)
+    void validarChefe() {
         String login = simulacaoLogin.loginAtual();
 
         Usuario usuario = usuarioRepository.findByLogin(login)
@@ -115,7 +116,8 @@ public class ChefeMedicoCadastroService {
         }
     }
 
-    private static String obrigatorio(String valor, String campo, int maximo) {
+    // As regras de formato abaixo valem para o cadastro e para a edicao (T8-BE3), por isso nao sao private
+    static String obrigatorio(String valor, String campo, int maximo) {
         if (valor == null || valor.isBlank()) {
             throw new DadosInvalidosException(campo, "Campo obrigatorio");
         }
@@ -153,7 +155,7 @@ public class ChefeMedicoCadastroService {
     }
 
     // Mesmo formato do PrecCp do beneficiario: 11 digitos, com ou sem pontos e hifen
-    private static String normalizarPrecCp(String informado) {
+    static String normalizarPrecCp(String informado) {
         if (informado == null || informado.isBlank()) {
             throw new DadosInvalidosException("precCp", "Campo obrigatorio");
         }
@@ -177,11 +179,15 @@ public class ChefeMedicoCadastroService {
     }
 
     private static void validarSenha(String senha) {
+        validarSenha(senha, "senha");
+    }
+
+    static void validarSenha(String senha, String campo) {
         if (senha == null || senha.length() < SENHA_MINIMO) {
-            throw new DadosInvalidosException("senha", "A senha deve ter no minimo " + SENHA_MINIMO + " caracteres");
+            throw new DadosInvalidosException(campo, "A senha deve ter no minimo " + SENHA_MINIMO + " caracteres");
         }
         if (senha.length() > SENHA_MAXIMO) {
-            throw new DadosInvalidosException("senha", "A senha deve ter no maximo " + SENHA_MAXIMO + " caracteres");
+            throw new DadosInvalidosException(campo, "A senha deve ter no maximo " + SENHA_MAXIMO + " caracteres");
         }
     }
 }
