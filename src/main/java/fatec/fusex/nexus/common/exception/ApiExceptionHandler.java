@@ -25,7 +25,10 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ConflitoException.class)
     public ResponseEntity<ErrorResponse> conflito(ConflitoException ex) {
-        return montar(409, "Conflict", ex.getMessage(), List.of());
+        List<String> detalhes = ex.getCampo() == null
+                ? List.of()
+                : List.of(ex.getCampo() + ": " + ex.getMessage());
+        return montar(409, "Conflict", ex.getMessage(), detalhes);
     }
 
     @ExceptionHandler(NaoAutenticadoException.class)

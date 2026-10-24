@@ -17,6 +17,11 @@ public interface MedicoFusexRepository extends JpaRepository<MedicoFusex, Long> 
     @EntityGraph(attributePaths = "usuario")
     Optional<MedicoFusex> findByUsuarioLoginAndUsuarioAtivoTrue(String login);
 
+    // T8-BE2: duplicidade no cadastro pelo chefe
+    boolean existsByPrecCp(String precCp);
+
+    boolean existsByCrm(String crm);
+
     // T8-BE1: lista do chefe. ativo nulo = todos; digitos vazio = a busca nao parece CPF/Prec CP
     @Query(value = """
             SELECT m FROM MedicoFusex m JOIN FETCH m.usuario u
