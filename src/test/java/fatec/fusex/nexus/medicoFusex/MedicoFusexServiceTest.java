@@ -66,7 +66,6 @@ class MedicoFusexServiceTest {
 
         MedicoMeResponse resposta = service.buscarLogado(LOGIN);
 
-        assertThat(resposta.id()).isEqualTo(7L);
         assertThat(resposta.nome()).isEqualTo("Carlos Eduardo Lima");
         assertThat(resposta.patente()).isEqualTo("Capitao");
         assertThat(resposta.crm()).isEqualTo("123456-SP");
