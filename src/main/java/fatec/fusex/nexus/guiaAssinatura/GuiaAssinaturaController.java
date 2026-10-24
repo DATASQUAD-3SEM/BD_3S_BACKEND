@@ -5,14 +5,17 @@ import java.util.List;
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import fatec.fusex.nexus.guiaAssinatura.dto.AssinaturaRegistradaResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.GuiaParaAssinarResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
 
@@ -22,11 +25,14 @@ public class GuiaAssinaturaController {
 
     private final GuiaAssinaturaService guiaAssinaturaService;
     private final GuiaPdfAssinadoService guiaPdfAssinadoService;
+    private final RegistrarAssinaturaGuiaService registrarAssinaturaGuiaService;
 
     public GuiaAssinaturaController(GuiaAssinaturaService guiaAssinaturaService,
-                                    GuiaPdfAssinadoService guiaPdfAssinadoService) {
+                                    GuiaPdfAssinadoService guiaPdfAssinadoService,
+                                    RegistrarAssinaturaGuiaService registrarAssinaturaGuiaService) {
         this.guiaAssinaturaService = guiaAssinaturaService;
         this.guiaPdfAssinadoService = guiaPdfAssinadoService;
+        this.registrarAssinaturaGuiaService = registrarAssinaturaGuiaService;
     }
 
     @GetMapping("/para-assinar")
@@ -48,5 +54,11 @@ public class GuiaAssinaturaController {
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposicao.toString())
                 .body(pdf.arquivo());
+    }
+
+    @PostMapping("/{id}/assinaturas")
+    public ResponseEntity<AssinaturaRegistradaResponse> assinar(@PathVariable("id") Long id) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(registrarAssinaturaGuiaService.assinar(id));
     }
 }
