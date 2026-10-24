@@ -3,8 +3,10 @@ package fatec.fusex.nexus.guia;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -41,4 +43,8 @@ public interface GuiaRepository extends JpaRepository<Guia, Long> {
             order by g.dataInsercao asc, g.idGuia asc
             """)
     List<Guia> buscarSemAssinatura(@Param("papel") AssinaturaGuiaPapel papel);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select g from Guia g where g.idGuia = :id")
+    Optional<Guia> findByIdComLock(@Param("id") Long id);
 }
