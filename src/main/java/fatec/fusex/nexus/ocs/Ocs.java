@@ -34,4 +34,6 @@ public class Ocs {
     @Column(name = "contrato_num", nullable = false, length = 50)
     private String contratoNum;
 
+    @Column(nullable = false)
+    private Boolean ativo = true;
 }
