@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.MinhasPreGuias.MinhaPreGuiaResponse.dto;
+package fatec.fusex.nexus.MinhasPreGuias.dto;
 
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
