@@ -7,14 +7,13 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.springframework.context.annotation.Import;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc; // <-- Necessário para ignorar o Spring Security
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -23,7 +22,7 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
 @WebMvcTest(PreGuiaController.class)
-@Import(SimulacaoLogin.class)
+@AutoConfigureMockMvc(addFilters = false) // <-- ADICIONADO AQUI: ignora os filtros de segurança nos testes
 class PreGuiaControllerTest {
 
     @Autowired
@@ -34,11 +33,19 @@ class PreGuiaControllerTest {
 
     @Test
     void criar_quandoRequisicaoValida_devolve201ComoCorpoDaPreGuia() throws Exception {
+        // Atualizado com a nova quantidade de parâmetros do PreGuiaResponse (ajuste conforme os campos novos)
         PreGuiaResponse resposta = new PreGuiaResponse(
                 1L,
+                "001/2026",
+                "BENEFICIARIO",
                 "PENDENTE",
                 LocalDateTime.of(2026, 9, 24, 10, 0),
+                null,
+                null,
+                null,
+                null,
                 "encaminhamentos/gerado.pdf",
+                null,
                 10L);
 
         when(preGuiaService.criar(anyString(), anyString(), anyLong(), any()))
