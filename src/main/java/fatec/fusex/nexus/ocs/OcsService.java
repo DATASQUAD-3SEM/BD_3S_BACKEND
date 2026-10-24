@@ -25,28 +25,14 @@ public class OcsService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException("OCS não encontrada com o id: " + id));
     }
 
-
     public OcsBuscaResponse buscar(String termo) {
-        // Fixa em 30 resultados, ordenando por nome (A-Z)
         Pageable pageable = PageRequest.of(0, 30, Sort.by("nome").ascending());
+        Page<Ocs> pagina = (termo == null || termo.isBlank())
+                ? ocsRepository.findByAtivoTrue(pageable)
+                : ocsRepository.buscarPorTermo(termo.trim(), pageable);
 
-        Page<Ocs> pagina;
-
-        if (termo == null || termo.isBlank()) {
-            // Se não tem busca, traz a lista inicial (todas)
-            pagina = ocsRepository.findAll(pageable);
-        } else {
-            // Se tem busca, filtra pelo termo
-            pagina = ocsRepository.buscarPorTermo(termo.trim(), pageable);
-        }
-
-        // Reaproveita o OcsResponse que já existe no projeto
-        List<OcsResponse> resultados = pagina.getContent()
-                .stream()
-                .map(OcsResponse::de)
-                .toList();
-
-        // Retorna a lista + o total de registros (mesmo que o total seja maior que 30)
+        List<OcsResponse> resultados = pagina.getContent().stream().map(OcsResponse::de).toList();
         return new OcsBuscaResponse(resultados, pagina.getTotalElements());
     }
+
 }
