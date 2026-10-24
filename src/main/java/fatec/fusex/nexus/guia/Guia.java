@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -39,4 +40,8 @@ public class Guia {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "inserida_por", nullable = false)
     private Usuario usuario;
+
+    public LocalDate validadeAte() {
+        return dataInsercao.toLocalDate().plusMonths(2);
+    }
 }
