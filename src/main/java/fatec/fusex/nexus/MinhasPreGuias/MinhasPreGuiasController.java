@@ -1,6 +1,7 @@
 package fatec.fusex.nexus.MinhasPreGuias;
 
 import fatec.fusex.nexus.MinhasPreGuias.dto.CorrecaoPreGuiaResponse;
+import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
 import fatec.fusex.nexus.MinhasPreGuias.dto.GuiaPdf;
 import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
 
@@ -36,6 +37,20 @@ public class MinhasPreGuiasController {
     @GetMapping("/{id}/correcao")
     public ResponseEntity<CorrecaoPreGuiaResponse> buscarCorrecao(@PathVariable Long id) {
         return ResponseEntity.ok(minhasPreGuiasService.buscarCorrecao(id));
+    }
+
+    @GetMapping("/{id}/encaminhamento/arquivo")
+    public ResponseEntity<Resource> baixarEncaminhamento(@PathVariable Long id) {
+        EncaminhamentoArquivo arquivo = minhasPreGuiasService.baixarEncaminhamento(id);
+
+        ContentDisposition disposition = ContentDisposition.inline()
+                .filename(arquivo.filename())
+                .build();
+
+        return ResponseEntity.ok()
+                .contentType(arquivo.mediaType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(arquivo.recurso());
     }
 
     @GetMapping("/{id}/guia/pdf")
