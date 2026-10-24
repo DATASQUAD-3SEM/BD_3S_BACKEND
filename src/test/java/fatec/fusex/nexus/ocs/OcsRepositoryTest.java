@@ -3,7 +3,6 @@ package fatec.fusex.nexus.ocs;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,14 +65,6 @@ class OcsRepositoryTest {
     }
 
     @Test
-    @Disabled("H2 não suporta collation accent-insensitive. Validar no MySQL (dev).")
-    void buscaPorNome_ignoraAcentos() {
-        salvar("Ortopédia Exemplo", "EXEMPLO-003", OcsTipo.OCS);
-        assertThat(buscar("ortopedia").getContent()).extracting(Ocs::getNome)
-                .containsExactly("Ortopédia Exemplo");
-    }
-
-    @Test
     void ocsInativa_naoApareceNaBusca() {
         Ocs inativa = new Ocs();
         inativa.setNome("Laboratorio Inativo");
@@ -83,5 +74,43 @@ class OcsRepositoryTest {
         ocsRepository.save(inativa);
 
         assertThat(buscar("inativo").getContent()).isEmpty();
+    }
+
+    @Test
+    void ocsInativa_naoApareceNaListaInicial() {
+        Ocs inativa = new Ocs();
+        inativa.setNome("Laboratorio Inativo");
+        inativa.setContratoNum("EXEMPLO-999");
+        inativa.setTipo(OcsTipo.OCS);
+        inativa.setAtivo(false);
+        ocsRepository.save(inativa);
+
+        Page<Ocs> pagina = ocsRepository.findByAtivoTrue(PageRequest.of(0, 30, Sort.by("nome").ascending()));
+
+        assertThat(pagina.getContent()).extracting(Ocs::getNome)
+                .containsExactly("Hospital Exemplo", "Laboratorio Exemplo");
+    }
+
+    @Test
+    void limiteDe30_mantemTotalGeral() {
+        for (int i = 1; i <= 35; i++) {
+            salvar("Massa " + String.format("%02d", i), "MASSA-" + i, OcsTipo.OCS);
+        }
+
+        Page<Ocs> pagina = buscar("massa");
+
+        assertThat(pagina.getContent()).hasSize(30);
+        assertThat(pagina.getTotalElements()).isEqualTo(35L);
+        assertThat(pagina.getContent().get(0).getNome()).isEqualTo("Massa 01");
+    }
+
+    @Test
+    void curingaEscapado_naoCasaComTudo() {
+        // "!%" e o '%' escapado pelo OcsService: so casa com um '%' literal no texto
+        assertThat(buscar("!%").getContent()).isEmpty();
+
+        salvar("Clinica 100% Saude", "EXEMPLO-100", OcsTipo.OCS);
+        assertThat(buscar("100!%").getContent()).extracting(Ocs::getNome)
+                .containsExactly("Clinica 100% Saude");
     }
 }
