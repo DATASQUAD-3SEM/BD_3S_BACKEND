@@ -14,4 +14,10 @@ public interface PreGuiaHistoricoRepository extends JpaRepository<PreGuiaHistori
             Long idPreGuia,
             PreGuiaStatus status
     );
+
+    // Data em que o encaminhamento atual foi registrado no historico (ex: reenvio da T9-BE4)
+    Optional<PreGuiaHistorico> findFirstByPreGuiaIdPreGuiaAndEncaminhamentoUrlOrderByDataHoraDesc(
+            Long idPreGuia,
+            String encaminhamentoUrl
+    );
 }
