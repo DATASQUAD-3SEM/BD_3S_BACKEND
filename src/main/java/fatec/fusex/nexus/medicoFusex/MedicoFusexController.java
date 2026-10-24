@@ -1,10 +1,7 @@
 package fatec.fusex.nexus.medicoFusex;
 
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.security.ContextoAutenticacao;
 import fatec.fusex.nexus.medicoFusex.dto.MedicoMeResponse;
-import fatec.fusex.nexus.usuario.PerfilUsuario;
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,7 +18,7 @@ public class MedicoFusexController {
 
     @GetMapping("/me")
     public MedicoMeResponse me() {
-        // Pega o login do header X-Usuario-Login (se não tiver, lança 401)
+        //Pega o login do header X-Usuario-Login (se não tiver, lança 401)
         return service.buscarLogado(simulacaoLogin.loginAtual());
     }
 }
