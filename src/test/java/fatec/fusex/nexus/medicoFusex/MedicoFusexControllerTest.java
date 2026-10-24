@@ -39,7 +39,7 @@ class MedicoFusexControllerTest {
     void me_comMedicoLogado_retorna200ComDados() throws Exception {
         when(simulacaoLogin.loginAtual()).thenReturn("11144477735");
         when(service.buscarLogado("11144477735")).thenReturn(
-                new MedicoMeResponse(7L, "Carlos Eduardo Lima", "Capitao", "123456-SP", "11122233344"));
+                new MedicoMeResponse(7L, "Carlos Eduardo Lima", "Capitao", "123456-SP"));
 
         mockMvc.perform(get("/medicos/me")
                         .header("X-Usuario-Login", "11144477735"))
