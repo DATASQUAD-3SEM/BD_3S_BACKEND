@@ -25,8 +25,7 @@ public class OcsController {
     @GetMapping
     public OcsBuscaResponse buscar(@RequestParam(required = false) String busca) {
         String login = simulacaoLogin.loginAtual();
-        medicoService.buscarLogado(login); // Valida se o login pertence a um médico
-
+        medicoService.validarAcessoMedico(login); // Lança 403 se não for médico
         return ocsService.buscar(busca);
     }
 }
