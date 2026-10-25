@@ -10,7 +10,6 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
@@ -52,19 +51,40 @@ class AnexarGuiaControllerTest {
     private static final String BENEFICIARIO = "52998224725";
     private static final byte[] PDF = "%PDF-1.4 guia de teste".getBytes();
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private GuiaRepository guiaRepository;
-    @Autowired private GuiaRascunhoRepository guiaRascunhoRepository;
-    @Autowired private ArmazenamentoArquivo armazenamentoArquivo;
-    @Autowired private EntityManager entityManager;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final GuiaRepository guiaRepository;
+    private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final ArmazenamentoArquivo armazenamentoArquivo;
+    private final EntityManager entityManager;
 
     private Usuario setor;
     private Beneficiario beneficiario;
     private Ocs ocs;
+
+    AnexarGuiaControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            PreGuiaRepository preGuiaRepository,
+            GuiaRepository guiaRepository,
+            GuiaRascunhoRepository guiaRascunhoRepository,
+            ArmazenamentoArquivo armazenamentoArquivo,
+            EntityManager entityManager) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.guiaRepository = guiaRepository;
+        this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.armazenamentoArquivo = armazenamentoArquivo;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
@@ -48,18 +47,37 @@ class ConcluirGuiaControllerTest {
     private static final String SETOR = "setor.teste";
     private static final String BENEFICIARIO = "52998224725";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private GuiaRepository guiaRepository;
-    @Autowired private GuiaRascunhoRepository guiaRascunhoRepository;
-    @Autowired private EntityManager entityManager;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final GuiaRepository guiaRepository;
+    private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final EntityManager entityManager;
 
     private Usuario setor;
     private Beneficiario beneficiario;
     private Ocs ocs;
+
+    ConcluirGuiaControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            PreGuiaRepository preGuiaRepository,
+            GuiaRepository guiaRepository,
+            GuiaRascunhoRepository guiaRascunhoRepository,
+            EntityManager entityManager) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.guiaRepository = guiaRepository;
+        this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

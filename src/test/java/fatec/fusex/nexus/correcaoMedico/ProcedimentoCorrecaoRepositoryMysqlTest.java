@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,8 +27,11 @@ import fatec.fusex.nexus.procedimentoExame.ProcedimentoExameRolAns;
 @EnabledIfEnvironmentVariable(named = "FUSEX_TEST_MYSQL", matches = "true")
 class ProcedimentoCorrecaoRepositoryMysqlTest {
 
-    @Autowired
-    private ProcedimentoCorrecaoRepository procedimentoRepository;
+    private final ProcedimentoCorrecaoRepository procedimentoRepository;
+
+    ProcedimentoCorrecaoRepositoryMysqlTest(ProcedimentoCorrecaoRepository procedimentoRepository) {
+        this.procedimentoRepository = procedimentoRepository;
+    }
 
     @Test
     void buscaPorNome_ignoraAcentosNosDoisLados() {

@@ -8,7 +8,6 @@ import jakarta.persistence.EntityManager;
 
 import org.hibernate.Hibernate;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,11 +20,14 @@ import fatec.fusex.nexus.usuario.Usuario;
 @Transactional
 class BeneficiarioRepositoryTest {
 
-    @Autowired
-    private BeneficiarioRepository repository;
+    private final BeneficiarioRepository repository;
 
-    @Autowired
-    private EntityManager em;
+    private final EntityManager em;
+
+    BeneficiarioRepositoryTest(BeneficiarioRepository repository, EntityManager em) {
+        this.repository = repository;
+        this.em = em;
+    }
 
     @Test
     void salvaEBuscaPorCpfEPrecCp() {

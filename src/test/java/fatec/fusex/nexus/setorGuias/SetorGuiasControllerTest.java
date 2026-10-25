@@ -6,7 +6,6 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
@@ -38,11 +37,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class SetorGuiasControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
+    private final MockMvc mockMvc;
+    private final PreGuiaRepository preGuiaRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final UsuarioRepository usuarioRepository;
 
     private Ocs ocsPadrao;
 
@@ -50,6 +49,19 @@ class SetorGuiasControllerTest {
     private static final LocalDateTime D2 = LocalDateTime.of(2026, 10, 21, 10, 0);
     private static final LocalDateTime D3 = LocalDateTime.of(2026, 10, 20, 10, 0);
     private static final LocalDateTime D4 = LocalDateTime.of(2026, 10, 19, 10, 0);
+
+    SetorGuiasControllerTest(
+            MockMvc mockMvc,
+            PreGuiaRepository preGuiaRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            UsuarioRepository usuarioRepository) {
+        this.mockMvc = mockMvc;
+        this.preGuiaRepository = preGuiaRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
 
     @BeforeEach
     void setUp() {

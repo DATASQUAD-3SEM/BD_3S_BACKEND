@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.mock.web.MockMultipartFile;
@@ -55,22 +54,47 @@ class SetorGuiasDetalhePreGuiaTest {
     private static final String SETOR = "setor.guias";
     private static final String BENEFICIARIO_LOGIN = "beneficiario.teste";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
-    @Autowired private ProcedimentoExameRepository procedimentoExameRepository;
-    @Autowired private GuiaRepository guiaRepository;
-    @Autowired private GuiaRascunhoRepository guiaRascunhoRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private MedicoFusexRepository medicoFusexRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private ArmazenamentoArquivo armazenamentoArquivo;
+    private final MockMvc mockMvc;
+    private final PreGuiaRepository preGuiaRepository;
+    private final PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
+    private final ProcedimentoExameRepository procedimentoExameRepository;
+    private final GuiaRepository guiaRepository;
+    private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final MedicoFusexRepository medicoFusexRepository;
+    private final OcsRepository ocsRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final ArmazenamentoArquivo armazenamentoArquivo;
 
     private Usuario setor;
     private Ocs ocs;
     private Beneficiario beneficiario;
     private MedicoFusex medico;
+
+    SetorGuiasDetalhePreGuiaTest(
+            MockMvc mockMvc,
+            PreGuiaRepository preGuiaRepository,
+            PreGuiaProcedimentoRepository preGuiaProcedimentoRepository,
+            ProcedimentoExameRepository procedimentoExameRepository,
+            GuiaRepository guiaRepository,
+            GuiaRascunhoRepository guiaRascunhoRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            MedicoFusexRepository medicoFusexRepository,
+            OcsRepository ocsRepository,
+            UsuarioRepository usuarioRepository,
+            ArmazenamentoArquivo armazenamentoArquivo) {
+        this.mockMvc = mockMvc;
+        this.preGuiaRepository = preGuiaRepository;
+        this.preGuiaProcedimentoRepository = preGuiaProcedimentoRepository;
+        this.procedimentoExameRepository = procedimentoExameRepository;
+        this.guiaRepository = guiaRepository;
+        this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.medicoFusexRepository = medicoFusexRepository;
+        this.ocsRepository = ocsRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.armazenamentoArquivo = armazenamentoArquivo;
+    }
 
     @BeforeEach
     void setUp() {

@@ -9,7 +9,6 @@ import java.util.List;
 import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,11 +27,14 @@ import fatec.fusex.nexus.usuario.Usuario;
 @Transactional
 class GuiaParaAssinarRepositoryTest {
 
-    @Autowired
-    private GuiaRepository repository;
+    private final GuiaRepository repository;
 
-    @Autowired
-    private EntityManager em;
+    private final EntityManager em;
+
+    GuiaParaAssinarRepositoryTest(GuiaRepository repository, EntityManager em) {
+        this.repository = repository;
+        this.em = em;
+    }
 
     @Test
     void buscarSemAssinatura_medico_incluiGuiaSemNenhumaAssinatura() {

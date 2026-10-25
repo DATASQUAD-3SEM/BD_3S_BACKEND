@@ -8,7 +8,6 @@ import java.util.List;
 import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,11 +23,14 @@ import fatec.fusex.nexus.usuario.Usuario;
 @Transactional
 class PreGuiaRepositoryTest {
 
-    @Autowired
-    private PreGuiaRepository preGuiaRepository;
+    private final PreGuiaRepository preGuiaRepository;
 
-    @Autowired
-    private EntityManager em;
+    private final EntityManager em;
+
+    PreGuiaRepositoryTest(PreGuiaRepository preGuiaRepository, EntityManager em) {
+        this.preGuiaRepository = preGuiaRepository;
+        this.em = em;
+    }
 
     @Test
     void salvaPreGuiaEBuscaPeloBeneficiario() {

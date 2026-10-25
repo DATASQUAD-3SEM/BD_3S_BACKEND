@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,8 +27,11 @@ import fatec.fusex.nexus.ocs.OcsTipo;
 @EnabledIfEnvironmentVariable(named = "FUSEX_TEST_MYSQL", matches = "true")
 class OcsCorrecaoRepositoryMysqlTest {
 
-    @Autowired
-    private OcsCorrecaoRepository ocsRepository;
+    private final OcsCorrecaoRepository ocsRepository;
+
+    OcsCorrecaoRepositoryMysqlTest(OcsCorrecaoRepository ocsRepository) {
+        this.ocsRepository = ocsRepository;
+    }
 
     @Test
     void buscaPorNome_ignoraAcentosNosDoisLados() {

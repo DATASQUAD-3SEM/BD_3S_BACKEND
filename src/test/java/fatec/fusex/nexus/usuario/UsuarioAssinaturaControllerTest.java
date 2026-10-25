@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -24,11 +23,14 @@ import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 @Import(SimulacaoLogin.class)
 class UsuarioAssinaturaControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private UsuarioAssinaturaService assinaturaService;
+
+    UsuarioAssinaturaControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
     void atualizarArquivo_quandoSucesso_devolve200() throws Exception {

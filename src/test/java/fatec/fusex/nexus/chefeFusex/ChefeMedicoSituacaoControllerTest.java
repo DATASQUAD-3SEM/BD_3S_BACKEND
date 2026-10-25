@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -34,12 +33,23 @@ class ChefeMedicoSituacaoControllerTest {
     private static final String CHEFE = "chefe.teste";
     private static final String CPF_MEDICO = "11144477735";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoRepository;
-    @Autowired private EntityManager entityManager;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoRepository;
+    private final EntityManager entityManager;
 
     private Long idMedico;
+
+    ChefeMedicoSituacaoControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoRepository,
+            EntityManager entityManager) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoRepository = medicoRepository;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

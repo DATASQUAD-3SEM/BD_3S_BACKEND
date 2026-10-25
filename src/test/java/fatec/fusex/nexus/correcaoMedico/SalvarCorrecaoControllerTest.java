@@ -12,7 +12,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -56,16 +55,16 @@ class SalvarCorrecaoControllerTest {
     private static final String OUTRO_MEDICO = "39053344705";
     private static final String BENEFICIARIO = "52998224725";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private ProcedimentoExameRepository procedimentoRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
-    @Autowired private PreGuiaHistoricoRepository historicoRepository;
-    @Autowired private EntityManager entityManager;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final ProcedimentoExameRepository procedimentoRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
+    private final PreGuiaHistoricoRepository historicoRepository;
+    private final EntityManager entityManager;
 
     private Usuario setorGuias;
     private MedicoFusex medico;
@@ -78,6 +77,29 @@ class SalvarCorrecaoControllerTest {
     private Long idPendente;
     private Long idDeOutroMedico;
     private Long idDoBeneficiario;
+
+    SalvarCorrecaoControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            ProcedimentoExameRepository procedimentoRepository,
+            PreGuiaRepository preGuiaRepository,
+            PreGuiaProcedimentoRepository preGuiaProcedimentoRepository,
+            PreGuiaHistoricoRepository historicoRepository,
+            EntityManager entityManager) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoRepository = medicoRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.procedimentoRepository = procedimentoRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.preGuiaProcedimentoRepository = preGuiaProcedimentoRepository;
+        this.historicoRepository = historicoRepository;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

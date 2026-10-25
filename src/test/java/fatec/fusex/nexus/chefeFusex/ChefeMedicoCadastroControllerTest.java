@@ -9,7 +9,6 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -43,11 +42,24 @@ class ChefeMedicoCadastroControllerTest {
     private static final String CPF_MEDICO_EXISTENTE = "11144477735";
     private static final String CPF_BENEFICIARIO_EXISTENTE = "52998224725";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    ChefeMedicoCadastroControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            PasswordEncoder passwordEncoder) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoRepository = medicoRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
     @BeforeEach
     void dados() {

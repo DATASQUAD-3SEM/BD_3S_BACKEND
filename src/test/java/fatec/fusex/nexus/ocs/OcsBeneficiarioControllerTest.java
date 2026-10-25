@@ -8,7 +8,6 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
@@ -35,9 +34,15 @@ class OcsBeneficiarioControllerTest {
     private static final String LOGIN_SETOR = "setor.be3";
     private static final String LOGIN_MEDICO = "medico.be3";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
+    private final MockMvc mockMvc;
+    private final OcsRepository ocsRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    OcsBeneficiarioControllerTest(MockMvc mockMvc, OcsRepository ocsRepository, UsuarioRepository usuarioRepository) {
+        this.mockMvc = mockMvc;
+        this.ocsRepository = ocsRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
 
     @BeforeEach
     void setUp() {

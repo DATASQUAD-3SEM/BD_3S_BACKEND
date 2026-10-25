@@ -7,7 +7,6 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository; // Assumindo que você tem esse repository
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,11 +16,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class MedicoFusexRepositoryTest {
 
-    @Autowired
-    private MedicoFusexRepository medicoRepository;
+    private final MedicoFusexRepository medicoRepository;
 
-    @Autowired
-    private UsuarioRepository usuarioRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    MedicoFusexRepositoryTest(MedicoFusexRepository medicoRepository, UsuarioRepository usuarioRepository) {
+        this.medicoRepository = medicoRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
 
     @BeforeEach
     void setup() {

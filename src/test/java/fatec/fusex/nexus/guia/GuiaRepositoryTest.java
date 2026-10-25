@@ -9,7 +9,6 @@ import java.util.List;
 import jakarta.persistence.EntityManager;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
@@ -28,13 +27,16 @@ import fatec.fusex.nexus.usuario.Usuario;
 @Transactional
 class GuiaRepositoryTest {
 
-    @Autowired
-    private GuiaRepository repository;
+    private final GuiaRepository repository;
 
-    @Autowired
-    private EntityManager em;
+    private final EntityManager em;
 
     private static final PageRequest ATE_50 = PageRequest.of(0, 50);
+
+    GuiaRepositoryTest(GuiaRepository repository, EntityManager em) {
+        this.repository = repository;
+        this.em = em;
+    }
 
     @Test
     void buscarConcluidas_porNome_ignoraCaixa() {
