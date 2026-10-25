@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.MinhasPreGuias;
+package fatec.fusex.nexus.minhasPreGuias;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,14 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import fatec.fusex.nexus.MinhasPreGuias.dto.ReenvioPreGuiaResponse;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
+import fatec.fusex.nexus.minhasPreGuias.dto.ReenvioPreGuiaResponse;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
 import fatec.fusex.nexus.preGuia.PreGuia;
@@ -27,7 +26,6 @@ import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistorico;
 import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
  * T9-BE4: POST /beneficiarios/me/pre-guias/{id}/reenvio (multipart com ocsId e/ou arquivo).
@@ -47,31 +45,28 @@ public class ReenvioPreGuiaService {
     private final ReenvioPreGuiaRepository preGuiaRepository;
     private final OcsRepository ocsRepository;
     private final PreGuiaHistoricoRepository historicoRepository;
-    private final UsuarioRepository usuarioRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
     private final long tamanhoMaximoBytes;
 
     public ReenvioPreGuiaService(ReenvioPreGuiaRepository preGuiaRepository,
                                  OcsRepository ocsRepository,
                                  PreGuiaHistoricoRepository historicoRepository,
-                                 UsuarioRepository usuarioRepository,
                                  ArmazenamentoArquivo armazenamentoArquivo,
-                                 SimulacaoLogin simulacaoLogin,
+                                 UsuarioLogado usuarioLogado,
                                  @Value("${nexus.encaminhamento.tamanho-maximo-bytes:10485760}") long tamanhoMaximoBytes) {
         this.preGuiaRepository = preGuiaRepository;
         this.ocsRepository = ocsRepository;
         this.historicoRepository = historicoRepository;
-        this.usuarioRepository = usuarioRepository;
         this.armazenamentoArquivo = armazenamentoArquivo;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
         this.tamanhoMaximoBytes = tamanhoMaximoBytes;
     }
 
     // Ordem: perfil (403) -> de outro ou inexistente (404) -> origem medico (403) -> status (409) -> corpo (422)
     @Transactional
     public ReenvioPreGuiaResponse reenviar(Long id, Long ocsId, MultipartFile arquivo) {
-        Usuario beneficiario = validarBeneficiario();
+        Usuario beneficiario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
 
         // Trava a linha ate o fim da transacao (dois reenvios simultaneos geram uma unica mudanca)
         PreGuia preGuia = preGuiaRepository.buscarParaReenviar(id)
@@ -118,7 +113,7 @@ public class ReenvioPreGuiaService {
             return new ReenvioPreGuiaResponse(preGuia.getStatus().name(), dataReenvio);
         } catch (RuntimeException e) {
             if (arquivoNovo != null) {
-                removerSemFalhar(arquivoNovo); // nao deixa arquivo orfao se o banco falhar
+                armazenamentoArquivo.removerSemFalhar(arquivoNovo); // nao deixa arquivo orfao se o banco falhar
             }
             throw e;
         }
@@ -180,25 +175,5 @@ public class ReenvioPreGuiaService {
 
     private static String nomeDe(String caminho) {
         return caminho == null ? "-" : caminho.substring(caminho.lastIndexOf('/') + 1);
-    }
-
-    private void removerSemFalhar(String caminho) {
-        try {
-            armazenamentoArquivo.remover(caminho);
-        } catch (RuntimeException e) {
-            // a falha ao limpar o arquivo nao pode esconder a causa original
-        }
-    }
-
-    private Usuario validarBeneficiario() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.BENEFICIARIO) {
-            throw new AcessoNegadoException("Acesso negado: este endpoint e exclusivo do perfil BENEFICIARIO");
-        }
-        return usuario;
     }
 }

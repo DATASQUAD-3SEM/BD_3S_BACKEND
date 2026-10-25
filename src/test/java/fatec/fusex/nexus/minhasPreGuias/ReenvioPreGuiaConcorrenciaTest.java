@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.MinhasPreGuias;
+package fatec.fusex.nexus.minhasPreGuias;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

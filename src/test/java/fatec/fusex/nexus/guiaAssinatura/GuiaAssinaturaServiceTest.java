@@ -22,6 +22,7 @@ import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.guia.Guia;
@@ -52,7 +53,7 @@ class GuiaAssinaturaServiceTest {
     void configurar() {
         MockitoAnnotations.openMocks(this);
         service = new GuiaAssinaturaService(
-                guiaRepository, assinaturaGuiaRepository, usuarioRepository, simulacaoLogin);
+                guiaRepository, assinaturaGuiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository));
         when(simulacaoLogin.loginAtual()).thenReturn("usuario");
     }
 

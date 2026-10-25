@@ -1,5 +1,7 @@
 package fatec.fusex.nexus.correcaoMedico;
 
+import static fatec.fusex.nexus.common.util.TextoBusca.escaparCuringas;
+
 import java.util.List;
 
 import org.springframework.data.domain.Page;
@@ -41,10 +43,5 @@ public class OcsCorrecaoService {
                 .toList();
         // total = resultados antes do corte de 30, para o rodape "Mostrando {n} de {total}"
         return new OcsCorrecaoResponse(resultados, pagina.getTotalElements());
-    }
-
-    // '%' e '_' digitados valem como texto (ESCAPE '!' na query).
-    private static String escaparCuringas(String termo) {
-        return termo.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 }

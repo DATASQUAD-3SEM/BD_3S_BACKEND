@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
@@ -51,7 +52,7 @@ class RecepcaoGuiasServiceTest {
     @BeforeEach
     void configurar() {
         MockitoAnnotations.openMocks(this);
-        service = new RecepcaoGuiasService(guiaRepository, usuarioRepository, simulacaoLogin);
+        service = new RecepcaoGuiasService(guiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository));
 
         when(simulacaoLogin.loginAtual()).thenReturn("recepcao");
         when(usuarioRepository.findByLogin("recepcao"))

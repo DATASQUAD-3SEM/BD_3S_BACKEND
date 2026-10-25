@@ -1,5 +1,7 @@
 package fatec.fusex.nexus.procedimentoExame;
 
+import static fatec.fusex.nexus.common.util.TextoBusca.escaparCuringas;
+
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.medicoFusex.dto.ProcedimentoMedicoResponse;
 import org.springframework.data.domain.PageRequest;
@@ -32,10 +34,5 @@ public class ProcedimentoExameService {
                 .stream()
                 .map(ProcedimentoMedicoResponse::de)
                 .toList();
-    }
-
-    // Mesmo tratamento do OcsService: '%' e '_' digitados valem como texto (ESCAPE '!' na query).
-    private static String escaparCuringas(String termo) {
-        return termo.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 }

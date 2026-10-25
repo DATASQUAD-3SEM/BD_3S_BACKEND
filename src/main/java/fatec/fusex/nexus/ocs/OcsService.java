@@ -1,5 +1,7 @@
 package fatec.fusex.nexus.ocs;
 
+import static fatec.fusex.nexus.common.util.TextoBusca.escaparCuringas;
+
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.ocs.dto.OcsBuscaResponse;
 import fatec.fusex.nexus.ocs.dto.OcsResponse;
@@ -27,7 +29,6 @@ public class OcsService {
 
     private static final int LIMITE_RESULTADOS = 30;
 
-
     public OcsBuscaResponse buscar(String termo) {
         Pageable pageable = PageRequest.of(0, LIMITE_RESULTADOS, Sort.by("nome").ascending());
         Page<Ocs> pagina = (termo == null || termo.isBlank())
@@ -37,10 +38,4 @@ public class OcsService {
         List<OcsResponse> resultados = pagina.getContent().stream().map(OcsResponse::de).toList();
         return new OcsBuscaResponse(resultados, pagina.getTotalElements());
     }
-
-
-    private static String escaparCuringas(String termo) {
-        return termo.replace("!", "!!").replace("%", "!%").replace("_", "!_");
-    }
-
 }

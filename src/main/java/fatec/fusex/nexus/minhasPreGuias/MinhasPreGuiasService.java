@@ -1,21 +1,20 @@
-package fatec.fusex.nexus.MinhasPreGuias;
+package fatec.fusex.nexus.minhasPreGuias;
 
-import fatec.fusex.nexus.MinhasPreGuias.dto.CorrecaoPreGuiaResponse;
-import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
-import fatec.fusex.nexus.MinhasPreGuias.dto.GuiaPdf;
-import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ConflitoException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.minhasPreGuias.dto.CorrecaoPreGuiaResponse;
+import fatec.fusex.nexus.minhasPreGuias.dto.EncaminhamentoArquivo;
+import fatec.fusex.nexus.minhasPreGuias.dto.GuiaPdf;
+import fatec.fusex.nexus.minhasPreGuias.dto.MinhaPreGuiaResponse;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaRepository;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
@@ -23,7 +22,6 @@ import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistorico;
 import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
@@ -41,8 +39,7 @@ public class MinhasPreGuiasService {
     private final BeneficiarioRepository beneficiarioRepository;
     private final PreGuiaHistoricoRepository historicoRepository;
     private final GuiaRepository guiaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
     private final AssinaturaGuiaRepository assinaturaGuiaRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
 
@@ -50,23 +47,20 @@ public class MinhasPreGuiasService {
                                  BeneficiarioRepository beneficiarioRepository,
                                  PreGuiaHistoricoRepository historicoRepository,
                                  GuiaRepository guiaRepository,
-                                 UsuarioRepository usuarioRepository,
-                                 SimulacaoLogin simulacaoLogin,
+                                 UsuarioLogado usuarioLogado,
                                  AssinaturaGuiaRepository assinaturaGuiaRepository,
                                  ArmazenamentoArquivo armazenamentoArquivo) {
         this.preGuiaRepository = preGuiaRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.historicoRepository = historicoRepository;
         this.guiaRepository = guiaRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
         this.assinaturaGuiaRepository = assinaturaGuiaRepository;
         this.armazenamentoArquivo = armazenamentoArquivo;
     }
 
     @Transactional(readOnly = true)
     public List<MinhaPreGuiaResponse> listar() {
-        // ... igual ao T1-BE1 (mantém)
         Beneficiario beneficiario = beneficiarioLogado();
 
         List<PreGuia> preGuias = preGuiaRepository
@@ -244,16 +238,7 @@ public class MinhasPreGuiasService {
     }
 
     private Beneficiario beneficiarioLogado() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException(
-                        "Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.BENEFICIARIO) {
-            throw new AcessoNegadoException(
-                    "Acesso negado: este endpoint e exclusivo do perfil BENEFICIARIO");
-        }
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
 
         return beneficiarioRepository.findById(usuario.getIdUsuario())
                 .orElseThrow(() -> new RecursoNaoEncontradoException(

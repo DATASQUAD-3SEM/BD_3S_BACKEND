@@ -11,11 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunho;
@@ -23,8 +21,6 @@ import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.setorGuias.dto.GuiaRascunhoResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
-import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
  * T4-BE5: PUT /setor-guias/pre-guias/{id}/guia-rascunho (multipart com numeroGuia e pdf).
@@ -40,26 +36,23 @@ public class AnexarGuiaService {
 
     private final AnexarGuiaRepository repository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
     private final long tamanhoMaximoBytes;
 
     public AnexarGuiaService(AnexarGuiaRepository repository,
                              ArmazenamentoArquivo armazenamentoArquivo,
-                             UsuarioRepository usuarioRepository,
-                             SimulacaoLogin simulacaoLogin,
+                             UsuarioLogado usuarioLogado,
                              @Value("${nexus.guia.pdf-tamanho-maximo-bytes:10485760}") long tamanhoMaximoBytes) {
         this.repository = repository;
         this.armazenamentoArquivo = armazenamentoArquivo;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
         this.tamanhoMaximoBytes = tamanhoMaximoBytes;
     }
 
     // Ordem: perfil (403) -> existe (404) -> numero e arquivo (422) -> status/Guia concluida (409) -> numero repetido (409)
     @Transactional
     public GuiaRascunhoResponse anexar(Long id, String numeroGuia, MultipartFile pdf) {
-        validarSetorGuias();
+        usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
 
         PreGuia preGuia = repository.buscarPreGuiaParaAnexar(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + id));
@@ -92,13 +85,13 @@ public class AnexarGuiaService {
             rascunho.setDataAtualizacao(LocalDateTime.now());
             repository.saveAndFlush(rascunho);
         } catch (RuntimeException e) {
-            removerSemFalhar(arquivoNovo); // nao deixa arquivo orfao se o banco falhar
+            armazenamentoArquivo.removerSemFalhar(arquivoNovo); // nao deixa arquivo orfao se o banco falhar
             throw e;
         }
 
         // "Trocar": o arquivo anterior e descartado
         if (arquivoAnterior != null) {
-            removerSemFalhar(arquivoAnterior);
+            armazenamentoArquivo.removerSemFalhar(arquivoAnterior);
         }
         return new GuiaRascunhoResponse(rascunho.getNumero(), rascunho.getNomeArquivo());
     }
@@ -151,24 +144,5 @@ public class AnexarGuiaService {
             nome = "guia.pdf";
         }
         return nome.length() > 255 ? nome.substring(nome.length() - 255) : nome;
-    }
-
-    private void removerSemFalhar(String caminho) {
-        try {
-            armazenamentoArquivo.remover(caminho);
-        } catch (RuntimeException e) {
-            // a falha ao limpar o arquivo nao pode esconder o resultado principal
-        }
-    }
-
-    private void validarSetorGuias() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.SETOR_GUIAS) {
-            throw new AcessoNegadoException("Acesso negado: este endpoint e exclusivo do SETOR_GUIAS");
-        }
     }
 }

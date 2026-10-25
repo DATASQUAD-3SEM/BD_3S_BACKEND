@@ -7,13 +7,9 @@ import java.util.Locale;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.ocs.dto.OcsResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
-import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 @Service
 public class OcsBeneficiarioService {
@@ -21,20 +17,17 @@ public class OcsBeneficiarioService {
     static final int LIMITE_RESULTADOS = 30;
 
     private final OcsRepository ocsRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
 
     public OcsBeneficiarioService(OcsRepository ocsRepository,
-                                  UsuarioRepository usuarioRepository,
-                                  SimulacaoLogin simulacaoLogin) {
+                                  UsuarioLogado usuarioLogado) {
         this.ocsRepository = ocsRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
     }
 
     @Transactional(readOnly = true)
     public List<OcsResponse> buscarAtivas(String busca) {
-        validarBeneficiario();
+        usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
 
         String termo = normalizar(busca);
 
@@ -59,18 +52,5 @@ public class OcsBeneficiarioService {
                 .replaceAll("\\p{M}", "")
                 .toLowerCase(Locale.ROOT)
                 .trim();
-    }
-
-    private void validarBeneficiario() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException(
-                        "Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.BENEFICIARIO) {
-            throw new AcessoNegadoException(
-                    "Acesso negado: este endpoint e exclusivo do perfil BENEFICIARIO");
-        }
     }
 }

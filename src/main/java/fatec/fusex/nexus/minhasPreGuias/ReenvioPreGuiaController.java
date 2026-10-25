@@ -1,4 +1,4 @@
-package fatec.fusex.nexus.MinhasPreGuias;
+package fatec.fusex.nexus.minhasPreGuias;
 
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import fatec.fusex.nexus.MinhasPreGuias.dto.ReenvioPreGuiaResponse;
+import fatec.fusex.nexus.minhasPreGuias.dto.ReenvioPreGuiaResponse;
 
 //T9-BE4: POST /beneficiarios/me/pre-guias/{id}/reenvio (multipart com ocsId e/ou arquivo)
 @RestController

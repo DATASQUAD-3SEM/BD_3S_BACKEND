@@ -15,9 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.FaixaEtaria;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
@@ -32,10 +30,8 @@ import fatec.fusex.nexus.setorGuias.dto.DetalhePreGuiaResponse;
 import fatec.fusex.nexus.setorGuias.dto.FilaPreGuiaItemResponse;
 import fatec.fusex.nexus.setorGuias.dto.FilaPreGuiaPaginaResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
-import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.springframework.http.MediaType;
-import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
+import fatec.fusex.nexus.minhasPreGuias.dto.EncaminhamentoArquivo;
 
 @Service
 public class SetorGuiasService {
@@ -47,29 +43,26 @@ public class SetorGuiasService {
     private final PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
     private final GuiaRepository guiaRepository;
     private final GuiaRascunhoRepository guiaRascunhoRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
     private final ArmazenamentoArquivo armazenamentoArquivo;
 
     public SetorGuiasService(PreGuiaRepository preGuiaRepository,
                              PreGuiaProcedimentoRepository preGuiaProcedimentoRepository,
                              GuiaRepository guiaRepository,
                              GuiaRascunhoRepository guiaRascunhoRepository,
-                             UsuarioRepository usuarioRepository,
-                             SimulacaoLogin simulacaoLogin,
+                             UsuarioLogado usuarioLogado,
                              ArmazenamentoArquivo armazenamentoArquivo) {
         this.preGuiaRepository = preGuiaRepository;
         this.preGuiaProcedimentoRepository = preGuiaProcedimentoRepository;
         this.guiaRepository = guiaRepository;
         this.guiaRascunhoRepository = guiaRascunhoRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
         this.armazenamentoArquivo = armazenamentoArquivo;
     }
 
     @Transactional(readOnly = true)
     public FilaPreGuiaPaginaResponse listar(String busca, String statusRaw, int page, int size) {
-        validarSetorGuias();
+        usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
 
         if (page < 0) {
             throw new RegraDeNegocioException("page deve ser >= 0");
@@ -100,7 +93,7 @@ public class SetorGuiasService {
     /** T4-BE1: leitura pura. Nao altera nada. */
     @Transactional(readOnly = true)
     public DetalhePreGuiaResponse detalhar(Long idPreGuia) {
-        validarSetorGuias();
+        usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
 
         PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -157,7 +150,7 @@ public class SetorGuiasService {
     /** T4-BE2: devolve o arquivo do encaminhamento para visualizacao inline. Nao expoe o caminho. */
     @Transactional(readOnly = true)
     public EncaminhamentoArquivo baixarEncaminhamento(Long idPreGuia) {
-        validarSetorGuias();
+        usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
 
         PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -175,7 +168,6 @@ public class SetorGuiasService {
 
         return new EncaminhamentoArquivo(recurso, MediaType.parseMediaType(tipoDe(caminho)), filename);
     }
-
 
     private DetalhePreGuiaResponse.EncaminhamentoDto encaminhamentoDe(String caminho) {
         if (caminho == null) {
@@ -201,19 +193,6 @@ public class SetorGuiasService {
             return arquivo.contentLength();
         } catch (IOException e) {
             throw new UncheckedIOException("Falha ao ler o tamanho do arquivo", e);
-        }
-    }
-
-    private void validarSetorGuias() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException(
-                        "Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.SETOR_GUIAS) {
-            throw new AcessoNegadoException(
-                    "Acesso negado: este endpoint e exclusivo do SETOR_GUIAS");
         }
     }
 }

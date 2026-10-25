@@ -9,20 +9,21 @@ import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
+import fatec.fusex.nexus.common.validation.ValidacaoCadastro;
 
 /** Regras de formato do cadastro de beneficiario (CPF, data de nascimento e telefone), sem banco. */
 class ChefeBeneficiarioCadastroServiceTest {
 
     @Test
     void cpf_validoComOuSemMascara_devolveSoDigitos() {
-        assertThat(ChefeBeneficiarioCadastroService.normalizarCpf("529.982.247-25")).isEqualTo("52998224725");
-        assertThat(ChefeBeneficiarioCadastroService.normalizarCpf("11144477735")).isEqualTo("11144477735");
+        assertThat(ValidacaoCadastro.normalizarCpf("529.982.247-25")).isEqualTo("52998224725");
+        assertThat(ValidacaoCadastro.normalizarCpf("11144477735")).isEqualTo("11144477735");
     }
 
     @Test
     void cpf_invalido_lanca422NoCampoCpf() {
         for (String cpf : new String[] {"123.456.789-00", "11111111111", "1234567890", "abc", "", null}) {
-            assertCampoInvalido(() -> ChefeBeneficiarioCadastroService.normalizarCpf(cpf), "cpf", cpf);
+            assertCampoInvalido(() -> ValidacaoCadastro.normalizarCpf(cpf), "cpf", cpf);
         }
     }
 

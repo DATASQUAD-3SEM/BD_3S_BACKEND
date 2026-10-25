@@ -6,15 +6,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
+import fatec.fusex.nexus.common.validation.ValidacaoCadastro;
 
 /** Regras de formato do cadastro de medico (CPF e CRM), sem banco. */
 class ChefeMedicoCadastroServiceTest {
 
     @Test
     void cpf_validoComOuSemMascara_devolveSoDigitos() {
-        assertThat(ChefeMedicoCadastroService.normalizarCpf("111.444.777-35")).isEqualTo("11144477735");
-        assertThat(ChefeMedicoCadastroService.normalizarCpf("52998224725")).isEqualTo("52998224725");
-        assertThat(ChefeMedicoCadastroService.normalizarCpf(" 390.533.447-05 ")).isEqualTo("39053344705");
+        assertThat(ValidacaoCadastro.normalizarCpf("111.444.777-35")).isEqualTo("11144477735");
+        assertThat(ValidacaoCadastro.normalizarCpf("52998224725")).isEqualTo("52998224725");
+        assertThat(ValidacaoCadastro.normalizarCpf(" 390.533.447-05 ")).isEqualTo("39053344705");
     }
 
     @Test
@@ -52,7 +53,7 @@ class ChefeMedicoCadastroServiceTest {
     }
 
     private static void assertCpfInvalido(String cpf) {
-        assertThatThrownBy(() -> ChefeMedicoCadastroService.normalizarCpf(cpf))
+        assertThatThrownBy(() -> ValidacaoCadastro.normalizarCpf(cpf))
                 .as("cpf '%s'", cpf)
                 .isInstanceOf(DadosInvalidosException.class)
                 .extracting(e -> ((DadosInvalidosException) e).getCampo())

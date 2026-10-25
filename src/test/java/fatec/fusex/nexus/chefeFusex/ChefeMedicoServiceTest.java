@@ -17,7 +17,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
@@ -26,6 +25,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
@@ -42,13 +42,14 @@ class ChefeMedicoServiceTest {
     @Mock private UsuarioRepository usuarioRepository;
     @Mock private SimulacaoLogin simulacaoLogin;
 
-    @InjectMocks
     private ChefeMedicoService service;
 
     private Usuario chefe;
 
     @BeforeEach
     void dados() {
+        service = new ChefeMedicoService(medicoRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository));
+
         chefe = new Usuario();
         chefe.setLogin("chefe.fusex");
         chefe.setPerfil(PerfilUsuario.CHEFE_FUSEX);

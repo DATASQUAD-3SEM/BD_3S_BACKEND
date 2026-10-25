@@ -39,6 +39,9 @@ preguia/
 | `common/config/CorsConfig` | Libera o front em `localhost:5173` |
 | `common/config/PasswordConfig` | `PasswordEncoder` (BCrypt) para senhas |
 | `common/storage/ArmazenamentoArquivo` | Salvar/remover arquivo (encaminhamento) |
+| `common/auth/UsuarioLogado` | Identifica o usuario logado e checa o perfil (401/403) no inicio de cada endpoint |
+| `common/validation/ValidacaoCadastro` | Regras de formato do cadastro e da edicao (CPF, Prec CP, senha, campo obrigatorio) |
+| `common/util/TextoBusca` | Auxiliares de busca (escape de curingas, digitos de CPF/Prec CP, filtro de situacao) |
 | `OcsService` | Exemplo do padrao Service + teste Mockito |
 
 ## Onde cada task do Jira encaixa (apos a reorganizacao do PDF)

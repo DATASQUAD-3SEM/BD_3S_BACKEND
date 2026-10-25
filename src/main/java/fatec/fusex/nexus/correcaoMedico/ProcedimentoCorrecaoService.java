@@ -1,5 +1,7 @@
 package fatec.fusex.nexus.correcaoMedico;
 
+import static fatec.fusex.nexus.common.util.TextoBusca.escaparCuringas;
+
 import java.util.List;
 
 import org.springframework.data.domain.PageRequest;
@@ -41,10 +43,5 @@ public class ProcedimentoCorrecaoService {
         return procedimentoRepository.buscarNoCatalogo(escaparCuringas(busca.trim()), pageable).stream()
                 .map(ProcedimentoCorrecaoResponse::de)
                 .toList();
-    }
-
-    // '%' e '_' digitados valem como texto (ESCAPE '!' na query).
-    private static String escaparCuringas(String termo) {
-        return termo.replace("!", "!!").replace("%", "!%").replace("_", "!_");
     }
 }

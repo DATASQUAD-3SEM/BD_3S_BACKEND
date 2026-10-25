@@ -11,15 +11,12 @@ import org.springframework.transaction.annotation.Transactional;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuia;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guiaAssinatura.dto.GuiaParaAssinarResponse;
-import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 @Service
 public class GuiaAssinaturaService {
@@ -29,22 +26,19 @@ public class GuiaAssinaturaService {
 
     private final GuiaRepository guiaRepository;
     private final AssinaturaGuiaRepository assinaturaGuiaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
 
     public GuiaAssinaturaService(GuiaRepository guiaRepository,
                                  AssinaturaGuiaRepository assinaturaGuiaRepository,
-                                 UsuarioRepository usuarioRepository,
-                                 SimulacaoLogin simulacaoLogin) {
+                                 UsuarioLogado usuarioLogado) {
         this.guiaRepository = guiaRepository;
         this.assinaturaGuiaRepository = assinaturaGuiaRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
     }
 
     @Transactional(readOnly = true)
     public List<GuiaParaAssinarResponse> listarParaAssinar() {
-        AssinaturaGuiaPapel papel = papelDoPerfil(usuarioLogado());
+        AssinaturaGuiaPapel papel = papelDoPerfil(usuarioLogado.atual());
 
         List<Guia> guias = guiaRepository.buscarSemAssinatura(papel);
         if (guias.isEmpty()) {
@@ -82,17 +76,5 @@ public class GuiaAssinaturaService {
             default -> throw new AcessoNegadoException(
                     "Acesso restrito a medicos e chefe do FUSEX");
         };
-    }
-
-    private Usuario usuarioLogado() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.MEDICO
-                && usuario.getPerfil() != PerfilUsuario.CHEFE_FUSEX) {
-        }
-        return usuario;
     }
 }
