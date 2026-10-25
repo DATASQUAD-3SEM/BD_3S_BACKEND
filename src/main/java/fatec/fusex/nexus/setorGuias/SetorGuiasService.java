@@ -177,9 +177,18 @@ public class SetorGuiasService {
         if (caminho == null) {
             return null;
         }
-        Resource arquivo = armazenamentoArquivo.carregar(caminho);
         String nome = caminho.substring(caminho.lastIndexOf('/') + 1);
-        return new DetalhePreGuiaResponse.EncaminhamentoDto(nome, tipoDe(caminho), tamanhoDe(arquivo));
+        return new DetalhePreGuiaResponse.EncaminhamentoDto(nome, tipoDe(caminho), tamanhoNoArmazenamento(caminho));
+    }
+
+    // A leitura do detalhe nao pode falhar se o arquivo sumiu do armazenamento: o tamanho vira 0
+    // e o erro aparece apenas no visualizador, ao pedir o arquivo (T4-BE2).
+    private long tamanhoNoArmazenamento(String caminho) {
+        try {
+            return tamanhoDe(armazenamentoArquivo.carregar(caminho));
+        } catch (RecursoNaoEncontradoException e) {
+            return 0;
+        }
     }
 
     private static String tipoDe(String caminho) {
