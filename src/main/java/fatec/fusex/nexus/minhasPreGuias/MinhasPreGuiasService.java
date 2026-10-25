@@ -11,6 +11,7 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.guiaAssinatura.MontagemPdfGuia;
 import fatec.fusex.nexus.minhasPreGuias.dto.CorrecaoPreGuiaResponse;
 import fatec.fusex.nexus.minhasPreGuias.dto.EncaminhamentoArquivo;
 import fatec.fusex.nexus.minhasPreGuias.dto.GuiaPdf;
@@ -23,6 +24,7 @@ import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
@@ -47,6 +49,7 @@ public class MinhasPreGuiasService {
     private final UsuarioLogado usuarioLogado;
     private final AssinaturaGuiaRepository assinaturaGuiaRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
+    private final MontagemPdfGuia montagemPdfGuia;
 
     public MinhasPreGuiasService(PreGuiaRepository preGuiaRepository,
                                  BeneficiarioRepository beneficiarioRepository,
@@ -54,7 +57,8 @@ public class MinhasPreGuiasService {
                                  GuiaRepository guiaRepository,
                                  UsuarioLogado usuarioLogado,
                                  AssinaturaGuiaRepository assinaturaGuiaRepository,
-                                 ArmazenamentoArquivo armazenamentoArquivo) {
+                                 ArmazenamentoArquivo armazenamentoArquivo,
+                                 MontagemPdfGuia montagemPdfGuia) {
         this.preGuiaRepository = preGuiaRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.historicoRepository = historicoRepository;
@@ -62,6 +66,7 @@ public class MinhasPreGuiasService {
         this.usuarioLogado = usuarioLogado;
         this.assinaturaGuiaRepository = assinaturaGuiaRepository;
         this.armazenamentoArquivo = armazenamentoArquivo;
+        this.montagemPdfGuia = montagemPdfGuia;
     }
 
     @Transactional(readOnly = true)
@@ -193,7 +198,8 @@ public class MinhasPreGuiasService {
             throw new RegraDeNegocioException("Arquivo da guia nao e um PDF");
         }
 
-        Resource resource = armazenamentoArquivo.carregar(caminho);
+        // O beneficiario recebe a Guia ja com as assinaturas do medico e do chefe aplicadas
+        Resource resource = new ByteArrayResource(montagemPdfGuia.montar(guia));
         String filename = "guia-" + sanitizar(guia.getNumero()) + ".pdf";
 
         return new GuiaPdf(resource, filename, modo == ModoDownload.VISUALIZAR);
