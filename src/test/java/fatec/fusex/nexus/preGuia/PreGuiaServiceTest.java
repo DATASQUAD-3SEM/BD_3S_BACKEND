@@ -4,44 +4,67 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Optional;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
+import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
-import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
+import fatec.fusex.nexus.common.validation.ValidacaoEncaminhamento;
 import fatec.fusex.nexus.ocs.Ocs;
-import fatec.fusex.nexus.ocs.OcsService;
+import fatec.fusex.nexus.ocs.OcsRepository;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
+import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistorico;
+import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
+import fatec.fusex.nexus.usuario.PerfilUsuario;
+import fatec.fusex.nexus.usuario.Usuario;
 
 /**
- * Testes da criacao da pre-guia pelo beneficiario, incluindo a remocao do arquivo quando o banco falha.
+ * Testes da criacao da pre-guia pelo beneficiario logado: perfil, OCS ativa, arquivo valido,
+ * primeira linha do historico e remocao do arquivo quando o banco falha.
  */
 @ExtendWith(MockitoExtension.class)
 class PreGuiaServiceTest {
 
     @Mock private PreGuiaRepository preGuiaRepository;
     @Mock private BeneficiarioRepository beneficiarioRepository;
-    @Mock private OcsService ocsService;
+    @Mock private OcsRepository ocsRepository;
+    @Mock private PreGuiaHistoricoRepository historicoRepository;
     @Mock private ArmazenamentoArquivo armazenamentoArquivo;
+    @Mock private UsuarioLogado usuarioLogado;
 
-    @InjectMocks
     private PreGuiaService preGuiaService;
 
-    private final MockMultipartFile arquivo =
-            new MockMultipartFile("arquivo", "encaminhamento.pdf", "application/pdf", "conteudo".getBytes());
+    private final MockMultipartFile pdf =
+            new MockMultipartFile("arquivo", "encaminhamento.pdf", "application/pdf", "%PDF-1.4 conteudo".getBytes());
+
+    private Usuario usuario;
+
+    @BeforeEach
+    void preparar() {
+        preGuiaService = new PreGuiaService(preGuiaRepository, beneficiarioRepository, ocsRepository,
+                historicoRepository, armazenamentoArquivo, usuarioLogado, new ValidacaoEncaminhamento(10_485_760));
+        usuario = new Usuario();
+        usuario.setIdUsuario(1L);
+        usuario.setPerfil(PerfilUsuario.BENEFICIARIO);
+        usuario.setAtivo(true);
+    }
 
     private Beneficiario beneficiarioComId(Long usuarioId) {
         Beneficiario b = new Beneficiario();
@@ -56,23 +79,25 @@ class PreGuiaServiceTest {
         return pg;
     }
 
-    private Ocs ocsComId(Long id) {
+    private Ocs ocs(Long id, boolean ativa) {
         Ocs ocs = new Ocs();
         ocs.setIdOcs(id);
+        ocs.setAtivo(ativa);
         return ocs;
+    }
+
+    private void beneficiarioLogado() {
+        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO)).thenReturn(usuario);
+        when(beneficiarioRepository.findById(1L)).thenReturn(Optional.of(beneficiarioComId(1L)));
     }
 
     @Test
     void listarDoBeneficiario_quandoBeneficiarioExiste_devolveLista() {
         Beneficiario b = beneficiarioComId(1L);
-        PreGuia pg = preGuiaDo(b);
-
         when(beneficiarioRepository.existsById(1L)).thenReturn(true);
-        when(preGuiaRepository.findByBeneficiarioUsuarioId(1L)).thenReturn(List.of(pg));
+        when(preGuiaRepository.findByBeneficiarioUsuarioId(1L)).thenReturn(List.of(preGuiaDo(b)));
 
-        List<PreGuia> resultado = preGuiaService.listarDoBeneficiario(1L);
-
-        assertThat(resultado).hasSize(1);
+        assertThat(preGuiaService.listarDoBeneficiario(1L)).hasSize(1);
     }
 
     @Test
@@ -86,22 +111,14 @@ class PreGuiaServiceTest {
 
     @Test
     void buscarDoBeneficiario_quandoVinculoBate_devolvePreGuia() {
-        Beneficiario dono = beneficiarioComId(1L);
-        PreGuia pg = preGuiaDo(dono);
+        when(preGuiaRepository.findById(10L)).thenReturn(Optional.of(preGuiaDo(beneficiarioComId(1L))));
 
-        when(preGuiaRepository.findById(10L)).thenReturn(Optional.of(pg));
-
-        PreGuia resultado = preGuiaService.buscarDoBeneficiario(10L, 1L);
-
-        assertThat(resultado.getBeneficiario().getUsuarioId()).isEqualTo(1L);
+        assertThat(preGuiaService.buscarDoBeneficiario(10L, 1L).getBeneficiario().getUsuarioId()).isEqualTo(1L);
     }
 
     @Test
     void buscarDoBeneficiario_quandoVinculoNaoBate_lancaExcecao() {
-        Beneficiario dono = beneficiarioComId(1L);
-        PreGuia pg = preGuiaDo(dono);
-
-        when(preGuiaRepository.findById(10L)).thenReturn(Optional.of(pg));
+        when(preGuiaRepository.findById(10L)).thenReturn(Optional.of(preGuiaDo(beneficiarioComId(1L))));
 
         assertThatThrownBy(() -> preGuiaService.buscarDoBeneficiario(10L, 2L))
                 .isInstanceOf(RecursoNaoEncontradoException.class)
@@ -117,76 +134,89 @@ class PreGuiaServiceTest {
     }
 
     @Test
-    void criar_quandoTudoValido_criaPreGuiaPendente() {
-        Beneficiario beneficiario = beneficiarioComId(1L);
-        Ocs ocs = ocsComId(10L);
-
-        when(ocsService.buscarPorId(10L)).thenReturn(ocs);
-        when(beneficiarioRepository.findByCpf("12345678901")).thenReturn(Optional.of(beneficiario));
+    void criar_quandoTudoValido_criaPreGuiaPendenteEGravaOHistorico() {
+        beneficiarioLogado();
+        when(ocsRepository.findById(10L)).thenReturn(Optional.of(ocs(10L, true)));
         when(armazenamentoArquivo.salvar(any(), anyString())).thenReturn("encaminhamentos/gerado.pdf");
+        when(preGuiaRepository.save(any())).thenAnswer(inv -> {
+            PreGuia salva = inv.getArgument(0);
+            salva.setIdPreGuia(7L);
+            return salva;
+        });
 
-        PreGuiaResponse resultado = preGuiaService.criar("12345678901", "0001112223", 10L, arquivo);
+        PreGuiaResponse resultado = preGuiaService.criar(10L, pdf);
 
+        assertThat(resultado.numero()).isEqualTo("0007");
         assertThat(resultado.status()).isEqualTo("PENDENTE");
-        assertThat(resultado.encaminhamentoUrl()).isEqualTo("encaminhamentos/gerado.pdf");
         assertThat(resultado.ocsId()).isEqualTo(10L);
+
+        ArgumentCaptor<PreGuiaHistorico> historico = ArgumentCaptor.forClass(PreGuiaHistorico.class);
+        verify(historicoRepository).save(historico.capture());
+        assertThat(historico.getValue().getStatus()).isEqualTo(PreGuiaStatus.PENDENTE);
+        assertThat(historico.getValue().getUsuario()).isSameAs(usuario);
+        assertThat(historico.getValue().getEncaminhamentoUrl()).isEqualTo("encaminhamentos/gerado.pdf");
     }
 
     @Test
-    void criar_quandoArquivoAusente_lancaRegraDeNegocio() {
-        MockMultipartFile vazio = new MockMultipartFile("arquivo", new byte[0]);
+    void criar_perfilErrado_lanca403SemGravarNada() {
+        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO))
+                .thenThrow(new AcessoNegadoException("Acesso negado"));
 
-        assertThatThrownBy(() -> preGuiaService.criar("12345678901", "0001112223", 10L, vazio))
-                .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("encaminhamento");
+        assertThatThrownBy(() -> preGuiaService.criar(10L, pdf)).isInstanceOf(AcessoNegadoException.class);
+        verify(armazenamentoArquivo, never()).salvar(any(), anyString());
     }
 
     @Test
-    void criar_quandoOcsNaoExiste_propagaExcecaoDoOcsService() {
-        when(ocsService.buscarPorId(99L))
-                .thenThrow(new RecursoNaoEncontradoException("OCS nao encontrada: id 99"));
+    void criar_semOcs_lanca422NoCampoOcsId() {
+        beneficiarioLogado();
 
-        assertThatThrownBy(() -> preGuiaService.criar("12345678901", "0001112223", 99L, arquivo))
-                .isInstanceOf(RecursoNaoEncontradoException.class);
+        assertThatThrownBy(() -> preGuiaService.criar(null, pdf))
+                .isInstanceOf(DadosInvalidosException.class)
+                .extracting(e -> ((DadosInvalidosException) e).getCampo())
+                .isEqualTo("ocsId");
+    }
+
+    @Test
+    void criar_ocsInativa_lanca422NoCampoOcsId() {
+        beneficiarioLogado();
+        when(ocsRepository.findById(5L)).thenReturn(Optional.of(ocs(5L, false)));
+
+        assertThatThrownBy(() -> preGuiaService.criar(5L, pdf))
+                .isInstanceOf(DadosInvalidosException.class)
+                .extracting(e -> ((DadosInvalidosException) e).getCampo())
+                .isEqualTo("ocsId");
+    }
+
+    @Test
+    void criar_semArquivo_lanca422NoCampoArquivo() {
+        beneficiarioLogado();
+        when(ocsRepository.findById(10L)).thenReturn(Optional.of(ocs(10L, true)));
+
+        assertThatThrownBy(() -> preGuiaService.criar(10L, new MockMultipartFile("arquivo", new byte[0])))
+                .isInstanceOf(DadosInvalidosException.class)
+                .extracting(e -> ((DadosInvalidosException) e).getCampo())
+                .isEqualTo("arquivo");
+    }
+
+    @Test
+    void criar_arquivoComFormatoInvalido_lanca422() {
+        beneficiarioLogado();
+        when(ocsRepository.findById(10L)).thenReturn(Optional.of(ocs(10L, true)));
+        MockMultipartFile falso = new MockMultipartFile("arquivo", "foto.jpg", "image/jpeg", "nao e imagem".getBytes());
+
+        assertThatThrownBy(() -> preGuiaService.criar(10L, falso)).isInstanceOf(DadosInvalidosException.class);
+        verify(armazenamentoArquivo, never()).salvar(any(), anyString());
     }
 
     @Test
     void criar_quandoSaveFalha_removeArquivoSalvo() {
-        Beneficiario beneficiario = beneficiarioComId(1L);
-        Ocs ocs = ocsComId(10L);
-
-        when(ocsService.buscarPorId(10L)).thenReturn(ocs);
-        when(beneficiarioRepository.findByCpf("12345678901")).thenReturn(Optional.of(beneficiario));
+        beneficiarioLogado();
+        when(ocsRepository.findById(10L)).thenReturn(Optional.of(ocs(10L, true)));
         when(armazenamentoArquivo.salvar(any(), anyString())).thenReturn("encaminhamentos/orfao.pdf");
         when(preGuiaRepository.save(any())).thenThrow(new RuntimeException("constraint"));
 
-        assertThatThrownBy(() -> preGuiaService.criar("12345678901", "0001112223", 10L, arquivo))
-                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> preGuiaService.criar(10L, pdf)).isInstanceOf(RuntimeException.class);
 
-        verify(armazenamentoArquivo).remover("encaminhamentos/orfao.pdf");
-    }
-
-    @Test
-    void criar_quandoBeneficiarioNaoExiste_lancaRecursoNaoEncontrado() {
-        Ocs ocs = ocsComId(10L);
-
-        when(ocsService.buscarPorId(10L)).thenReturn(ocs);
-        when(beneficiarioRepository.findByCpf("00000000000")).thenReturn(Optional.empty());
-
-        assertThatThrownBy(() -> preGuiaService.criar("00000000000", "0001112223", 10L, arquivo))
-                .isInstanceOf(RecursoNaoEncontradoException.class);
-    }
-
-    @Test
-    void criar_quandoPrecCpNaoConfereComOCpf_lancaRegraDeNegocio() {
-        Beneficiario beneficiario = beneficiarioComId(1L);
-        Ocs ocs = ocsComId(10L);
-
-        when(ocsService.buscarPorId(10L)).thenReturn(ocs);
-        when(beneficiarioRepository.findByCpf("12345678901")).thenReturn(Optional.of(beneficiario));
-
-        assertThatThrownBy(() -> preGuiaService.criar("12345678901", "precCp-errado", 10L, arquivo))
-                .isInstanceOf(RegraDeNegocioException.class)
-                .hasMessageContaining("Prec-CP");
+        verify(armazenamentoArquivo).removerSemFalhar("encaminhamentos/orfao.pdf");
     }
 }

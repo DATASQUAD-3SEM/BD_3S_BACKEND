@@ -1,12 +1,7 @@
 package fatec.fusex.nexus.minhasPreGuias;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Locale;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -17,6 +12,7 @@ import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
+import fatec.fusex.nexus.common.validation.ValidacaoEncaminhamento;
 import fatec.fusex.nexus.minhasPreGuias.dto.ReenvioPreGuiaResponse;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
@@ -38,29 +34,25 @@ public class ReenvioPreGuiaService {
     private static final String PASTA = "encaminhamentos";
     private static final int OBSERVACAO_MAXIMO = 500; // tamanho da coluna PreGuiaHistorico.observacao
 
-    private static final byte[] ASSINATURA_PDF = "%PDF".getBytes();
-    private static final byte[] ASSINATURA_JPG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
-    private static final byte[] ASSINATURA_PNG = {(byte) 0x89, 'P', 'N', 'G'};
-
     private final ReenvioPreGuiaRepository preGuiaRepository;
     private final OcsRepository ocsRepository;
     private final PreGuiaHistoricoRepository historicoRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
     private final UsuarioLogado usuarioLogado;
-    private final long tamanhoMaximoBytes;
+    private final ValidacaoEncaminhamento validacaoEncaminhamento;
 
     public ReenvioPreGuiaService(ReenvioPreGuiaRepository preGuiaRepository,
                                  OcsRepository ocsRepository,
                                  PreGuiaHistoricoRepository historicoRepository,
                                  ArmazenamentoArquivo armazenamentoArquivo,
                                  UsuarioLogado usuarioLogado,
-                                 @Value("${nexus.encaminhamento.tamanho-maximo-bytes:10485760}") long tamanhoMaximoBytes) {
+                                 ValidacaoEncaminhamento validacaoEncaminhamento) {
         this.preGuiaRepository = preGuiaRepository;
         this.ocsRepository = ocsRepository;
         this.historicoRepository = historicoRepository;
         this.armazenamentoArquivo = armazenamentoArquivo;
         this.usuarioLogado = usuarioLogado;
-        this.tamanhoMaximoBytes = tamanhoMaximoBytes;
+        this.validacaoEncaminhamento = validacaoEncaminhamento;
     }
 
     // Ordem: perfil (403) -> de outro ou inexistente (404) -> origem medico (403) -> status (409) -> corpo (422)
@@ -85,7 +77,7 @@ public class ReenvioPreGuiaService {
             throw new DadosInvalidosException("arquivo", "Informe uma nova OCS e/ou um novo encaminhamento");
         }
         if (temArquivo) {
-            validarArquivo(arquivo);
+            validacaoEncaminhamento.validar(arquivo);
         }
         Ocs ocsNova = ocsId == null ? null : buscarOcsAtiva(ocsId);
 
@@ -116,33 +108,6 @@ public class ReenvioPreGuiaService {
                 armazenamentoArquivo.removerSemFalhar(arquivoNovo); // nao deixa arquivo orfao se o banco falhar
             }
             throw e;
-        }
-    }
-
-    // PDF, JPG ou PNG (extensao e conteudo) e ate o limite configurado
-    private void validarArquivo(MultipartFile arquivo) {
-        String nome = arquivo.getOriginalFilename() == null ? "" : arquivo.getOriginalFilename().toLowerCase(Locale.ROOT);
-        String extensao = nome.contains(".") ? nome.substring(nome.lastIndexOf('.') + 1) : "";
-        byte[] esperado = switch (extensao) {
-            case "pdf" -> ASSINATURA_PDF;
-            case "jpg", "jpeg" -> ASSINATURA_JPG;
-            case "png" -> ASSINATURA_PNG;
-            default -> null;
-        };
-        if (esperado == null || !comecaCom(arquivo, esperado)) {
-            throw new DadosInvalidosException("arquivo", "Formato invalido. Envie PDF, JPG ou PNG");
-        }
-        if (arquivo.getSize() > tamanhoMaximoBytes) {
-            throw new DadosInvalidosException("arquivo",
-                    "O arquivo deve ter no maximo " + (tamanhoMaximoBytes / (1024 * 1024)) + " MB");
-        }
-    }
-
-    private static boolean comecaCom(MultipartFile arquivo, byte[] esperado) {
-        try (InputStream entrada = arquivo.getInputStream()) {
-            return Arrays.equals(entrada.readNBytes(esperado.length), esperado);
-        } catch (IOException e) {
-            return false;
         }
     }
 
