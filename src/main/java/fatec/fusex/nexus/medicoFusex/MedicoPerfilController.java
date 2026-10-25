@@ -6,6 +6,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fatec.fusex.nexus.medicoFusex.dto.MedicoPerfilResponse;
 
+/**
+ * GET /medicos/me/perfil (T11-BE1): dados profissionais do medico logado.
+ */
 @RestController
 @RequestMapping("/medicos")
 public class MedicoPerfilController {

@@ -10,6 +10,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Chave composta de OcsProcedimento (ocs_id + procedimento_id).
+ */
 @Embeddable
 @Getter
 @Setter

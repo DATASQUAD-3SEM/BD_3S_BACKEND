@@ -10,6 +10,10 @@ import fatec.fusex.nexus.beneficiario.dto.BeneficiarioResponse;
 import fatec.fusex.nexus.beneficiario.dto.AtualizarTelefoneRequest;
 import fatec.fusex.nexus.beneficiario.dto.TelefoneAtualizadoResponse;
 
+/**
+ * Endpoints do beneficiario sobre os proprios dados (Tela 10 - Minhas informacoes):
+ * GET /beneficiarios/me (T10-BE1) e PATCH /beneficiarios/me/telefone (T10-BE2).
+ */
 @RestController
 @RequestMapping("/beneficiarios")
 public class BeneficiarioController {

@@ -22,6 +22,9 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+/**
+ * Testes HTTP de GET /medicos/beneficiarios?precCp= (T2-BE1).
+ */
 class MedicoBeneficiarioControllerTest {
 
     private MockMvc mockMvc;

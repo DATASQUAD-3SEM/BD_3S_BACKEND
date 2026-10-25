@@ -11,6 +11,9 @@ import fatec.fusex.nexus.chefeFusex.dto.EditarMedicoRequest;
 import fatec.fusex.nexus.chefeFusex.dto.MedicoChefeDetalheResponse;
 
 //T8-BE3: GET e PUT /chefe/medicos/{id}
+/**
+ * GET e PUT /chefe/medicos/{id} (T8-BE3): leitura e edicao de um medico pelo Chefe.
+ */
 @RestController
 @RequestMapping("/chefe/medicos")
 public class ChefeMedicoEdicaoController {

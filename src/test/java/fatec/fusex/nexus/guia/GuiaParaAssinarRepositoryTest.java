@@ -22,6 +22,9 @@ import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da consulta de Guias pendentes de assinatura por papel (T5-BE1) e da sua ordenacao.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

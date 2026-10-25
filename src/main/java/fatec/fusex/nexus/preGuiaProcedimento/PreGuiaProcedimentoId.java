@@ -10,6 +10,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Chave composta de PreGuiaProcedimento (pre_guia_id + procedimento_id).
+ */
 @Embeddable
 @Getter
 @Setter

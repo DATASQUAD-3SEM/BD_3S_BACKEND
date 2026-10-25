@@ -18,6 +18,9 @@ import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.medicoFusex.dto.MedicoPerfilResponse;
 
+/**
+ * Testes HTTP de GET /medicos/me/perfil (T11-BE1).
+ */
 @WebMvcTest(MedicoPerfilController.class)
 @Import(SimulacaoLogin.class)
 class MedicoPerfilControllerTest {

@@ -20,6 +20,9 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da busca de beneficiario ativo por Prec CP (T2-BE1): com e sem mascara, inexistente e inativo.
+ */
 @ExtendWith(MockitoExtension.class)
 class BeneficiarioServiceTest {
 

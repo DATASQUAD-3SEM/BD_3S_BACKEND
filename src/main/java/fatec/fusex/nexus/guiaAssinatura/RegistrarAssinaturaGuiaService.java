@@ -26,6 +26,11 @@ import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistorico;
 import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Registra a assinatura da Guia (T5-BE3). O papel vem do perfil do usuario logado.
+ * A segunda assinatura do mesmo papel recebe 409. Com as duas assinaturas, a pre-guia passa a Concluida
+ * e o historico registra a mudanca.
+ */
 @Service
 public class RegistrarAssinaturaGuiaService {
 

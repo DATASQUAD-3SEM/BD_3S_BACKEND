@@ -4,6 +4,10 @@ import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 
 import java.time.LocalDateTime;
 
+/**
+ * Resposta do GET /beneficiarios/me/pre-guias/{id}/correcao (T9-BE1), com a observacao do setor,
+ * o encaminhamento enviado e a OCS atual.
+ */
 public record CorrecaoPreGuiaResponse(
         String numero,
         PreGuiaStatus status,

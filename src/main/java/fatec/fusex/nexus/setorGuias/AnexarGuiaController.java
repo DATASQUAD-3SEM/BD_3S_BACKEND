@@ -12,6 +12,9 @@ import org.springframework.web.multipart.MultipartFile;
 import fatec.fusex.nexus.setorGuias.dto.GuiaRascunhoResponse;
 
 //T4-BE5: PUT /setor-guias/pre-guias/{id}/guia-rascunho (multipart com numeroGuia e pdf)
+/**
+ * PUT /setor-guias/pre-guias/{id}/guia-rascunho (T4-BE5): anexa ou troca o numero e o PDF da Guia (multipart).
+ */
 @RestController
 @RequestMapping("/setor-guias/pre-guias")
 public class AnexarGuiaController {

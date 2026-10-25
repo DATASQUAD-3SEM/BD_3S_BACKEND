@@ -18,6 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+/**
+ * Testes das regras comuns do perfil medico: medico valido, perfil errado, inativo e sem cadastro.
+ */
 class MedicoFusexServiceTest {
 
     private static final String LOGIN = "11144477735";

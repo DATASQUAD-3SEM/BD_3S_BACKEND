@@ -38,6 +38,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testes de GET /beneficiarios/me/pre-guias/{id}/encaminhamento/arquivo (T9-BE2): imagem, PDF, outro beneficiario e origem medico.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

@@ -3,6 +3,9 @@ package fatec.fusex.nexus.medicoFusex.dto;
 import fatec.fusex.nexus.medicoFusex.MedicoFusex;
 
 
+/**
+ * Resposta do GET /medicos/me (T2-BE2): nome, patente e CRM do medico logado.
+ */
 public record MedicoMeResponse(
         String nome,
         String patente,

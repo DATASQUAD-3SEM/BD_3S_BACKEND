@@ -13,6 +13,10 @@ import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.recepcao.dto.GuiaRecepcaoResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 
+/**
+ * Busca de Guias concluidas para a recepcao (T6-BE1): minimo de 3 caracteres, no maximo 50 resultados,
+ * ordenados pela validade.
+ */
 @Service
 public class RecepcaoGuiasService {
 

@@ -22,6 +22,9 @@ import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da busca de Guias concluidas usada pela recepcao (T6-BE1): por nome, Prec CP e numero da Guia.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

@@ -27,6 +27,9 @@ import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da restricao UNIQUE (guia_id, papel): a segunda assinatura do mesmo papel e recusada pelo banco.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

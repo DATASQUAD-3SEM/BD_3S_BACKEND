@@ -23,6 +23,10 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * Entidade da tabela PreGuia. medico_id nulo indica pre-guia criada pelo beneficiario (com encaminhamento);
+ * preenchido indica pre-guia criada pelo medico (sem encaminhamento e com lista de exames).
+ */
 @Entity
 @Table(name = "PreGuia")
 @Getter

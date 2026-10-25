@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fatec.fusex.nexus.ocs.dto.OcsResponse;
 
+/**
+ * GET /beneficiarios/me/ocs (T9-BE3): busca de OCS na tela de correcao do beneficiario.
+ */
 @RestController
 @RequestMapping("/beneficiarios/me/ocs")
 public class OcsBeneficiarioController {

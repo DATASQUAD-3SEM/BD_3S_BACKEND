@@ -7,6 +7,10 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 
 
+/**
+ * Converte o filtro de status recebido na fila (com ou sem acento, maiusculas ou minusculas)
+ * em {@link PreGuiaStatus}. Valor desconhecido gera 400.
+ */
 public enum StatusFila {
 
     PENDENTE("pendente", PreGuiaStatus.PENDENTE),

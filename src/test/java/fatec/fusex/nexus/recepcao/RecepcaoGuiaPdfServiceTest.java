@@ -31,6 +31,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes da entrega do PDF da Guia a recepcao (T6-BE2): Guia concluida, nao concluida, inexistente e perfil errado.
+ */
 class RecepcaoGuiaPdfServiceTest {
 
     private static final byte[] CONTEUDO = "%PDF-1.4 conteudo".getBytes();

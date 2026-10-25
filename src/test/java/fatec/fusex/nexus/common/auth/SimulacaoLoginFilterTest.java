@@ -15,6 +15,9 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 
+/**
+ * Testes do filtro que le o header X-Usuario-Login e limpa o valor ao final da requisicao.
+ */
 class SimulacaoLoginFilterTest {
 
     private final SimulacaoLogin simulacaoLogin = new SimulacaoLogin();

@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Acesso aos beneficiarios, incluindo as buscas por CPF (login) e por Prec CP.
+ */
 public interface BeneficiarioRepository extends JpaRepository<Beneficiario, Long> {
 
     @Query("select b from Beneficiario b join fetch b.usuario u where u.login = :cpf")

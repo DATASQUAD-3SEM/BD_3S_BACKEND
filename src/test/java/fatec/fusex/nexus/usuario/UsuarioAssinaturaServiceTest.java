@@ -33,6 +33,9 @@ import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 
+/**
+ * Testes da gravacao e substituicao da assinatura digital do usuario logado (T13-BE2).
+ */
 @ExtendWith(MockitoExtension.class)
 class UsuarioAssinaturaServiceTest {
 

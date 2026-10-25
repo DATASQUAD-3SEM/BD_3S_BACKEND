@@ -46,6 +46,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testes de GET /beneficiarios/me/pre-guias (T1-BE1) e do PDF da Guia do beneficiario (T1-BE2), com banco em memoria.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

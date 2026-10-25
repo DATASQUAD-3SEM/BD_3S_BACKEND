@@ -10,6 +10,9 @@ import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.correcaoMedico.dto.PreGuiaParaCorrigirResponse;
 
 //T14-BE1: GET /medicos/me/pre-guias/para-corrigir
+/**
+ * GET /medicos/me/pre-guias/para-corrigir (T14-BE1): pre-guias do medico logado devolvidas em Atencao.
+ */
 @RestController
 @RequestMapping("/medicos/me/pre-guias")
 public class PreGuiasParaCorrigirController {

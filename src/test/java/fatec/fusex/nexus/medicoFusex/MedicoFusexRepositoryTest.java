@@ -11,6 +11,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Testes de gravacao e leitura do medico no banco em memoria.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

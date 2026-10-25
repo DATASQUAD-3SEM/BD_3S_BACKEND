@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RestController;
 import fatec.fusex.nexus.setorGuias.dto.GuiaConcluidaResponse;
 
 //T4-BE6: POST /setor-guias/pre-guias/{id}/guia/concluir, sem corpo
+/**
+ * POST /setor-guias/pre-guias/{id}/guia/concluir (T4-BE6): cria a Guia a partir do rascunho e a envia para assinatura.
+ */
 @RestController
 @RequestMapping("/setor-guias/pre-guias")
 public class ConcluirGuiaController {

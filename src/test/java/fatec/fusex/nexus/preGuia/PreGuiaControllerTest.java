@@ -21,6 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
+/**
+ * Testes HTTP da criacao da pre-guia pelo beneficiario (Sprint 1).
+ */
 @WebMvcTest(PreGuiaController.class)
 @Import(SimulacaoLogin.class)
 class PreGuiaControllerTest {

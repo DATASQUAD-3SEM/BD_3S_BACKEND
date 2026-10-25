@@ -11,6 +11,9 @@ import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da resposta de GET /beneficiarios/me: idade, faixa etaria e omissao de dados sensiveis no toString.
+ */
 class BeneficiarioResponseTest {
 
     private static final LocalDate HOJE = LocalDate.of(2026, 10, 23);

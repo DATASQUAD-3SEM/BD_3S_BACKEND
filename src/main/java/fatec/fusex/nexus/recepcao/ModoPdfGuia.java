@@ -2,6 +2,9 @@ package fatec.fusex.nexus.recepcao;
 
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
+/**
+ * Modo de entrega do PDF para a recepcao: VISUALIZAR e IMPRIMIR sao inline; BAIXAR e attachment.
+ */
 public enum ModoPdfGuia {
 
     VISUALIZAR(false),

@@ -18,6 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * Endpoints da Tela 1 e da Tela 9 do beneficiario: lista de pre-guias (T1-BE1), PDF da Guia (T1-BE2),
+ * dados da correcao (T9-BE1) e arquivo do encaminhamento enviado (T9-BE2).
+ */
 @RestController
 @RequestMapping("/beneficiarios/me/pre-guias")
 public class MinhasPreGuiasController {

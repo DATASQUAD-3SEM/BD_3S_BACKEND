@@ -11,6 +11,10 @@ import lombok.Setter;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Entidade da tabela Guia. A Guia e emitida fora do Nexus (no SIRE); aqui ficam o numero, o PDF e a data de insercao.
+ * Cada pre-guia gera no maximo uma Guia (pre_guia_id UNIQUE). A validade e de dois meses a partir da insercao.
+ */
 @Entity
 @Table(name = "Guia")
 @Getter

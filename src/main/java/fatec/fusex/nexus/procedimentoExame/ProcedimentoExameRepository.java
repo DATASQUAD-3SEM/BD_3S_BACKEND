@@ -7,6 +7,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Acesso ao catalogo de procedimentos, com busca por nome ou codigo TUSS.
+ */
 public interface ProcedimentoExameRepository extends JpaRepository<ProcedimentoExame, Long> {
 
     List<ProcedimentoExame> findByCodigoTuss(String codigoTuss);

@@ -42,6 +42,9 @@ import fatec.fusex.nexus.procedimentoExame.ProcedimentoExame;
 import fatec.fusex.nexus.procedimentoExame.ProcedimentoExameRepository;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da criacao da pre-guia pelo medico (T2-BE4): validacoes de beneficiario, OCS e procedimentos do catalogo.
+ */
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class MedicoPreGuiaServiceTest {

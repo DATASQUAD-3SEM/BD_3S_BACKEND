@@ -14,6 +14,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import fatec.fusex.nexus.minhasPreGuias.dto.EncaminhamentoArquivo;
 
+/**
+ * Endpoints de leitura do Setor de Guias: fila (T3-BE1), detalhe da pre-guia (T4-BE1)
+ * e arquivo do encaminhamento (T4-BE2). Nenhum deles altera dados.
+ */
 @RestController
 @RequestMapping("/setor-guias")
 public class SetorGuiasController {

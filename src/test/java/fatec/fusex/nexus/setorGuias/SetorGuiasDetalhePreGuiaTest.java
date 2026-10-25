@@ -44,6 +44,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes de GET /setor-guias/pre-guias/{id} (T4-BE1): origem beneficiario, origem medico, rascunho e Guia concluida.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

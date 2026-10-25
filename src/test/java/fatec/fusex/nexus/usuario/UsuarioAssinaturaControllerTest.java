@@ -19,6 +19,9 @@ import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
+/**
+ * Testes HTTP de PUT /usuarios/me/assinatura (T13-BE2) com arquivo e com imagem em base64.
+ */
 @WebMvcTest(UsuarioAssinaturaController.class)
 @Import(SimulacaoLogin.class)
 class UsuarioAssinaturaControllerTest {

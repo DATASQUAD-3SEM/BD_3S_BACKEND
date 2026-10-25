@@ -19,6 +19,9 @@ import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 
+/**
+ * Testes HTTP de GET /chefe/me (T12-BE1).
+ */
 @WebMvcTest(ChefePerfilController.class)
 @Import(SimulacaoLogin.class)
 class ChefePerfilControllerTest {

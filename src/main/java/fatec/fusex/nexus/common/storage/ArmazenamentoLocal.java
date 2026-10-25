@@ -18,6 +18,10 @@ import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
 
+/**
+ * Implementacao de {@link ArmazenamentoArquivo} que grava os arquivos em uma pasta local
+ * (propriedade nexus.storage.local-dir). Impede caminhos que tentem sair da pasta configurada.
+ */
 @Service
 public class ArmazenamentoLocal implements ArmazenamentoArquivo {
 

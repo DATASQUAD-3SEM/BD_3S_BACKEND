@@ -15,6 +15,9 @@ import org.springframework.mock.web.MockMultipartFile;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
+/**
+ * Testes do armazenamento em pasta local: gravacao, leitura, remocao e bloqueio de caminhos fora da pasta.
+ */
 class ArmazenamentoLocalTest {
 
     @TempDir

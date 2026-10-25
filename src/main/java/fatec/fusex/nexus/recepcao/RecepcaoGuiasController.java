@@ -9,6 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fatec.fusex.nexus.recepcao.dto.GuiaRecepcaoResponse;
 
+/**
+ * GET /recepcao/guias?busca= (T6-BE1): busca de Guias concluidas por nome, Prec CP ou numero da Guia.
+ */
 @RestController
 @RequestMapping("/recepcao/guias")
 public class RecepcaoGuiasController {

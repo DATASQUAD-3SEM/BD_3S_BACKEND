@@ -11,6 +11,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Busca no catalogo de procedimentos para a Nova pre-guia do medico (T2-BE3):
+ * minimo de 2 caracteres (400), no maximo 30 resultados e ordem alfabetica.
+ */
 @Service
 public class ProcedimentoExameService {
 

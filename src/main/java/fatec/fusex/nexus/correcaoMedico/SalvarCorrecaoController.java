@@ -11,6 +11,9 @@ import fatec.fusex.nexus.correcaoMedico.dto.CorrecaoReenviadaResponse;
 import fatec.fusex.nexus.correcaoMedico.dto.SalvarCorrecaoRequest;
 
 //T14-BE5: PUT /medicos/me/pre-guias/{id}/correcao (o GET do mesmo caminho fica no CorrecaoMedicoController, T14-BE2)
+/**
+ * PUT /medicos/me/pre-guias/{id}/correcao (T14-BE5): salva a correcao do medico e devolve a pre-guia ao setor.
+ */
 @RestController
 @RequestMapping("/medicos/me/pre-guias")
 public class SalvarCorrecaoController {

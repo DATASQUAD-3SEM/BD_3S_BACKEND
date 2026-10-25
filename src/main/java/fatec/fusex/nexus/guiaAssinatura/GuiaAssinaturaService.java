@@ -18,6 +18,10 @@ import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guiaAssinatura.dto.GuiaParaAssinarResponse;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Lista as Guias que ainda precisam da assinatura do papel do usuario logado (T5-BE1),
+ * da mais antiga para a mais recente, indicando o que falta assinar em cada uma.
+ */
 @Service
 public class GuiaAssinaturaService {
 

@@ -21,6 +21,10 @@ import org.springframework.stereotype.Component;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
+/**
+ * Aplica as imagens das assinaturas (medico e chefe) sobre as linhas de assinatura do PDF da Guia.
+ * Linhas sem assinatura ficam em branco. O PDF original armazenado nao e alterado.
+ */
 @Component
 public class CarimboAssinaturaPdf {
 

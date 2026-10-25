@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import fatec.fusex.nexus.preGuia.PreGuia;
 
 
+/**
+ * Linha da fila de pre-guias do Setor de Guias (T3-BE1).
+ */
 public record FilaPreGuiaItemResponse(
         Long id,
         String numero,

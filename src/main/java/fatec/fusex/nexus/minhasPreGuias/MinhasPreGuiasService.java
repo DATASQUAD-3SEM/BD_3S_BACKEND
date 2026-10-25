@@ -32,6 +32,11 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Regras das pre-guias vistas pelo beneficiario. Toda consulta e restrita as pre-guias do beneficiario logado
+ * (as de outro beneficiario respondem 404). Pela regra 11 do modelo logico, pre-guia criada por medico
+ * nao pode ser corrigida pelo beneficiario e responde 403 nos endpoints de correcao.
+ */
 @Service
 public class MinhasPreGuiasService {
 

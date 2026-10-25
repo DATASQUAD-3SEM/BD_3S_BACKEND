@@ -8,6 +8,10 @@ import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 
+/**
+ * Grava a assinatura digital do usuario logado (T13-BE2) e remove o arquivo anterior ao substitui-la.
+ * Setor de Guias e Recepcao nao possuem assinatura e recebem 403.
+ */
 @Service
 public class UsuarioAssinaturaService {
 

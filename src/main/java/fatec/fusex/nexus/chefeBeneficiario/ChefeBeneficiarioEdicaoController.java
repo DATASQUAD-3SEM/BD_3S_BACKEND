@@ -11,6 +11,9 @@ import fatec.fusex.nexus.chefeBeneficiario.dto.BeneficiarioDetalheResponse;
 import fatec.fusex.nexus.chefeBeneficiario.dto.EditarBeneficiarioRequest;
 
 //T7-BE3: GET e PUT /chefe/beneficiarios/{id}
+/**
+ * GET e PUT /chefe/beneficiarios/{id} (T7-BE3): leitura e edicao de um beneficiario pelo Chefe.
+ */
 @RestController
 @RequestMapping("/chefe/beneficiarios")
 public class ChefeBeneficiarioEdicaoController {

@@ -26,6 +26,9 @@ import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsService;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
+/**
+ * Testes da criacao da pre-guia pelo beneficiario, incluindo a remocao do arquivo quando o banco falha.
+ */
 @ExtendWith(MockitoExtension.class)
 class PreGuiaServiceTest {
 

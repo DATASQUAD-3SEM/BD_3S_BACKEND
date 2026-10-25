@@ -3,6 +3,9 @@ package fatec.fusex.nexus.chefeFusex.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Corpo do PUT /chefe/me. novaSenha vazia mantem a senha atual.
+ */
 public record AtualizarChefeRequest(
 
         @NotBlank(message = "O nome é obrigatório.")

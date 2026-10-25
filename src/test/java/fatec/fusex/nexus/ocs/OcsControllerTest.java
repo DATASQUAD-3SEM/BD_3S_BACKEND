@@ -25,6 +25,9 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+/**
+ * Testes HTTP de GET /ocs?busca= (T2-BE2).
+ */
 class OcsControllerTest {
 
     private MockMvc mockMvc;

@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RestController;
 import fatec.fusex.nexus.chefeFusex.dto.MedicoChefePaginaResponse;
 
 //T8-BE1: GET /chefe/medicos?busca=&situacao=ativos|inativos|todos&page=&size=
+/**
+ * GET /chefe/medicos (T8-BE1): lista paginada de medicos com busca e filtro de situacao.
+ */
 @RestController
 @RequestMapping("/chefe/medicos")
 public class ChefeMedicoController {

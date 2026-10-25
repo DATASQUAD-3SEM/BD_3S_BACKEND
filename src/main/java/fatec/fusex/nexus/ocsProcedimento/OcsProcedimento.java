@@ -14,6 +14,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Entidade da tabela associativa OcsProcedimento (procedimentos realizados por cada OCS).
+ * Por decisao do cliente (modelo logico 3.2), ela nao e usada para filtrar nem validar a pre-guia.
+ */
 @Entity
 @Table(name = "OcsProcedimento")
 @Getter

@@ -11,6 +11,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filtro executado uma vez por requisicao: copia o header X-Usuario-Login para o {@link SimulacaoLogin}
+ * e limpa o valor ao final, para que ele nao vaze para outra requisicao atendida pela mesma thread.
+ */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 10)
 public class SimulacaoLoginFilter extends OncePerRequestFilter {

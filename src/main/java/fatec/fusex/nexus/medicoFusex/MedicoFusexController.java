@@ -8,6 +8,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Endpoints da Tela 2 (Nova pre-guia do medico): GET /medicos/me (T2-BE2)
+ * e GET /medicos/procedimentos (T2-BE3, busca no catalogo inteiro, sem filtro por OCS).
+ */
 @RestController
 @RequestMapping("/medicos")
 public class MedicoFusexController {

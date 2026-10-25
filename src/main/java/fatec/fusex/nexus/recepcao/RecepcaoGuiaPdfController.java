@@ -11,6 +11,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * GET /recepcao/guias/{id}/pdf (T6-BE2): PDF da Guia concluida para visualizar, imprimir ou baixar.
+ */
 @RestController
 @RequestMapping("/recepcao/guias")
 public class RecepcaoGuiaPdfController {

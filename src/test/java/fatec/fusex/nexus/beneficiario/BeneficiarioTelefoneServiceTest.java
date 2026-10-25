@@ -23,6 +23,9 @@ import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da alteracao do proprio telefone pelo beneficiario (T10-BE2).
+ */
 @ExtendWith(MockitoExtension.class)
 class BeneficiarioTelefoneServiceTest {
 

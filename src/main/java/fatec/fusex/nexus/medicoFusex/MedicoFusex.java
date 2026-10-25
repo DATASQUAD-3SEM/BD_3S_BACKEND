@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Entidade da tabela MedicoFusex, especializacao 1:1 de Usuario. O CPF do medico e o login do usuario.
+ */
 @Entity
 @Table(name = "MedicoFusex")
 @Getter

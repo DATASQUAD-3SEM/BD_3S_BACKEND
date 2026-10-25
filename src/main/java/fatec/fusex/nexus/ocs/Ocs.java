@@ -10,6 +10,9 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 
+/**
+ * Entidade da tabela Ocs (rede credenciada, conveniada ou contratada). Somente OCS ativas aparecem nas buscas.
+ */
 @Entity
 @Table(name = "Ocs")
 @Getter

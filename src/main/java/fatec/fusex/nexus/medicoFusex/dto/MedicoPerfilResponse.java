@@ -2,6 +2,9 @@ package fatec.fusex.nexus.medicoFusex.dto;
 
 import fatec.fusex.nexus.medicoFusex.MedicoFusex;
 
+/**
+ * Resposta do GET /medicos/me/perfil (T11-BE1), usada na tela Minhas informacoes do medico.
+ */
 public record MedicoPerfilResponse(
         String nome,
         String patente,

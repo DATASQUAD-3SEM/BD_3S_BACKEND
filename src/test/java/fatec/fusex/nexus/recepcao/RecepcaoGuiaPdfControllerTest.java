@@ -22,6 +22,9 @@ import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
+/**
+ * Testes HTTP de GET /recepcao/guias/{id}/pdf (T6-BE2) nos tres modos.
+ */
 class RecepcaoGuiaPdfControllerTest {
 
     private static final byte[] CONTEUDO = "%PDF-1.4 conteudo".getBytes();

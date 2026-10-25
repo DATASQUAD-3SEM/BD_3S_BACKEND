@@ -22,6 +22,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes da leitura dos dados profissionais do medico logado (T11-BE1).
+ */
 @ExtendWith(MockitoExtension.class)
 class MedicoPerfilServiceTest {
 

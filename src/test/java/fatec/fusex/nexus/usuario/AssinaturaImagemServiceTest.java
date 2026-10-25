@@ -19,6 +19,9 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
+/**
+ * Testes da validacao e normalizacao da imagem da assinatura (T13-BE2): formatos, imagem em branco e tamanho.
+ */
 class AssinaturaImagemServiceTest {
 
     private final AssinaturaImagemService service =

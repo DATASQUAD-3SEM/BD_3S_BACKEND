@@ -21,6 +21,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.text.Normalizer;
 import java.util.Locale;
 
+/**
+ * Listagem de beneficiarios para o Chefe (T7-BE1). A busca aceita nome, CPF ou Prec CP;
+ * quando o termo tem formato numerico, a comparacao e feita apenas pelos digitos.
+ */
 @Service
 public class ChefeBeneficiarioService {
 

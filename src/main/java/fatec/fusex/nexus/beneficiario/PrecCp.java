@@ -3,6 +3,10 @@ package fatec.fusex.nexus.beneficiario;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
 
+/**
+ * Normalizacao do Prec CP informado em buscas: aceita o valor com ou sem pontos e hifen
+ * e devolve somente os 11 digitos. Valor invalido gera 400 sem repetir o dado recebido na mensagem.
+ */
 final class PrecCp {
 
     private static final int TAMANHO = 11;

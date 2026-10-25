@@ -27,6 +27,11 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Cadastro de medico pelo Chefe (T8-BE2).
+ * Ordem das validacoes: perfil (403), formato (422) e duplicidade de CPF, Prec CP ou CRM (409).
+ * Usuario e medico sao gravados na mesma transacao: se um insert falhar, nenhum dos dois fica no banco.
+ */
 @Service
 public class ChefeMedicoCadastroService {
 

@@ -4,6 +4,9 @@ import java.time.LocalDate;
 
 import fatec.fusex.nexus.guia.Guia;
 
+/**
+ * Linha da busca de Guias da recepcao (T6-BE1).
+ */
 public record GuiaRecepcaoResponse(
         Long guiaId,
         String numero,

@@ -25,6 +25,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Testes da atualizacao da conta do Chefe (T12-BE2): dados validos, login com espacos, login repetido e nova senha.
+ */
 @ExtendWith(MockitoExtension.class)
 class ChefeAtualizacaoServiceTest {
 

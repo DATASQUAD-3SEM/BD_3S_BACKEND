@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes de gravacao e leitura do beneficiario no banco em memoria, incluindo as buscas por CPF e Prec CP.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

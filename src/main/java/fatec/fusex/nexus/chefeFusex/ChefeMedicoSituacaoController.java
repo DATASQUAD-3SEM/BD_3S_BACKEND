@@ -10,6 +10,9 @@ import fatec.fusex.nexus.chefeFusex.dto.AlterarSituacaoMedicoRequest;
 import fatec.fusex.nexus.chefeFusex.dto.MedicoSituacaoResponse;
 
 //T8-BE4: PATCH /chefe/medicos/{id}/situacao
+/**
+ * PATCH /chefe/medicos/{id}/situacao (T8-BE4): desativa ou reativa o medico, sem DELETE.
+ */
 @RestController
 @RequestMapping("/chefe/medicos")
 public class ChefeMedicoSituacaoController {
