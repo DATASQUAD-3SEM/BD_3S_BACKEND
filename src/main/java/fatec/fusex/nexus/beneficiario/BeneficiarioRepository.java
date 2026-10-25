@@ -25,6 +25,13 @@ public interface BeneficiarioRepository extends JpaRepository<Beneficiario, Long
 
     boolean existsByPrecCp(String precCp);
 
+    // T7-BE3: na edicao, so conta duplicidade de OUTRO beneficiario
+    boolean existsByPrecCpAndUsuarioIdNot(String precCp, Long usuarioId);
+
+    // T7-BE3: carrega o usuario junto (login, senha e ativo sao alterados na edicao)
+    @EntityGraph(attributePaths = "usuario")
+    Optional<Beneficiario> findWithUsuarioByUsuarioId(Long usuarioId);
+
 
     // T7-BE1: filtro da lista do chefe.
     // busca = nome sem acento e minusculo (com curingas escapados); digitos = so os digitos,
