@@ -150,6 +150,18 @@ class SetorGuiasDetalhePreGuiaTest {
     }
 
     @Test
+    @DisplayName("arquivo do encaminhamento ausente no armazenamento: o detalhe abre com tamanho 0")
+    void encaminhamentoAusenteNoArmazenamento() throws Exception {
+        PreGuia pg = criarPreGuia(null, PreGuiaStatus.PENDENTE, "encaminhamentos/nao-existe.jpg");
+
+        mockMvc.perform(get("/setor-guias/pre-guias/" + pg.getIdPreGuia()).header(HEADER, SETOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.encaminhamento.nome").value("nao-existe.jpg"))
+                .andExpect(jsonPath("$.encaminhamento.tipo").value("image/jpeg"))
+                .andExpect(jsonPath("$.encaminhamento.tamanhoBytes").value(0));
+    }
+
+    @Test
     @DisplayName("origem MEDICO: traz exames e medico criador, sem encaminhamento")
     void origemMedico() throws Exception {
         PreGuia pg = criarPreGuia(medico, PreGuiaStatus.EM_ANALISE, null);
