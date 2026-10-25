@@ -23,6 +23,9 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+/**
+ * Testes da leitura dos dados da conta do Chefe (T12-BE1).
+ */
 @ExtendWith(MockitoExtension.class)
 class ChefePerfilServiceTest {
 

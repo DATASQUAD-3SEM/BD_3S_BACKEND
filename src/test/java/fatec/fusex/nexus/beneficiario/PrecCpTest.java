@@ -10,6 +10,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
+/**
+ * Testes da normalizacao do Prec CP: valores com e sem mascara, vazios e com formato invalido.
+ */
 class PrecCpTest {
 
     @Test

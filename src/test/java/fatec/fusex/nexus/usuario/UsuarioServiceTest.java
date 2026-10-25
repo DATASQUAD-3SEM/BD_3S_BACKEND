@@ -20,6 +20,10 @@ import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.MuitasTentativasException;
 import fatec.fusex.nexus.usuario.dto.AlterarSenhaRequest;
 
+/**
+ * Testes da troca da propria senha (T13-BE1): senha atual errada, nova igual a atual, confirmacao diferente,
+ * senha curta, limite de tentativas e usuario inativo.
+ */
 @ExtendWith(MockitoExtension.class)
 class UsuarioServiceTest {
 

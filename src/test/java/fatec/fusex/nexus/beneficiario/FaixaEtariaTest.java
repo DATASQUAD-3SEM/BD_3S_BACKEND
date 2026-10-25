@@ -7,6 +7,9 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Testes da conversao de idade em faixa etaria.
+ */
 class FaixaEtariaTest {
 
     @ParameterizedTest

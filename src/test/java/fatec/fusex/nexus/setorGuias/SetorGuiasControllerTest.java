@@ -31,6 +31,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testes de GET /setor-guias/pre-guias (T3-BE1): busca, filtros de status, paginacao e perfil errado.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

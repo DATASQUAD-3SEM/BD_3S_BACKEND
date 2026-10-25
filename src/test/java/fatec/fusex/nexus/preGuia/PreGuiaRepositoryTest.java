@@ -18,6 +18,9 @@ import fatec.fusex.nexus.ocs.OcsTipo;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Teste de gravacao da pre-guia e da busca pelo beneficiario no banco em memoria.
+ */
 @SpringBootTest
 @ActiveProfiles("test")
 @Transactional

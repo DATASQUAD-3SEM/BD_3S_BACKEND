@@ -21,6 +21,9 @@ import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.recepcao.dto.GuiaRecepcaoResponse;
 
+/**
+ * Testes HTTP de GET /recepcao/guias?busca= (T6-BE1).
+ */
 class RecepcaoGuiasControllerTest {
 
     private MockMvc mockMvc;

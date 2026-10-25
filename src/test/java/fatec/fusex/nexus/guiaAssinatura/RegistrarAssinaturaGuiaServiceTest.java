@@ -39,6 +39,10 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes da assinatura da Guia (T5-BE3): assinatura de cada papel, conclusao com as duas, segunda assinatura,
+ * usuario sem assinatura cadastrada, usuario inativo e perfil errado.
+ */
 class RegistrarAssinaturaGuiaServiceTest {
 
     @Mock

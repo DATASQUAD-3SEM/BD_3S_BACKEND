@@ -33,6 +33,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes da lista de Guias para assinar (T5-BE1): pendencias por papel, lista vazia e perfil errado.
+ */
 class GuiaAssinaturaServiceTest {
 
     @Mock

@@ -31,6 +31,9 @@ import fatec.fusex.nexus.guiaAssinatura.dto.AssinaturaRegistradaResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.GuiaParaAssinarResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
 
+/**
+ * Testes HTTP dos endpoints de Guias para assinar (T5-BE1, T5-BE2 e T5-BE3), com os servicos simulados.
+ */
 class GuiaAssinaturaControllerTest {
 
     private MockMvc mockMvc;

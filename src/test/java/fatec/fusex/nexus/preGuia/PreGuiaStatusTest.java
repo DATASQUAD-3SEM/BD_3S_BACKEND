@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
+/**
+ * Teste dos valores do status da pre-guia.
+ */
 class PreGuiaStatusTest {
 
     @Test

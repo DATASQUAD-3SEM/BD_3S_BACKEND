@@ -23,6 +23,9 @@ import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
+/**
+ * Testes HTTP de GET /beneficiarios/me e PATCH /beneficiarios/me/telefone (T10-BE1 e T10-BE2), com o servico simulado.
+ */
 @WebMvcTest(BeneficiarioController.class)
 @Import(SimulacaoLogin.class)
 class BeneficiarioControllerTest {

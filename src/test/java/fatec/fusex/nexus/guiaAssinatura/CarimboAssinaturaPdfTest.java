@@ -16,6 +16,9 @@ import org.junit.jupiter.api.Test;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
+/**
+ * Testes da aplicacao das imagens de assinatura sobre as linhas do PDF da Guia.
+ */
 class CarimboAssinaturaPdfTest {
 
     private final CarimboAssinaturaPdf carimbo = new CarimboAssinaturaPdf();

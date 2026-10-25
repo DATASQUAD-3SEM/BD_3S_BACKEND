@@ -15,6 +15,9 @@ import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 
+/**
+ * Utilitario dos testes: gera PDFs com as linhas de assinatura e imagens PNG de assinatura em memoria.
+ */
 final class PdfsDeTeste {
 
     private PdfsDeTeste() {

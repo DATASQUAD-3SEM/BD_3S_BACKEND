@@ -35,6 +35,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes da montagem do PDF da Guia com as assinaturas (T5-BE2): modos, Guia inexistente e perfil errado.
+ */
 class GuiaPdfAssinadoServiceTest {
 
     @Mock

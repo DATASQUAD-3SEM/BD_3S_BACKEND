@@ -13,6 +13,9 @@ import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.common.exception.MuitasTentativasException;
 
+/**
+ * Testes do bloqueio por tentativas erradas de senha atual (T13-BE1).
+ */
 class TentativasSenhaServiceTest {
 
     @Test

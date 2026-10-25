@@ -23,6 +23,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testes HTTP de GET /chefe/beneficiarios (T7-BE1): situacoes, busca por cada campo, paginacao e perfil errado.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

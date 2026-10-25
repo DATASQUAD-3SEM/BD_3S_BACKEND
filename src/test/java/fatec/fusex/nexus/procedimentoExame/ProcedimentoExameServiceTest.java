@@ -22,6 +22,9 @@ import org.springframework.data.domain.Pageable;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.medicoFusex.dto.ProcedimentoMedicoResponse;
 
+/**
+ * Testes da busca no catalogo de procedimentos (T2-BE3): termo curto, limite e ordenacao.
+ */
 @ExtendWith(MockitoExtension.class)
 class ProcedimentoExameServiceTest {
 

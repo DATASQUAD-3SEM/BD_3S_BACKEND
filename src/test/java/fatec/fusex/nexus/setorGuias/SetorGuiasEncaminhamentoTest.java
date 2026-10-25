@@ -35,6 +35,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes de GET /setor-guias/pre-guias/{id}/encaminhamento (T4-BE2): imagem, PDF, origem medico e inexistente.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

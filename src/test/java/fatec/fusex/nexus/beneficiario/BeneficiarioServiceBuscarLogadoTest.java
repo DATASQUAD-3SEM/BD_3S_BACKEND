@@ -23,6 +23,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes da leitura dos dados do beneficiario logado (T10-BE1), incluindo perfil errado e assinatura cadastrada.
+ */
 @ExtendWith(MockitoExtension.class)
 class BeneficiarioServiceBuscarLogadoTest {
 

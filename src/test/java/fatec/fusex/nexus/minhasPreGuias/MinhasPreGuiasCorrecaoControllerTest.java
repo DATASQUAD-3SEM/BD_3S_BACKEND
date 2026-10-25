@@ -33,6 +33,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testes de GET /beneficiarios/me/pre-guias/{id}/correcao (T9-BE1), incluindo origem medico (403) e status diferente de Atencao (409).
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

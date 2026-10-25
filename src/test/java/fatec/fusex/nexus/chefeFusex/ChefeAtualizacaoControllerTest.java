@@ -20,6 +20,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+/**
+ * Testes HTTP de PUT /chefe/me (T12-BE2).
+ */
 @ExtendWith(MockitoExtension.class)
 class ChefeAtualizacaoControllerTest {
 

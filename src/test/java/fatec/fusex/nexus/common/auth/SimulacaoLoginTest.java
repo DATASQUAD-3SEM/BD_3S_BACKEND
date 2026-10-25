@@ -8,6 +8,9 @@ import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 
+/**
+ * Testes do armazenamento do login simulado durante a requisicao.
+ */
 class SimulacaoLoginTest {
 
     private final SimulacaoLogin simulacaoLogin = new SimulacaoLogin();

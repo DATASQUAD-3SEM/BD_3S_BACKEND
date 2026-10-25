@@ -36,6 +36,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Testes da busca de Guias concluidas pela recepcao (T6-BE1): termo curto, criterios de busca e perfil errado.
+ */
 class RecepcaoGuiasServiceTest {
 
     @Mock

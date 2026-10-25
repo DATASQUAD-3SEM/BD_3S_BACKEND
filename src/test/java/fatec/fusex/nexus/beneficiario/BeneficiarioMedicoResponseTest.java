@@ -10,6 +10,9 @@ import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Testes da resposta da busca de beneficiario pelo medico: calculo de idade e faixa e omissao de CPF e telefone no toString.
+ */
 class BeneficiarioMedicoResponseTest {
 
     private static Beneficiario beneficiarioNascidoEm(LocalDate nascimento) {

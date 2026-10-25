@@ -22,6 +22,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testes de GET /beneficiarios/me/ocs (T9-BE3): busca por nome, contrato e tipo, OCS inativa e perfil errado.
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional

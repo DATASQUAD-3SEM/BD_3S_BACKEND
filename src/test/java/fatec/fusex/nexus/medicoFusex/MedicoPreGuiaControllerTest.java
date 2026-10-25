@@ -28,6 +28,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+/**
+ * Testes HTTP de POST /medicos/pre-guias (T2-BE4): sucesso, dados invalidos, perfil errado e sem usuario logado.
+ */
 class MedicoPreGuiaControllerTest {
 
     private static final String URL = "/medicos/pre-guias";

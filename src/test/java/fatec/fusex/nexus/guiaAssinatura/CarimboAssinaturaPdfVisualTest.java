@@ -17,6 +17,9 @@ import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 
+/**
+ * Gera um PDF carimbado em disco para conferencia visual manual do posicionamento das assinaturas.
+ */
 class CarimboAssinaturaPdfVisualTest {
 
     @Test

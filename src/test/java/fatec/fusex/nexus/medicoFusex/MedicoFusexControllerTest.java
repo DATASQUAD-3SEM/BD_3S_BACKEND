@@ -26,6 +26,9 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+/**
+ * Testes HTTP de GET /medicos/me e GET /medicos/procedimentos (T2-BE2 e T2-BE3).
+ */
 class MedicoFusexControllerTest {
 
     private MockMvc mockMvc;

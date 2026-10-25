@@ -23,6 +23,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+/**
+ * Testes HTTP de POST /usuarios/me/senha (T13-BE1).
+ */
 @WebMvcTest(UsuarioController.class)
 @Import(SimulacaoLogin.class)
 class UsuarioControllerTest {
