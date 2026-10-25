@@ -8,6 +8,9 @@ import lombok.Setter;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * Entidade da tabela ProcedimentoExame: catalogo de procedimentos e exames, identificados pelo codigo TUSS.
+ */
 @Entity
 @Table(name = "ProcedimentoExame")
 @Getter

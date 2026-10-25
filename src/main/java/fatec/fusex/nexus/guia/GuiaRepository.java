@@ -13,6 +13,9 @@ import org.springframework.data.repository.query.Param;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 
+/**
+ * Acesso as Guias, incluindo as consultas de Guias pendentes de assinatura e as buscas da recepcao.
+ */
 public interface GuiaRepository extends JpaRepository<Guia, Long> {
 
     Optional<Guia> findByPreGuiaIdPreGuia(Long idPreGuia);

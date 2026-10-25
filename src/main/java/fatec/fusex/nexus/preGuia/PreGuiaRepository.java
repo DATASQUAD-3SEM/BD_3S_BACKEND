@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Acesso as pre-guias, incluindo a fila do Setor de Guias e as consultas por beneficiario.
+ */
 public interface PreGuiaRepository extends JpaRepository<PreGuia, Long> {
 
     List<PreGuia> findByBeneficiarioUsuarioId(Long usuarioId);

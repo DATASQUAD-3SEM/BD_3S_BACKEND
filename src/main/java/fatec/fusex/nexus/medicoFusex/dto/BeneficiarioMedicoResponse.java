@@ -6,6 +6,10 @@ import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.FaixaEtaria;
 
 
+/**
+ * Resposta da busca de beneficiario por Prec CP feita pelo medico (T2-BE1).
+ * O toString omite CPF e telefone para que esses dados nao aparecam em log.
+ */
 public record BeneficiarioMedicoResponse(
         Long id,
         String nome,

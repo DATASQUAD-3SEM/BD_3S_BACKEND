@@ -4,6 +4,9 @@ import java.util.Locale;
 
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
+/**
+ * Modo de entrega do PDF ao beneficiario: BAIXAR (attachment) ou VISUALIZAR (inline).
+ */
 public enum ModoDownload {
     BAIXAR, VISUALIZAR;
 

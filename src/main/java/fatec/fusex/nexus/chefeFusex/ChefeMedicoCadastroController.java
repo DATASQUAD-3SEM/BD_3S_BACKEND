@@ -11,6 +11,9 @@ import fatec.fusex.nexus.chefeFusex.dto.CadastrarMedicoRequest;
 import fatec.fusex.nexus.chefeFusex.dto.MedicoCadastradoResponse;
 
 //T8-BE2: POST /chefe/medicos (a listagem GET /chefe/medicos fica no ChefeMedicoController, da T8-BE1)
+/**
+ * POST /chefe/medicos (T8-BE2): cadastro de medico pelo Chefe. Devolve 201 com o id criado.
+ */
 @RestController
 @RequestMapping("/chefe/medicos")
 public class ChefeMedicoCadastroController {

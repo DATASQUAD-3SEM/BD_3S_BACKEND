@@ -3,6 +3,9 @@ package fatec.fusex.nexus.ocs.dto;
 import fatec.fusex.nexus.ocs.Ocs;
 
 
+/**
+ * Dados de uma OCS exibidos nas buscas: id, nome, contrato e tipo.
+ */
 public record OcsResponse(
         Long id,
         String contrato,

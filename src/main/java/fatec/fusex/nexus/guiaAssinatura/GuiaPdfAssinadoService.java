@@ -23,6 +23,9 @@ import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
 import fatec.fusex.nexus.minhasPreGuias.ModoDownload;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 
+/**
+ * Monta o PDF da Guia com as assinaturas ja feitas (T5-BE2). Acesso restrito a medicos e ao chefe.
+ */
 @Service
 public class GuiaPdfAssinadoService {
 

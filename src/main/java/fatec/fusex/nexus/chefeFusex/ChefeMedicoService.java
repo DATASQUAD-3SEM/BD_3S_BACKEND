@@ -21,6 +21,9 @@ import fatec.fusex.nexus.medicoFusex.MedicoFusex;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 
+/**
+ * Listagem de medicos para o Chefe (T8-BE1). A busca aceita nome, CPF, Prec CP ou CRM.
+ */
 @Service
 public class ChefeMedicoService {
 

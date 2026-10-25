@@ -22,6 +22,10 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * Entidade da tabela PreGuiaHistorico: uma linha por mudanca de status, com quem agiu e quando.
+ * Em ATENCAO a observacao e obrigatoria; contas de setor sao registradas pelo usuario do setor, nunca por pessoa.
+ */
 @Entity
 @Table(name = "PreGuiaHistorico")
 @Getter

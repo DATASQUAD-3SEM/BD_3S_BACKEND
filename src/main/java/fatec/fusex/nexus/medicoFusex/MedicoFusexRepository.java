@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Acesso aos medicos, incluindo as buscas por CRM e Prec CP e a listagem paginada do Chefe.
+ */
 public interface MedicoFusexRepository extends JpaRepository<MedicoFusex, Long> {
 
     @EntityGraph(attributePaths = "usuario")

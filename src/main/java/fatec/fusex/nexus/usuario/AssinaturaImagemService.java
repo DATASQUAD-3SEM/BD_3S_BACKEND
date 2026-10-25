@@ -21,6 +21,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
+/**
+ * Valida e normaliza a imagem da assinatura digital (T13-BE2): aceita PNG ou JPG, rejeita imagem em branco
+ * (422), aplica fundo transparente e limita o tamanho maximo.
+ */
 @Service
 public class AssinaturaImagemService {
 

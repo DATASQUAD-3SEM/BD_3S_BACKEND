@@ -33,6 +33,10 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import org.springframework.http.MediaType;
 import fatec.fusex.nexus.minhasPreGuias.dto.EncaminhamentoArquivo;
 
+/**
+ * Regras de leitura do Setor de Guias: fila paginada com busca e filtro de status (T3-BE1),
+ * detalhe da pre-guia (T4-BE1) e arquivo do encaminhamento (T4-BE2). O caminho do arquivo nunca e exposto.
+ */
 @Service
 public class SetorGuiasService {
 

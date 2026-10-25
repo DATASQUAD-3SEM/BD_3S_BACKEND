@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * GET /ocs?busca= (T2-BE2): busca de OCS usada na Nova pre-guia do medico. Acesso restrito ao perfil MEDICO.
+ */
 @RestController
 @RequestMapping("/ocs")
 public class OcsController {

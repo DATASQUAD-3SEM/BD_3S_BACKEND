@@ -11,6 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 import fatec.fusex.nexus.usuario.dto.AssinaturaAtualizadaResponse;
 import fatec.fusex.nexus.usuario.dto.AssinaturaBase64Request;
 
+/**
+ * PUT /usuarios/me/assinatura (T13-BE2): cadastra ou substitui a assinatura digital do usuario logado,
+ * recebendo um arquivo (multipart) ou uma imagem em base64 desenhada no quadro.
+ */
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioAssinaturaController {

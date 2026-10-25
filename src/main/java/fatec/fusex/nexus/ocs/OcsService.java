@@ -13,6 +13,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * Busca de OCS ativas por nome, contrato ou tipo (T2-BE2), limitada a 30 resultados e com o campo total.
+ */
 @Service
 public class OcsService {
 

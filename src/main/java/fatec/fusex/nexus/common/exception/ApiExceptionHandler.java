@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 
+/**
+ * Converte as excecoes do projeto em respostas JSON padronizadas (ErrorResponse) com o codigo HTTP correto:
+ * 404 (nao encontrado), 400 (regra), 409 (conflito), 401, 403, 422 (dados invalidos) e 429 (tentativas).
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 

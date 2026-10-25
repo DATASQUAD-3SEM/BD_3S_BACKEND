@@ -19,6 +19,10 @@ import fatec.fusex.nexus.guiaAssinatura.dto.AssinaturaRegistradaResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.GuiaParaAssinarResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
 
+/**
+ * Endpoints da Tela 5 (Guias para assinar), usados pelo medico e pelo chefe:
+ * GET /guias/para-assinar (T5-BE1), GET /guias/{id}/pdf (T5-BE2) e POST /guias/{id}/assinaturas (T5-BE3).
+ */
 @RestController
 @RequestMapping("/guias")
 public class GuiaAssinaturaController {

@@ -12,6 +12,10 @@ import org.springframework.web.multipart.MultipartFile;
 import fatec.fusex.nexus.minhasPreGuias.dto.ReenvioPreGuiaResponse;
 
 //T9-BE4: POST /beneficiarios/me/pre-guias/{id}/reenvio (multipart com ocsId e/ou arquivo)
+/**
+ * POST /beneficiarios/me/pre-guias/{id}/reenvio (T9-BE4): reenvio da pre-guia corrigida, com nova OCS
+ * e/ou novo arquivo (multipart).
+ */
 @RestController
 @RequestMapping("/beneficiarios/me/pre-guias")
 public class ReenvioPreGuiaController {

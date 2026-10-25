@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+/**
+ * GET /medicos/beneficiarios?precCp= (T2-BE1): o medico busca o beneficiario pelo Prec CP durante a consulta.
+ */
 @RestController
 @RequestMapping("/medicos/beneficiarios")
 public class MedicoBeneficiarioController {

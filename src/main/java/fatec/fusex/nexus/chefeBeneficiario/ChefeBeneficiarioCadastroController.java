@@ -11,6 +11,9 @@ import fatec.fusex.nexus.chefeBeneficiario.dto.BeneficiarioCadastradoResponse;
 import fatec.fusex.nexus.chefeBeneficiario.dto.CadastrarBeneficiarioRequest;
 
 //T7-BE2: POST /chefe/beneficiarios (a listagem GET fica no ChefeBeneficiarioController, da T7-BE1)
+/**
+ * POST /chefe/beneficiarios (T7-BE2): cadastro de beneficiario pelo Chefe. Devolve 201 com o id criado.
+ */
 @RestController
 @RequestMapping("/chefe/beneficiarios")
 public class ChefeBeneficiarioCadastroController {

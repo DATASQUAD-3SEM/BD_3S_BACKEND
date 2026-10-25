@@ -11,6 +11,9 @@ import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.ocs.dto.OcsResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 
+/**
+ * Busca de OCS ativas para o beneficiario (T9-BE3), por nome, contrato ou tipo, em ordem alfabetica.
+ */
 @Service
 public class OcsBeneficiarioService {
 

@@ -8,6 +8,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Acesso as OCS. As buscas ignoram maiusculas, minusculas e acentos pela collation da tabela.
+ */
 public interface OcsRepository extends JpaRepository<Ocs, Long> {
 
     @Query("SELECT o FROM Ocs o WHERE o.ativo = true AND (LOWER(o.nome) LIKE LOWER(CONCAT('%', :busca, '%')) ESCAPE '!' OR LOWER(o.contratoNum) LIKE LOWER(CONCAT('%', :busca, '%')) ESCAPE '!' OR LOWER(CAST(o.tipo AS String)) LIKE LOWER(CONCAT('%', :busca, '%')) ESCAPE '!')")

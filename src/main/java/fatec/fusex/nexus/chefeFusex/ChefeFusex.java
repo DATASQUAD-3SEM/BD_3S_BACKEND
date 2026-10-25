@@ -7,6 +7,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Entidade da tabela ChefeFusex, especializacao 1:1 de Usuario. A conta do chefe nasce por seed.
+ */
 @Entity
 @Table(name = "ChefeFusex")
 @Getter

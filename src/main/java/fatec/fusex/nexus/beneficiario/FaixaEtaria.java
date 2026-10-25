@@ -1,5 +1,8 @@
 package fatec.fusex.nexus.beneficiario;
 
+/**
+ * Faixas etarias exibidas nas telas (ex.: "51 a 60"). A faixa e obtida pela idade com {@link #de(int)}.
+ */
 public enum FaixaEtaria {
 
     MENOR_DE_18("Menor de 18", 0, 17),

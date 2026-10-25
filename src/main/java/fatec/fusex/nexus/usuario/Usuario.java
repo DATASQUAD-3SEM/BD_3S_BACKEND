@@ -5,6 +5,10 @@ import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
+/**
+ * Entidade da tabela Usuario, base de todas as contas. O login e o CPF (so digitos) para beneficiario e medico,
+ * e o nome de usuario para chefe e setores. assinatura_url fica nula ate o proprio usuario cadastrar a assinatura.
+ */
 @Entity
 @Table(name = "Usuario")
 @Getter

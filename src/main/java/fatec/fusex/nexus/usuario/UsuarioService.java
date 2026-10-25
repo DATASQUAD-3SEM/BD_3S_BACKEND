@@ -10,6 +10,10 @@ import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.usuario.dto.AlterarSenhaRequest;
 
+/**
+ * Troca da propria senha (T13-BE1): confere a senha atual, exige nova senha valida e diferente da atual
+ * e grava com hash. A senha nunca aparece em resposta nem em log.
+ */
 @Service
 public class UsuarioService {
 

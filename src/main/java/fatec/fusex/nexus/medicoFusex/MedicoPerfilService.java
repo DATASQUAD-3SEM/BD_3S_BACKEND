@@ -12,6 +12,9 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
+/**
+ * Monta os dados profissionais do medico logado para a tela Minhas informacoes (T11-BE1).
+ */
 @Service
 public class MedicoPerfilService {
 

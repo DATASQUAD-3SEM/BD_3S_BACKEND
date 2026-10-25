@@ -21,6 +21,10 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
+/**
+ * Leitura e atualizacao da conta do Chefe (Tela 12). O login deve ser unico (409) e a nova senha,
+ * quando informada, e gravada com hash. Perfil e situacao da conta nao podem ser alterados aqui.
+ */
 @RequiredArgsConstructor
 @Service
 public class ChefePerfilService {

@@ -16,6 +16,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Entidade da tabela GuiaRascunho: numero e PDF anexados pelo Setor de Guias antes de clicar em "Concluir" (T4-BE5).
+ * O rascunho pode ser trocado quantas vezes for preciso; a Guia definitiva so e criada na conclusao (T4-BE6).
+ */
 @Entity
 @Table(name = "GuiaRascunho")
 @Getter

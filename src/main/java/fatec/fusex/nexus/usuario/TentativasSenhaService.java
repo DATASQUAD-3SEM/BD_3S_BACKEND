@@ -10,6 +10,10 @@ import org.springframework.stereotype.Component;
 
 import fatec.fusex.nexus.common.exception.MuitasTentativasException;
 
+/**
+ * Controla as tentativas erradas de senha atual (T13-BE1): apos 5 falhas seguidas,
+ * o usuario fica bloqueado por 15 minutos (429). Um acerto zera a contagem.
+ */
 @Component
 public class TentativasSenhaService {
 

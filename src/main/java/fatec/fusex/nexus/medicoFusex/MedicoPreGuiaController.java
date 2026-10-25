@@ -12,6 +12,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 //T2-BE4: POST /medicos/pre-guias
+/**
+ * POST /medicos/pre-guias (T2-BE4): o medico cria e envia a pre-guia durante a consulta. Devolve 201.
+ */
 @RestController
 @RequestMapping("/medicos/pre-guias")
 public class MedicoPreGuiaController {

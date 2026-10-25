@@ -16,6 +16,10 @@ import fatec.fusex.nexus.ocs.OcsService;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
 
+/**
+ * Criacao da pre-guia pelo beneficiario (Sprint 1): grava o encaminhamento enviado e a pre-guia como Pendente.
+ * Se a gravacao no banco falhar, o arquivo salvo e removido para nao ficar orfao.
+ */
 @Service
 public class PreGuiaService {
 

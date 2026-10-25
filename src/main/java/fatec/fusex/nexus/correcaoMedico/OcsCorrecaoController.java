@@ -9,6 +9,10 @@ import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.correcaoMedico.dto.OcsCorrecaoResponse;
 
 //T14-BE3: GET /medicos/me/ocs?busca={texto}
+/**
+ * GET /medicos/me/ocs (T14-BE3): busca de OCS na tela de correcao do medico.
+ * E um endpoint proprio, separado do GET /ocs (T2-BE2), para manter as tasks independentes.
+ */
 @RestController
 @RequestMapping("/medicos/me/ocs")
 public class OcsCorrecaoController {

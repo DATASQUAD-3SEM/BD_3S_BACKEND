@@ -9,6 +9,10 @@ import java.nio.file.StandardCopyOption;
 
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Adapta os bytes de uma assinatura ja normalizada para a interface MultipartFile,
+ * permitindo grava-los pelo mesmo {@code ArmazenamentoArquivo} usado nos uploads.
+ */
 final class ArquivoAssinaturaMultipartFile implements MultipartFile {
 
     private final byte[] conteudo;

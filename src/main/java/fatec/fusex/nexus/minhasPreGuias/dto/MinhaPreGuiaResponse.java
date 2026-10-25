@@ -5,6 +5,10 @@ import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 
+/**
+ * Item da lista Minhas pre-guias (T1-BE1). A observacao so vem em Atencao e a Guia so vem em Concluida;
+ * criadoPorMedico so e preenchido quando a origem e MEDICO.
+ */
 public record MinhaPreGuiaResponse(
         Long id,
         String numero,

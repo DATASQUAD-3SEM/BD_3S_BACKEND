@@ -13,6 +13,9 @@ import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 
+/**
+ * Entrega o PDF da Guia a recepcao (T6-BE2). Somente Guias de pre-guias Concluidas sao liberadas (403 nos demais casos).
+ */
 @Service
 public class RecepcaoGuiaPdfService {
 

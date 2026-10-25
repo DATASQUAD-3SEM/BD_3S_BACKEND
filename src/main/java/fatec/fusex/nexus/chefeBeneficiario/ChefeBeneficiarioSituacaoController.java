@@ -10,6 +10,10 @@ import fatec.fusex.nexus.chefeBeneficiario.dto.AlterarSituacaoBeneficiarioReques
 import fatec.fusex.nexus.chefeBeneficiario.dto.BeneficiarioSituacaoResponse;
 
 //T7-BE4: PATCH /chefe/beneficiarios/{id}/situacao
+/**
+ * PATCH /chefe/beneficiarios/{id}/situacao (T7-BE4): desativa ou reativa o beneficiario.
+ * Nunca ha DELETE, para preservar o historico de pre-guias, Guias e assinaturas.
+ */
 @RestController
 @RequestMapping("/chefe/beneficiarios")
 public class ChefeBeneficiarioSituacaoController {

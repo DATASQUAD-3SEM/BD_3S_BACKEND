@@ -14,6 +14,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+/**
+ * Entidade da tabela associativa PreGuiaProcedimento: exames solicitados na pre-guia criada pelo medico.
+ * Aceita qualquer procedimento do catalogo, independentemente da OCS escolhida.
+ */
 @Entity
 @Table(name = "PreGuiaProcedimento")
 @Getter

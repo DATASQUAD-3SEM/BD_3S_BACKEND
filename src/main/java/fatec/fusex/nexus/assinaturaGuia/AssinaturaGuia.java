@@ -12,6 +12,11 @@ import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entidade da tabela AssinaturaGuia: registra quem assinou uma Guia, em qual papel (MEDICO ou CHEFE) e quando.
+ * A restricao UNIQUE (guia_id, papel) garante no maximo uma assinatura de cada papel por Guia;
+ * e ela que barra a segunda assinatura quando dois medicos tentam assinar ao mesmo tempo.
+ */
 @Entity
 @Table(name = "AssinaturaGuia",
         uniqueConstraints = @UniqueConstraint(

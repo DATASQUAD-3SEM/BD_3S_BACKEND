@@ -11,6 +11,9 @@ import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.correcaoMedico.dto.ProcedimentoCorrecaoResponse;
 
 //T14-BE4: GET /medicos/me/procedimentos?busca={texto}
+/**
+ * GET /medicos/me/procedimentos (T14-BE4): busca no catalogo de procedimentos para a tela de correcao.
+ */
 @RestController
 @RequestMapping("/medicos/me/procedimentos")
 public class ProcedimentoCorrecaoController {

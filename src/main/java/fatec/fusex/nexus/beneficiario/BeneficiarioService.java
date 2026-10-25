@@ -15,6 +15,10 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 
+/**
+ * Regras de leitura do beneficiario: busca por Prec CP (usada pelo medico), dados do beneficiario logado
+ * e alteracao do proprio telefone. CPF e telefone nunca devem ser escritos em log.
+ */
 @Service
 public class BeneficiarioService {
 

@@ -7,6 +7,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.web.SecurityFilterChain;
 
+/**
+ * Configuracao do Spring Security. Enquanto o login e simulado por header, as rotas ficam liberadas
+ * aqui e a checagem de perfil e feita em cada servico (ver UsuarioLogado).
+ */
 @Configuration
 @EnableMethodSecurity // Habilita o @PreAuthorize nos Controllers
 public class SecurityConfig {

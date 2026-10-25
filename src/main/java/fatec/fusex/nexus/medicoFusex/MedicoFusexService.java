@@ -8,6 +8,10 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.springframework.stereotype.Service;
 
+/**
+ * Regras comuns do perfil medico: confirma que o usuario logado e um medico ativo (403)
+ * e que possui cadastro de medico (404).
+ */
 @Service
 public class MedicoFusexService {
 

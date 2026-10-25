@@ -6,6 +6,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Acesso aos exames das pre-guias criadas pelo medico.
+ */
 public interface PreGuiaProcedimentoRepository extends JpaRepository<PreGuiaProcedimento, PreGuiaProcedimentoId> {
 
     List<PreGuiaProcedimento> findByPreGuiaIdPreGuia(Long idPreGuia);

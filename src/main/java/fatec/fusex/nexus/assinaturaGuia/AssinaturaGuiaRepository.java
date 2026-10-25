@@ -9,6 +9,9 @@ import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+/**
+ * Acesso as assinaturas das Guias. Usado para saber quais papeis ja assinaram cada Guia.
+ */
 public interface AssinaturaGuiaRepository extends JpaRepository<AssinaturaGuia, Long> {
 
     long countByGuiaPreGuiaIdPreGuia(Long idPreGuia);

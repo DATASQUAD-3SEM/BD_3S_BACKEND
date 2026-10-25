@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.RestController;
 import fatec.fusex.nexus.usuario.dto.AlterarSenhaRequest;
 import fatec.fusex.nexus.usuario.dto.SenhaAlteradaResponse;
 
+/**
+ * POST /usuarios/me/senha (T13-BE1): troca da propria senha pelo beneficiario ou pelo medico.
+ */
 @RestController
 @RequestMapping("/usuarios")
 public class UsuarioController {

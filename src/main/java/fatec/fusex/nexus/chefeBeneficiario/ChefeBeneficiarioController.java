@@ -3,6 +3,9 @@ package fatec.fusex.nexus.chefeBeneficiario;
 import fatec.fusex.nexus.chefeBeneficiario.dto.BeneficiarioListaResponse;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * GET /chefe/beneficiarios (T7-BE1): lista paginada de beneficiarios com busca e filtro de situacao.
+ */
 @RestController
 @RequestMapping("/chefe/beneficiarios")
 public class ChefeBeneficiarioController {

@@ -3,6 +3,10 @@ package fatec.fusex.nexus.common.storage;
 import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
+/**
+ * Contrato de armazenamento de arquivos (encaminhamentos, Guias e assinaturas).
+ * Os servicos trabalham sempre com o caminho relativo devolvido por {@link #salvar}; o caminho real nunca e exposto na API.
+ */
 public interface ArmazenamentoArquivo {
 
     String salvar(MultipartFile arquivo, String pasta);

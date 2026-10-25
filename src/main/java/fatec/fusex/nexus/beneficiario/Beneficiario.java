@@ -18,6 +18,11 @@ import lombok.Setter;
 
 import fatec.fusex.nexus.usuario.Usuario;
 
+/**
+ * Entidade da tabela Beneficiario, especializacao 1:1 de Usuario (o id e o mesmo do usuario).
+ * O CPF nao e repetido aqui: ele e o login do usuario. Idade e faixa etaria nao sao gravadas;
+ * sao sempre calculadas a partir da data de nascimento, no fuso de Sao Paulo.
+ */
 @Entity
 @Table(name = "Beneficiario")
 @Getter
