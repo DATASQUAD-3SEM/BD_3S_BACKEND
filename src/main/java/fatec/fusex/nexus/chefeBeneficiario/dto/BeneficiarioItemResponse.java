@@ -1,4 +1,13 @@
 package fatec.fusex.nexus.chefeBeneficiario.dto;
 
-public class BeneficiarioItemResponse {
+import fatec.fusex.nexus.beneficiario.Beneficiario;
+
+public record BeneficiarioItemResponse(
+        Long id, String nome, String cpf, String precCp, boolean ativo) {
+
+    public static BeneficiarioItemResponse de(Beneficiario b) {
+        return new BeneficiarioItemResponse(
+                b.getUsuarioId(), b.getNome(), b.getUsuario().getLogin(),
+                b.getPrecCp(), b.getUsuario().getAtivo());
+    }
 }
