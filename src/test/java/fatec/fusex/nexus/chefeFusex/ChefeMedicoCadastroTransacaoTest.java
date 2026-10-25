@@ -8,7 +8,6 @@ import static org.mockito.Mockito.doThrow;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
@@ -32,12 +31,21 @@ class ChefeMedicoCadastroTransacaoTest {
     private static final String CHEFE = "chefe.transacao";
     private static final String CPF_NOVO = "39053344705";
 
-    @Autowired private ChefeMedicoCadastroService service;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private SimulacaoLogin simulacaoLogin;
+    private final ChefeMedicoCadastroService service;
+    private final UsuarioRepository usuarioRepository;
+    private final SimulacaoLogin simulacaoLogin;
 
     @MockitoSpyBean
     private MedicoFusexRepository medicoRepository;
+
+    ChefeMedicoCadastroTransacaoTest(
+            ChefeMedicoCadastroService service,
+            UsuarioRepository usuarioRepository,
+            SimulacaoLogin simulacaoLogin) {
+        this.service = service;
+        this.usuarioRepository = usuarioRepository;
+        this.simulacaoLogin = simulacaoLogin;
+    }
 
     @BeforeEach
     void dados() {

@@ -13,7 +13,6 @@ import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -26,11 +25,14 @@ import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 @Import(SimulacaoLogin.class)
 class PreGuiaControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private PreGuiaService preGuiaService;
+
+    PreGuiaControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
     void criar_quandoRequisicaoValida_devolve201ComoCorpoDaPreGuia() throws Exception {

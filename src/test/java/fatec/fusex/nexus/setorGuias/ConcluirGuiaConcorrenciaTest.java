@@ -16,7 +16,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -48,18 +47,37 @@ class ConcluirGuiaConcorrenciaTest {
     private static final String SETOR = "setor.concluir";
     private static final String BENEFICIARIO = "70000000301";
 
-    @Autowired private ConcluirGuiaService service;
-    @Autowired private SimulacaoLogin simulacaoLogin;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private GuiaRepository guiaRepository;
-    @Autowired private GuiaRascunhoRepository guiaRascunhoRepository;
+    private final ConcluirGuiaService service;
+    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioRepository usuarioRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final GuiaRepository guiaRepository;
+    private final GuiaRascunhoRepository guiaRascunhoRepository;
 
     private Long idPreGuia;
     private Long idBeneficiario;
     private Long idOcs;
+
+    ConcluirGuiaConcorrenciaTest(
+            ConcluirGuiaService service,
+            SimulacaoLogin simulacaoLogin,
+            UsuarioRepository usuarioRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            PreGuiaRepository preGuiaRepository,
+            GuiaRepository guiaRepository,
+            GuiaRascunhoRepository guiaRascunhoRepository) {
+        this.service = service;
+        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioRepository = usuarioRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.guiaRepository = guiaRepository;
+        this.guiaRascunhoRepository = guiaRascunhoRepository;
+    }
 
     @BeforeEach
     void dados() {

@@ -9,7 +9,6 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
@@ -30,9 +29,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class ChefeBeneficiarioControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
+    private final MockMvc mockMvc;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final UsuarioRepository usuarioRepository;
+
+    ChefeBeneficiarioControllerTest(
+            MockMvc mockMvc,
+            BeneficiarioRepository beneficiarioRepository,
+            UsuarioRepository usuarioRepository) {
+        this.mockMvc = mockMvc;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.usuarioRepository = usuarioRepository;
+    }
 
     @BeforeEach
     void setUp() {

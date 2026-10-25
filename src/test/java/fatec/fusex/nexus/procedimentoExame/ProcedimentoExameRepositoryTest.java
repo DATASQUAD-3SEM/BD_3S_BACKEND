@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -26,14 +25,20 @@ import jakarta.persistence.EntityManager;
 @Transactional
 class ProcedimentoExameRepositoryTest {
 
-    @Autowired
-    private ProcedimentoExameRepository procedimentoRepository;
+    private final ProcedimentoExameRepository procedimentoRepository;
 
-    @Autowired
-    private OcsRepository ocsRepository;
+    private final OcsRepository ocsRepository;
 
-    @Autowired
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
+
+    ProcedimentoExameRepositoryTest(
+            ProcedimentoExameRepository procedimentoRepository,
+            OcsRepository ocsRepository,
+            EntityManager entityManager) {
+        this.procedimentoRepository = procedimentoRepository;
+        this.ocsRepository = ocsRepository;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

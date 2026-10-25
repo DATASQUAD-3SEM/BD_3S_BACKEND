@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -44,17 +43,34 @@ class AberturaPreGuiaConcorrenciaTest {
     private static final String SETOR = "setor.concorrencia";
     private static final String BENEFICIARIO = "70000000201";
 
-    @Autowired private AberturaPreGuiaService service;
-    @Autowired private SimulacaoLogin simulacaoLogin;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private PreGuiaHistoricoRepository historicoRepository;
+    private final AberturaPreGuiaService service;
+    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioRepository usuarioRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final PreGuiaHistoricoRepository historicoRepository;
 
     private Long idPreGuia;
     private Long idBeneficiario;
     private Long idOcs;
+
+    AberturaPreGuiaConcorrenciaTest(
+            AberturaPreGuiaService service,
+            SimulacaoLogin simulacaoLogin,
+            UsuarioRepository usuarioRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            PreGuiaRepository preGuiaRepository,
+            PreGuiaHistoricoRepository historicoRepository) {
+        this.service = service;
+        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioRepository = usuarioRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.historicoRepository = historicoRepository;
+    }
 
     @BeforeEach
     void dados() {

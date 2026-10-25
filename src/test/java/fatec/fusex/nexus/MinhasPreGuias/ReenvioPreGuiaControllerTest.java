@@ -11,7 +11,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.mock.web.MockMultipartFile;
@@ -53,15 +52,15 @@ class ReenvioPreGuiaControllerTest {
     private static final byte[] PDF = "%PDF-1.4 encaminhamento novo".getBytes();
     private static final byte[] JPG = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 1, 2, 3};
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private MedicoFusexRepository medicoRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private PreGuiaHistoricoRepository historicoRepository;
-    @Autowired private ArmazenamentoArquivo armazenamentoArquivo;
-    @Autowired private EntityManager entityManager;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final MedicoFusexRepository medicoRepository;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final PreGuiaHistoricoRepository historicoRepository;
+    private final ArmazenamentoArquivo armazenamentoArquivo;
+    private final EntityManager entityManager;
 
     private Usuario setor;
     private Beneficiario beneficiario;
@@ -70,6 +69,27 @@ class ReenvioPreGuiaControllerTest {
     private Ocs ocsAtual;
     private Ocs ocsNova;
     private Ocs ocsInativa;
+
+    ReenvioPreGuiaControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            MedicoFusexRepository medicoRepository,
+            OcsRepository ocsRepository,
+            PreGuiaRepository preGuiaRepository,
+            PreGuiaHistoricoRepository historicoRepository,
+            ArmazenamentoArquivo armazenamentoArquivo,
+            EntityManager entityManager) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.medicoRepository = medicoRepository;
+        this.ocsRepository = ocsRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.historicoRepository = historicoRepository;
+        this.armazenamentoArquivo = armazenamentoArquivo;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

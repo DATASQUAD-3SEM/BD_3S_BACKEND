@@ -10,7 +10,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -28,9 +27,13 @@ import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 @Import(SimulacaoLogin.class)
 class BeneficiarioControllerTest {
 
-    @Autowired private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean private BeneficiarioService beneficiarioService;
+
+    BeneficiarioControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
     void me_quandoTudoCerto_devolve200ComDados() throws Exception {

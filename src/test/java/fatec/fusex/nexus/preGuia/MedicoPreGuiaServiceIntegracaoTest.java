@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
@@ -47,18 +46,39 @@ class MedicoPreGuiaServiceIntegracaoTest {
 
     private static final String LOGIN_MEDICO = "70000000001";
 
-    @Autowired private MedicoPreGuiaService service;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private ProcedimentoExameRepository procedimentoRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
-    @Autowired private PreGuiaHistoricoRepository historicoRepository;
+    private final MedicoPreGuiaService service;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final ProcedimentoExameRepository procedimentoRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
+    private final PreGuiaHistoricoRepository historicoRepository;
 
     private Long beneficiarioId;
     private Long ocsId;
+
+    MedicoPreGuiaServiceIntegracaoTest(
+            MedicoPreGuiaService service,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            ProcedimentoExameRepository procedimentoRepository,
+            PreGuiaRepository preGuiaRepository,
+            PreGuiaProcedimentoRepository preGuiaProcedimentoRepository,
+            PreGuiaHistoricoRepository historicoRepository) {
+        this.service = service;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoRepository = medicoRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.procedimentoRepository = procedimentoRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.preGuiaProcedimentoRepository = preGuiaProcedimentoRepository;
+        this.historicoRepository = historicoRepository;
+    }
 
     @BeforeEach
     void dados() {

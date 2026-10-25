@@ -11,7 +11,6 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceException;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.context.ActiveProfiles;
@@ -33,11 +32,14 @@ import fatec.fusex.nexus.usuario.Usuario;
 @Transactional
 class AssinaturaGuiaUnicaRepositoryTest {
 
-    @Autowired
-    private AssinaturaGuiaRepository assinaturaRepository;
+    private final AssinaturaGuiaRepository assinaturaRepository;
 
-    @Autowired
-    private EntityManager em;
+    private final EntityManager em;
+
+    AssinaturaGuiaUnicaRepositoryTest(AssinaturaGuiaRepository assinaturaRepository, EntityManager em) {
+        this.assinaturaRepository = assinaturaRepository;
+        this.em = em;
+    }
 
     @Test
     void mesmoPapelNaMesmaGuia_violaAConstraintUnica() {

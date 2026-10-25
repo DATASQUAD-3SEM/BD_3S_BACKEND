@@ -11,7 +11,6 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -47,14 +46,29 @@ class ChefeMedicoEdicaoControllerTest {
     private static final String CPF_BENEFICIARIO = "52998224725";
     private static final String CPF_NOVO = "12345678909";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private EntityManager entityManager;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final EntityManager entityManager;
 
     private Long idMedico;
+
+    ChefeMedicoEdicaoControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            PasswordEncoder passwordEncoder,
+            EntityManager entityManager) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoRepository = medicoRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

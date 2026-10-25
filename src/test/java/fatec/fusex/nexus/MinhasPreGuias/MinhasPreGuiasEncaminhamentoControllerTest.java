@@ -19,7 +19,6 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -55,18 +54,35 @@ class MinhasPreGuiasEncaminhamentoControllerTest {
     private static final byte[] JPG_BYTES = "fake-jpg-conteudo".getBytes(StandardCharsets.UTF_8);
     private static final byte[] PDF_BYTES = "%PDF-1.4\nfake\n%%EOF".getBytes(StandardCharsets.UTF_8);
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoFusexRepository;
-    @Autowired private ArmazenamentoArquivo armazenamentoArquivo;
+    private final MockMvc mockMvc;
+    private final PreGuiaRepository preGuiaRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoFusexRepository;
+    private final ArmazenamentoArquivo armazenamentoArquivo;
 
     private Beneficiario joao;
     private Beneficiario maria;
     private Ocs ocsPadrao;
     private MedicoFusex medico;
+
+    MinhasPreGuiasEncaminhamentoControllerTest(
+            MockMvc mockMvc,
+            PreGuiaRepository preGuiaRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoFusexRepository,
+            ArmazenamentoArquivo armazenamentoArquivo) {
+        this.mockMvc = mockMvc;
+        this.preGuiaRepository = preGuiaRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoFusexRepository = medicoFusexRepository;
+        this.armazenamentoArquivo = armazenamentoArquivo;
+    }
 
     @BeforeEach
     void setUp() {

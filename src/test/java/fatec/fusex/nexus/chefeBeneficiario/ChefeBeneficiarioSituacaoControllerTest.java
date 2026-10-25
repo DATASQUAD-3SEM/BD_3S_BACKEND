@@ -9,7 +9,6 @@ import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
@@ -42,15 +41,30 @@ class ChefeBeneficiarioSituacaoControllerTest {
     private static final String CPF_BENEFICIARIO = "52998224725";
     private static final String CPF_MEDICO = "11144477735";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private EntityManager entityManager;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaRepository preGuiaRepository;
+    private final EntityManager entityManager;
 
     private Long idBeneficiario;
     private Long idPreGuia;
+
+    ChefeBeneficiarioSituacaoControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            PreGuiaRepository preGuiaRepository,
+            EntityManager entityManager) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.preGuiaRepository = preGuiaRepository;
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void dados() {

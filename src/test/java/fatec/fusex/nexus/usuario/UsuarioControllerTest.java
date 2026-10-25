@@ -5,7 +5,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
@@ -28,11 +27,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Import(SimulacaoLogin.class)
 class UsuarioControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private UsuarioService usuarioService;
+
+    UsuarioControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
     void alterarSenha_quandoSucesso_devolve200() throws Exception {

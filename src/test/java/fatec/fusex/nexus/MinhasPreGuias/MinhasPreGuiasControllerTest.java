@@ -26,7 +26,6 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpHeaders;
@@ -53,16 +52,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class MinhasPreGuiasControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoFusexRepository;
-    @Autowired private PreGuiaHistoricoRepository historicoRepository;
-    @Autowired private GuiaRepository guiaRepository;
-    @Autowired private AssinaturaGuiaRepository assinaturaGuiaRepository;
-    @Autowired private ArmazenamentoArquivo armazenamentoArquivo;
+    private final MockMvc mockMvc;
+    private final PreGuiaRepository preGuiaRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoFusexRepository;
+    private final PreGuiaHistoricoRepository historicoRepository;
+    private final GuiaRepository guiaRepository;
+    private final AssinaturaGuiaRepository assinaturaGuiaRepository;
+    private final ArmazenamentoArquivo armazenamentoArquivo;
 
     private Beneficiario joao;
     private Beneficiario maria;
@@ -79,6 +78,29 @@ class MinhasPreGuiasControllerTest {
     private static final LocalDateTime D3 = LocalDateTime.of(2026, 10, 20, 10, 0);
     private static final LocalDateTime D4 = LocalDateTime.of(2026, 10, 19, 10, 0);
     private static final LocalDateTime D5 = LocalDateTime.of(2026, 10, 18, 10, 0);
+
+    MinhasPreGuiasControllerTest(
+            MockMvc mockMvc,
+            PreGuiaRepository preGuiaRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoFusexRepository,
+            PreGuiaHistoricoRepository historicoRepository,
+            GuiaRepository guiaRepository,
+            AssinaturaGuiaRepository assinaturaGuiaRepository,
+            ArmazenamentoArquivo armazenamentoArquivo) {
+        this.mockMvc = mockMvc;
+        this.preGuiaRepository = preGuiaRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoFusexRepository = medicoFusexRepository;
+        this.historicoRepository = historicoRepository;
+        this.guiaRepository = guiaRepository;
+        this.assinaturaGuiaRepository = assinaturaGuiaRepository;
+        this.armazenamentoArquivo = armazenamentoArquivo;
+    }
 
     @BeforeEach
     void setUp() {

@@ -20,7 +20,6 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
@@ -50,19 +49,36 @@ class MinhasPreGuiasCorrecaoControllerTest {
     private static final LocalDateTime OBSERVACAO = LocalDateTime.of(2026, 10, 11, 15, 30);
     private static final LocalDateTime REENVIO = LocalDateTime.of(2026, 10, 12, 14, 30);
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private PreGuiaRepository preGuiaRepository;
-    @Autowired private BeneficiarioRepository beneficiarioRepository;
-    @Autowired private OcsRepository ocsRepository;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoFusexRepository;
-    @Autowired private PreGuiaHistoricoRepository historicoRepository;
+    private final MockMvc mockMvc;
+    private final PreGuiaRepository preGuiaRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final OcsRepository ocsRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoFusexRepository;
+    private final PreGuiaHistoricoRepository historicoRepository;
 
     private Usuario usuarioJoao;
     private Beneficiario joao;
     private Beneficiario maria;
     private Ocs ocsPadrao;
     private MedicoFusex medico;
+
+    MinhasPreGuiasCorrecaoControllerTest(
+            MockMvc mockMvc,
+            PreGuiaRepository preGuiaRepository,
+            BeneficiarioRepository beneficiarioRepository,
+            OcsRepository ocsRepository,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoFusexRepository,
+            PreGuiaHistoricoRepository historicoRepository) {
+        this.mockMvc = mockMvc;
+        this.preGuiaRepository = preGuiaRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.ocsRepository = ocsRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoFusexRepository = medicoFusexRepository;
+        this.historicoRepository = historicoRepository;
+    }
 
     @BeforeEach
     void setUp() {

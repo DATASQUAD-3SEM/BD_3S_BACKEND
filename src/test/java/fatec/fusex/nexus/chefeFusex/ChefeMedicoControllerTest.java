@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
@@ -33,9 +32,18 @@ class ChefeMedicoControllerTest {
     private static final String URL = "/chefe/medicos";
     private static final String CHEFE = "chefe.teste";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private MedicoFusexRepository medicoRepository;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final MedicoFusexRepository medicoRepository;
+
+    ChefeMedicoControllerTest(
+            MockMvc mockMvc,
+            UsuarioRepository usuarioRepository,
+            MedicoFusexRepository medicoRepository) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.medicoRepository = medicoRepository;
+    }
 
     @BeforeEach
     void dados() {

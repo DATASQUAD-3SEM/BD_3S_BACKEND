@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
@@ -34,9 +33,15 @@ class OcsCorrecaoControllerTest {
     private static final String MEDICO = "11144477735";
     private static final String BENEFICIARIO = "52998224725";
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private UsuarioRepository usuarioRepository;
-    @Autowired private OcsCorrecaoRepository ocsRepository;
+    private final MockMvc mockMvc;
+    private final UsuarioRepository usuarioRepository;
+    private final OcsCorrecaoRepository ocsRepository;
+
+    OcsCorrecaoControllerTest(MockMvc mockMvc, UsuarioRepository usuarioRepository, OcsCorrecaoRepository ocsRepository) {
+        this.mockMvc = mockMvc;
+        this.usuarioRepository = usuarioRepository;
+        this.ocsRepository = ocsRepository;
+    }
 
     @BeforeEach
     void dados() {

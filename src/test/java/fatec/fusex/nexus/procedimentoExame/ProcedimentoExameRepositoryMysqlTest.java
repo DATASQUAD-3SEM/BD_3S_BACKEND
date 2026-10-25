@@ -6,7 +6,6 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -28,11 +27,14 @@ import org.springframework.transaction.annotation.Transactional;
 @EnabledIfEnvironmentVariable(named = "FUSEX_TEST_MYSQL", matches = "true")
 class ProcedimentoExameRepositoryMysqlTest {
 
-    @Autowired
-    private ProcedimentoExameRepository procedimentoRepository;
+    private final ProcedimentoExameRepository procedimentoRepository;
 
-    @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private final JdbcTemplate jdbcTemplate;
+
+    ProcedimentoExameRepositoryMysqlTest(ProcedimentoExameRepository procedimentoRepository, JdbcTemplate jdbcTemplate) {
+        this.procedimentoRepository = procedimentoRepository;
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
     private List<ProcedimentoExame> buscar(String termo) {
         return procedimentoRepository.buscarPorTermo(termo,
