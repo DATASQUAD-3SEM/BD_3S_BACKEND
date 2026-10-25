@@ -34,6 +34,8 @@ import fatec.fusex.nexus.setorGuias.dto.FilaPreGuiaPaginaResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
+import org.springframework.http.MediaType;
+import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
 
 @Service
 public class SetorGuiasService {
@@ -151,6 +153,29 @@ public class SetorGuiasService {
                 rascunho,
                 guiaConcluida);
     }
+
+    /** T4-BE2: devolve o arquivo do encaminhamento para visualizacao inline. Nao expoe o caminho. */
+    @Transactional(readOnly = true)
+    public EncaminhamentoArquivo baixarEncaminhamento(Long idPreGuia) {
+        validarSetorGuias();
+
+        PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
+                .orElseThrow(() -> new RecursoNaoEncontradoException(
+                        "Pre-guia nao encontrada: id " + idPreGuia));
+
+        String caminho = preGuia.getEncaminhamentoUrl();
+        if (preGuia.getMedicoFusex() != null || caminho == null || caminho.isBlank()) {
+            throw new RecursoNaoEncontradoException("Encaminhamento nao encontrado");
+        }
+
+        String extensao = caminho.substring(caminho.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+        Resource recurso = armazenamentoArquivo.carregar(caminho);
+        String filename = "encaminhamento-" + String.format("%04d", preGuia.getIdPreGuia())
+                + "." + extensao;
+
+        return new EncaminhamentoArquivo(recurso, MediaType.parseMediaType(tipoDe(caminho)), filename);
+    }
+
 
     private DetalhePreGuiaResponse.EncaminhamentoDto encaminhamentoDe(String caminho) {
         if (caminho == null) {

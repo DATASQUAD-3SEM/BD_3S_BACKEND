@@ -8,6 +8,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import fatec.fusex.nexus.setorGuias.dto.DetalhePreGuiaResponse;
 import fatec.fusex.nexus.setorGuias.dto.FilaPreGuiaPaginaResponse;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
 
 @RestController
 @RequestMapping("/setor-guias")
@@ -32,5 +37,19 @@ public class SetorGuiasController {
     @GetMapping("/pre-guias/{id}")
     public DetalhePreGuiaResponse detalhar(@PathVariable Long id) {
         return setorGuiasService.detalhar(id);
+    }
+
+    @GetMapping("/pre-guias/{id}/encaminhamento")
+    public ResponseEntity<Resource> baixarEncaminhamento(@PathVariable Long id) {
+        EncaminhamentoArquivo arquivo = setorGuiasService.baixarEncaminhamento(id);
+
+        ContentDisposition disposition = ContentDisposition.inline()
+                .filename(arquivo.filename())
+                .build();
+
+        return ResponseEntity.ok()
+                .contentType(arquivo.mediaType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(arquivo.recurso());
     }
 }
