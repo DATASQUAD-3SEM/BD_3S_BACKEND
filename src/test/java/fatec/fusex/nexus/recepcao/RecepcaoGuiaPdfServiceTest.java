@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.springframework.core.io.ByteArrayResource;
 
+import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
@@ -25,6 +26,8 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.guiaAssinatura.CarimboAssinaturaPdf;
+import fatec.fusex.nexus.guiaAssinatura.MontagemPdfGuia;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
@@ -51,6 +54,9 @@ class RecepcaoGuiaPdfServiceTest {
     @Mock
     private ArmazenamentoArquivo armazenamentoArquivo;
 
+    @Mock
+    private AssinaturaGuiaRepository assinaturaGuiaRepository;
+
     private AutoCloseable mocks;
 
     private RecepcaoGuiaPdfService service;
@@ -58,7 +64,8 @@ class RecepcaoGuiaPdfServiceTest {
     @BeforeEach
     void configurar() {
         mocks = MockitoAnnotations.openMocks(this);
-        service = new RecepcaoGuiaPdfService(guiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository), armazenamentoArquivo);
+        service = new RecepcaoGuiaPdfService(guiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository),
+                new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, new CarimboAssinaturaPdf()));
 
         when(simulacaoLogin.loginAtual()).thenReturn("recepcao");
         when(usuarioRepository.findByLogin("recepcao")).thenReturn(Optional.of(usuario(PerfilUsuario.RECEPCAO)));
