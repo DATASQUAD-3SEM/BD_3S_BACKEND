@@ -11,10 +11,9 @@ import org.springframework.web.bind.annotation.RestController;
 import fatec.fusex.nexus.preGuia.dto.CriarPreGuiaRequest;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
 
-import jakarta.validation.Valid;
-
 /**
- * SCRUM-30: POST /pre-guias multipart/form-data.
+ * POST /pre-guias (multipart/form-data): o beneficiario logado cria a pre-guia com a OCS e o encaminhamento medico.
+ * Devolve 201 com o numero da pre-guia criada.
  */
 @RestController
 @RequestMapping("/pre-guias")
@@ -27,12 +26,8 @@ public class PreGuiaController {
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<PreGuiaResponse> criar(@Valid @ModelAttribute CriarPreGuiaRequest request) {
-        PreGuiaResponse resposta = preGuiaService.criar(
-                request.getCpf(),
-                request.getPrecCp(),
-                request.getOcsId(),
-                request.getArquivo());
+    public ResponseEntity<PreGuiaResponse> criar(@ModelAttribute CriarPreGuiaRequest request) {
+        PreGuiaResponse resposta = preGuiaService.criar(request.getOcsId(), request.getArquivo());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(resposta);
     }

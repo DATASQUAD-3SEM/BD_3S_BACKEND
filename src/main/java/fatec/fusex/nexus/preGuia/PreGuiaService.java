@@ -8,34 +8,54 @@ import org.springframework.web.multipart.MultipartFile;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
+import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
-import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
+import fatec.fusex.nexus.common.validation.ValidacaoEncaminhamento;
 import fatec.fusex.nexus.ocs.Ocs;
-import fatec.fusex.nexus.ocs.OcsService;
+import fatec.fusex.nexus.ocs.OcsRepository;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
+import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistorico;
+import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
+import fatec.fusex.nexus.usuario.PerfilUsuario;
+import fatec.fusex.nexus.usuario.Usuario;
 
 
 /**
- * Criacao da pre-guia pelo beneficiario (Sprint 1): grava o encaminhamento enviado e a pre-guia como Pendente.
- * Se a gravacao no banco falhar, o arquivo salvo e removido para nao ficar orfao.
+ * Criacao da pre-guia pelo beneficiario: grava o encaminhamento enviado e a pre-guia como Pendente.
+ *
+ * O beneficiario e sempre o usuario logado (nunca um CPF recebido na requisicao), conforme a regra de que
+ * os dados pessoais saem do proprio perfil. Se a gravacao no banco falhar, o arquivo salvo e removido
+ * para nao ficar orfao.
  */
 @Service
 public class PreGuiaService {
 
+    private static final String PASTA = "encaminhamentos";
+
     private final PreGuiaRepository preGuiaRepository;
     private final BeneficiarioRepository beneficiarioRepository;
-    private final OcsService ocsService;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaHistoricoRepository historicoRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
+    private final UsuarioLogado usuarioLogado;
+    private final ValidacaoEncaminhamento validacaoEncaminhamento;
 
     public PreGuiaService(PreGuiaRepository preGuiaRepository,
                           BeneficiarioRepository beneficiarioRepository,
-                          OcsService ocsService,
-                          ArmazenamentoArquivo armazenamentoArquivo) {
+                          OcsRepository ocsRepository,
+                          PreGuiaHistoricoRepository historicoRepository,
+                          ArmazenamentoArquivo armazenamentoArquivo,
+                          UsuarioLogado usuarioLogado,
+                          ValidacaoEncaminhamento validacaoEncaminhamento) {
         this.preGuiaRepository = preGuiaRepository;
         this.beneficiarioRepository = beneficiarioRepository;
-        this.ocsService = ocsService;
+        this.ocsRepository = ocsRepository;
+        this.historicoRepository = historicoRepository;
         this.armazenamentoArquivo = armazenamentoArquivo;
+        this.usuarioLogado = usuarioLogado;
+        this.validacaoEncaminhamento = validacaoEncaminhamento;
     }
 
     public List<PreGuia> listarDoBeneficiario(Long beneficiarioId) {
@@ -55,46 +75,42 @@ public class PreGuiaService {
         return preGuia;
     }
 
+    // Ordem: perfil (403) -> cadastro do beneficiario (404) -> OCS (422) -> arquivo (422)
     @Transactional
-    public PreGuiaResponse criar(String cpf, String precCp, Long ocsId, MultipartFile arquivo) {
-        validarArquivoObrigatorio(arquivo);
+    public PreGuiaResponse criar(Long ocsId, MultipartFile arquivo) {
+        Usuario usuario = usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO);
+        Beneficiario beneficiario = beneficiarioRepository.findById(usuario.getIdUsuario())
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
 
-        Ocs ocs = ocsService.buscarPorId(ocsId);
-        Beneficiario beneficiario = identificarBeneficiario(cpf, precCp);
+        Ocs ocs = buscarOcsAtiva(ocsId);
+        validacaoEncaminhamento.validarObrigatorio(arquivo);
 
-        String encaminhamentoUrl = armazenamentoArquivo.salvar(arquivo, "encaminhamentos");
+        String encaminhamentoUrl = armazenamentoArquivo.salvar(arquivo, PASTA);
         try {
             PreGuia preGuia = new PreGuia();
             preGuia.setBeneficiario(beneficiario);
             preGuia.setOcs(ocs);
             preGuia.setEncaminhamentoUrl(encaminhamentoUrl);
-
+            preGuia.setStatus(PreGuiaStatus.PENDENTE);
             preGuiaRepository.save(preGuia);
+
+            // Primeira linha do historico: quem criou foi o proprio beneficiario, com a foto enviada
+            historicoRepository.save(new PreGuiaHistorico(
+                    null, preGuia, PreGuiaStatus.PENDENTE, null, encaminhamentoUrl, usuario, preGuia.getDataCriacao()));
 
             return PreGuiaResponse.de(preGuia);
         } catch (RuntimeException e) {
-            try {
-                armazenamentoArquivo.remover(encaminhamentoUrl);
-            } catch (RuntimeException limpezaFalhou) {
-                // nao deixa a falha da limpeza esconder a causa original
-            }
+            armazenamentoArquivo.removerSemFalhar(encaminhamentoUrl); // nao deixa arquivo orfao se o banco falhar
             throw e;
         }
     }
 
-    private Beneficiario identificarBeneficiario(String cpf, String precCp) {
-        Beneficiario beneficiario = beneficiarioRepository.findByCpf(cpf)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado: cpf " + cpf));
-
-        if (!beneficiario.getPrecCp().equals(precCp)) {
-            throw new RegraDeNegocioException("CPF e Prec-CP nao correspondem ao mesmo beneficiario");
+    private Ocs buscarOcsAtiva(Long ocsId) {
+        if (ocsId == null) {
+            throw new DadosInvalidosException("ocsId", "Escolha a OCS");
         }
-        return beneficiario;
-    }
-
-    private void validarArquivoObrigatorio(MultipartFile arquivo) {
-        if (arquivo == null || arquivo.isEmpty()) {
-            throw new RegraDeNegocioException("E necessario anexar o encaminhamento medico para criar a pre-guia");
-        }
+        return ocsRepository.findById(ocsId)
+                .filter(ocs -> Boolean.TRUE.equals(ocs.getAtivo()))
+                .orElseThrow(() -> new DadosInvalidosException("ocsId", "OCS inexistente ou inativa"));
     }
 }
