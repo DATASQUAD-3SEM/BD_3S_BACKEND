@@ -8,10 +8,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunho;
@@ -20,7 +18,6 @@ import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.setorGuias.dto.GuiaConcluidaResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
  * T4-BE6: POST /setor-guias/pre-guias/{id}/guia/concluir, sem corpo.
@@ -35,21 +32,18 @@ public class ConcluirGuiaService {
             List.of(AssinaturaGuiaPapel.MEDICO.name(), AssinaturaGuiaPapel.CHEFE.name());
 
     private final ConcluirGuiaRepository repository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
 
     public ConcluirGuiaService(ConcluirGuiaRepository repository,
-                               UsuarioRepository usuarioRepository,
-                               SimulacaoLogin simulacaoLogin) {
+                               UsuarioLogado usuarioLogado) {
         this.repository = repository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
     }
 
     // Ordem: perfil (403) -> existe (404) -> status (409) -> Guia ja criada (409) -> rascunho (409)
     @Transactional
     public GuiaConcluidaResponse concluir(Long id) {
-        Usuario setor = validarSetorGuias();
+        Usuario setor = usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
 
         // Trava a pre-guia: se dois cliques chegarem juntos, so um cria a Guia
         PreGuia preGuia = repository.buscarPreGuiaParaConcluir(id)
@@ -82,17 +76,5 @@ public class ConcluirGuiaService {
         }
 
         return new GuiaConcluidaResponse(guia.getIdGuia(), guia.getNumero(), guia.validadeAte(), ASSINATURAS_PENDENTES);
-    }
-
-    private Usuario validarSetorGuias() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.SETOR_GUIAS) {
-            throw new AcessoNegadoException("Acesso negado: este endpoint e exclusivo do SETOR_GUIAS");
-        }
-        return usuario;
     }
 }

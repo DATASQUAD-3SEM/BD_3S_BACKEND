@@ -11,49 +11,42 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fatec.fusex.nexus.MinhasPreGuias.ModoDownload;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuia;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
+import fatec.fusex.nexus.minhasPreGuias.ModoDownload;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
-import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 @Service
 public class GuiaPdfAssinadoService {
 
     private final GuiaRepository guiaRepository;
     private final AssinaturaGuiaRepository assinaturaGuiaRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
     private final ArmazenamentoArquivo armazenamentoArquivo;
     private final CarimboAssinaturaPdf carimboAssinaturaPdf;
 
     public GuiaPdfAssinadoService(GuiaRepository guiaRepository,
                                   AssinaturaGuiaRepository assinaturaGuiaRepository,
-                                  UsuarioRepository usuarioRepository,
-                                  SimulacaoLogin simulacaoLogin,
+                                  UsuarioLogado usuarioLogado,
                                   ArmazenamentoArquivo armazenamentoArquivo,
                                   CarimboAssinaturaPdf carimboAssinaturaPdf) {
         this.guiaRepository = guiaRepository;
         this.assinaturaGuiaRepository = assinaturaGuiaRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
         this.armazenamentoArquivo = armazenamentoArquivo;
         this.carimboAssinaturaPdf = carimboAssinaturaPdf;
     }
 
     @Transactional(readOnly = true)
     public PdfGuiaAssinada pdfDaGuia(Long guiaId, String modo) {
-        exigirMedicoOuChefe();
+        usuarioLogado.exigirPerfil(PerfilUsuario.MEDICO, PerfilUsuario.CHEFE_FUSEX);
         ModoDownload modoEscolhido = ModoDownload.from(modo);
 
         Guia guia = guiaRepository.findById(guiaId)
@@ -83,18 +76,6 @@ public class GuiaPdfAssinadoService {
             return entrada.readAllBytes();
         } catch (IOException e) {
             throw new UncheckedIOException("Falha ao ler o arquivo " + caminho, e);
-        }
-    }
-
-    private void exigirMedicoOuChefe() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.MEDICO
-                && usuario.getPerfil() != PerfilUsuario.CHEFE_FUSEX) {
-            throw new AcessoNegadoException("Acesso restrito a medicos e chefe do FUSEX");
         }
     }
 }

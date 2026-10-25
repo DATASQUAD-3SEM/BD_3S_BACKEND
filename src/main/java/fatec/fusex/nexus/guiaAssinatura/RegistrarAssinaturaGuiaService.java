@@ -12,11 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuia;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
@@ -25,9 +24,7 @@ import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistorico;
 import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
-import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 @Service
 public class RegistrarAssinaturaGuiaService {
@@ -38,24 +35,21 @@ public class RegistrarAssinaturaGuiaService {
     private final GuiaRepository guiaRepository;
     private final AssinaturaGuiaRepository assinaturaGuiaRepository;
     private final PreGuiaHistoricoRepository historicoRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
 
     public RegistrarAssinaturaGuiaService(GuiaRepository guiaRepository,
                                           AssinaturaGuiaRepository assinaturaGuiaRepository,
                                           PreGuiaHistoricoRepository historicoRepository,
-                                          UsuarioRepository usuarioRepository,
-                                          SimulacaoLogin simulacaoLogin) {
+                                          UsuarioLogado usuarioLogado) {
         this.guiaRepository = guiaRepository;
         this.assinaturaGuiaRepository = assinaturaGuiaRepository;
         this.historicoRepository = historicoRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
     }
 
     @Transactional
     public AssinaturaRegistradaResponse assinar(Long guiaId) {
-        Usuario usuario = usuarioLogado();
+        Usuario usuario = usuarioLogado.atual();
         AssinaturaGuiaPapel papel = papelDoPerfil(usuario);
 
         if (Boolean.FALSE.equals(usuario.getAtivo())) {
@@ -127,12 +121,5 @@ public class RegistrarAssinaturaGuiaService {
             default -> throw new AcessoNegadoException(
                     "Acesso restrito a medicos e chefe do FUSEX");
         };
-    }
-
-    private Usuario usuarioLogado() {
-        String login = simulacaoLogin.loginAtual();
-
-        return usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
     }
 }

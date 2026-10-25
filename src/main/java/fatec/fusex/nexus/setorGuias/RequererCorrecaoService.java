@@ -5,11 +5,9 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
@@ -19,7 +17,6 @@ import fatec.fusex.nexus.setorGuias.dto.CorrecaoRequeridaResponse;
 import fatec.fusex.nexus.setorGuias.dto.RequererCorrecaoRequest;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
  * T4-BE4: POST /setor-guias/pre-guias/{id}/correcao.
@@ -33,23 +30,20 @@ public class RequererCorrecaoService {
 
     private final RequererCorrecaoRepository preGuiaRepository;
     private final PreGuiaHistoricoRepository historicoRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
 
     public RequererCorrecaoService(RequererCorrecaoRepository preGuiaRepository,
                                    PreGuiaHistoricoRepository historicoRepository,
-                                   UsuarioRepository usuarioRepository,
-                                   SimulacaoLogin simulacaoLogin) {
+                                   UsuarioLogado usuarioLogado) {
         this.preGuiaRepository = preGuiaRepository;
         this.historicoRepository = historicoRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
     }
 
     // Ordem: perfil (403) -> existe (404) -> observacao (422) -> status (409)
     @Transactional
     public CorrecaoRequeridaResponse requerer(Long id, RequererCorrecaoRequest request) {
-        Usuario setor = validarSetorGuias();
+        Usuario setor = usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
 
         PreGuia preGuia = preGuiaRepository.buscarParaCorrigir(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + id));
@@ -79,17 +73,5 @@ public class RequererCorrecaoService {
                     "A observacao deve ter no maximo " + OBSERVACAO_MAXIMO + " caracteres");
         }
         return limpa;
-    }
-
-    private Usuario validarSetorGuias() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.SETOR_GUIAS) {
-            throw new AcessoNegadoException("Acesso negado: este endpoint e exclusivo do SETOR_GUIAS");
-        }
-        return usuario;
     }
 }

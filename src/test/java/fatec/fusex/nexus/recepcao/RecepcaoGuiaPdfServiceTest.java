@@ -17,6 +17,7 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.core.io.ByteArrayResource;
 
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
@@ -54,7 +55,7 @@ class RecepcaoGuiaPdfServiceTest {
     @BeforeEach
     void configurar() {
         mocks = MockitoAnnotations.openMocks(this);
-        service = new RecepcaoGuiaPdfService(guiaRepository, usuarioRepository, simulacaoLogin, armazenamentoArquivo);
+        service = new RecepcaoGuiaPdfService(guiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository), armazenamentoArquivo);
 
         when(simulacaoLogin.loginAtual()).thenReturn("recepcao");
         when(usuarioRepository.findByLogin("recepcao")).thenReturn(Optional.of(usuario(PerfilUsuario.RECEPCAO)));

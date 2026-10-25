@@ -1,5 +1,11 @@
 package fatec.fusex.nexus.chefeBeneficiario;
 
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.NOME_MAXIMO;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.normalizarCpf;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.normalizarPrecCp;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.obrigatorio;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.validarSenha;
+
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
@@ -12,11 +18,9 @@ import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.chefeBeneficiario.dto.BeneficiarioCadastradoResponse;
 import fatec.fusex.nexus.chefeBeneficiario.dto.CadastrarBeneficiarioRequest;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
@@ -29,10 +33,6 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 @Service
 public class ChefeBeneficiarioCadastroService {
 
-    static final int NOME_MAXIMO = 150;
-    private static final int SENHA_MINIMO = 8;
-    private static final int SENHA_MAXIMO = 72; // limite do BCrypt
-
     // Mesmo padrao do PATCH /beneficiarios/me/telefone: celular com DDD, com ou sem mascara
     private static final String PADRAO_TELEFONE =
             "(?:[1-9][1-9]9[0-9]{8}"
@@ -43,25 +43,25 @@ public class ChefeBeneficiarioCadastroService {
     private final BeneficiarioRepository beneficiarioRepository;
     private final MedicoFusexRepository medicoRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
 
     public ChefeBeneficiarioCadastroService(UsuarioRepository usuarioRepository,
                                             BeneficiarioRepository beneficiarioRepository,
                                             MedicoFusexRepository medicoRepository,
                                             PasswordEncoder passwordEncoder,
-                                            SimulacaoLogin simulacaoLogin) {
+                                            UsuarioLogado usuarioLogado) {
         this.usuarioRepository = usuarioRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.medicoRepository = medicoRepository;
         this.passwordEncoder = passwordEncoder;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
     }
 
     // Ordem: perfil (403) -> formato (422) -> duplicidade (409).
     // Usuario e beneficiario sao gravados na mesma transacao: se um falhar, nenhum dos dois fica no banco.
     @Transactional
     public BeneficiarioCadastradoResponse cadastrar(CadastrarBeneficiarioRequest request) {
-        validarChefe();
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
 
         if (request == null) {
             throw new DadosInvalidosException("nome", "Campo obrigatorio");
@@ -71,7 +71,7 @@ public class ChefeBeneficiarioCadastroService {
         String precCp = normalizarPrecCp(request.precCp());
         LocalDate dataNascimento = validarDataNascimento(request.dataNascimento());
         String telefone = normalizarTelefone(request.telefone());
-        validarSenha(request.senha());
+        validarSenha(request.senha(), "senha");
 
         // O CPF e o login: nao pode existir em nenhum usuario (beneficiario, medico ou outro)
         if (usuarioRepository.findByLogin(cpf).isPresent()) {
@@ -106,68 +106,6 @@ public class ChefeBeneficiarioCadastroService {
         return new BeneficiarioCadastradoResponse(beneficiario.getUsuarioId());
     }
 
-    // Usado tambem pela edicao (T7-BE3)
-    void validarChefe() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.CHEFE_FUSEX || !Boolean.TRUE.equals(usuario.getAtivo())) {
-            throw new AcessoNegadoException("Acesso restrito ao Chefe do FUSEX");
-        }
-    }
-
-    // As regras de formato abaixo valem para o cadastro e para a edicao (T7-BE3), por isso nao sao private
-    static String obrigatorio(String valor, String campo, int maximo) {
-        if (valor == null || valor.isBlank()) {
-            throw new DadosInvalidosException(campo, "Campo obrigatorio");
-        }
-        String limpo = valor.trim();
-        if (limpo.length() > maximo) {
-            throw new DadosInvalidosException(campo, "Maximo de " + maximo + " caracteres");
-        }
-        return limpo;
-    }
-
-    // Aceita com ou sem mascara (000.000.000-00) e confere os 2 digitos verificadores
-    static String normalizarCpf(String informado) {
-        if (informado == null || informado.isBlank()) {
-            throw new DadosInvalidosException("cpf", "Campo obrigatorio");
-        }
-        String cpf = informado.trim().replace(".", "").replace("-", "");
-        if (!cpf.matches("[0-9]{11}") || cpf.chars().distinct().count() == 1 || !digitosConferem(cpf)) {
-            throw new DadosInvalidosException("cpf", "CPF invalido");
-        }
-        return cpf;
-    }
-
-    private static boolean digitosConferem(String cpf) {
-        return digitoVerificador(cpf, 9) == cpf.charAt(9) - '0'
-                && digitoVerificador(cpf, 10) == cpf.charAt(10) - '0';
-    }
-
-    private static int digitoVerificador(String cpf, int quantidade) {
-        int soma = 0;
-        for (int i = 0; i < quantidade; i++) {
-            soma += (cpf.charAt(i) - '0') * (quantidade + 1 - i);
-        }
-        int resto = (soma * 10) % 11;
-        return resto == 10 ? 0 : resto;
-    }
-
-    // 11 digitos, com ou sem pontos e hifen (mesmo formato do Prec CP no resto do projeto)
-    static String normalizarPrecCp(String informado) {
-        if (informado == null || informado.isBlank()) {
-            throw new DadosInvalidosException("precCp", "Campo obrigatorio");
-        }
-        String precCp = informado.trim().replace(".", "").replace("-", "");
-        if (!precCp.matches("[0-9]{11}")) {
-            throw new DadosInvalidosException("precCp", "Prec CP invalido: informe 11 digitos");
-        }
-        return precCp;
-    }
-
     // Formato aaaa-mm-dd e sempre no passado (hoje no fuso de Sao Paulo, como o calculo da idade)
     static LocalDate validarDataNascimento(String informada) {
         if (informada == null || informada.isBlank()) {
@@ -197,16 +135,4 @@ public class ChefeBeneficiarioCadastroService {
         return telefone.replaceAll("\\D", "");
     }
 
-    private static void validarSenha(String senha) {
-        validarSenha(senha, "senha");
-    }
-
-    static void validarSenha(String senha, String campo) {
-        if (senha == null || senha.length() < SENHA_MINIMO) {
-            throw new DadosInvalidosException(campo, "A senha deve ter no minimo " + SENHA_MINIMO + " caracteres");
-        }
-        if (senha.length() > SENHA_MAXIMO) {
-            throw new DadosInvalidosException(campo, "A senha deve ter no maximo " + SENHA_MAXIMO + " caracteres");
-        }
-    }
 }

@@ -1,12 +1,12 @@
 package fatec.fusex.nexus.chefeFusex;
 
-import static fatec.fusex.nexus.chefeFusex.ChefeMedicoCadastroService.NOME_MAXIMO;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.NOME_MAXIMO;
 import static fatec.fusex.nexus.chefeFusex.ChefeMedicoCadastroService.PATENTE_MAXIMO;
-import static fatec.fusex.nexus.chefeFusex.ChefeMedicoCadastroService.normalizarCpf;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.normalizarCpf;
 import static fatec.fusex.nexus.chefeFusex.ChefeMedicoCadastroService.normalizarCrm;
-import static fatec.fusex.nexus.chefeFusex.ChefeMedicoCadastroService.normalizarPrecCp;
-import static fatec.fusex.nexus.chefeFusex.ChefeMedicoCadastroService.obrigatorio;
-import static fatec.fusex.nexus.chefeFusex.ChefeMedicoCadastroService.validarSenha;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.normalizarPrecCp;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.obrigatorio;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.validarSenha;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,11 +16,13 @@ import org.springframework.transaction.annotation.Transactional;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.chefeFusex.dto.EditarMedicoRequest;
 import fatec.fusex.nexus.chefeFusex.dto.MedicoChefeDetalheResponse;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.medicoFusex.MedicoFusex;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
+import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
@@ -28,18 +30,18 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 @Service
 public class ChefeMedicoEdicaoService {
 
-    private final ChefeMedicoCadastroService cadastroService;
+    private final UsuarioLogado usuarioLogado;
     private final MedicoFusexRepository medicoRepository;
     private final UsuarioRepository usuarioRepository;
     private final BeneficiarioRepository beneficiarioRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public ChefeMedicoEdicaoService(ChefeMedicoCadastroService cadastroService,
+    public ChefeMedicoEdicaoService(UsuarioLogado usuarioLogado,
                                     MedicoFusexRepository medicoRepository,
                                     UsuarioRepository usuarioRepository,
                                     BeneficiarioRepository beneficiarioRepository,
                                     PasswordEncoder passwordEncoder) {
-        this.cadastroService = cadastroService;
+        this.usuarioLogado = usuarioLogado;
         this.medicoRepository = medicoRepository;
         this.usuarioRepository = usuarioRepository;
         this.beneficiarioRepository = beneficiarioRepository;
@@ -48,14 +50,14 @@ public class ChefeMedicoEdicaoService {
 
     @Transactional(readOnly = true)
     public MedicoChefeDetalheResponse buscar(Long id) {
-        cadastroService.validarChefe();
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
         return MedicoChefeDetalheResponse.de(buscarMedico(id));
     }
 
     // Ordem: perfil (403) -> existe (404) -> formato (422) -> duplicidade com OUTRO usuario (409)
     @Transactional
     public MedicoChefeDetalheResponse editar(Long id, EditarMedicoRequest request) {
-        cadastroService.validarChefe();
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
         MedicoFusex medico = buscarMedico(id);
 
         String nome = obrigatorio(request.nome(), "nome", NOME_MAXIMO);

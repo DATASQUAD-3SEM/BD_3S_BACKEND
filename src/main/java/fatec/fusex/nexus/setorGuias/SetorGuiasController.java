@@ -12,7 +12,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
-import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
+import fatec.fusex.nexus.minhasPreGuias.dto.EncaminhamentoArquivo;
 
 @RestController
 @RequestMapping("/setor-guias")

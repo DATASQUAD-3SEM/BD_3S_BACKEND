@@ -1,12 +1,12 @@
 package fatec.fusex.nexus.chefeBeneficiario;
 
-import static fatec.fusex.nexus.chefeBeneficiario.ChefeBeneficiarioCadastroService.NOME_MAXIMO;
-import static fatec.fusex.nexus.chefeBeneficiario.ChefeBeneficiarioCadastroService.normalizarCpf;
-import static fatec.fusex.nexus.chefeBeneficiario.ChefeBeneficiarioCadastroService.normalizarPrecCp;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.NOME_MAXIMO;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.normalizarCpf;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.normalizarPrecCp;
 import static fatec.fusex.nexus.chefeBeneficiario.ChefeBeneficiarioCadastroService.normalizarTelefone;
-import static fatec.fusex.nexus.chefeBeneficiario.ChefeBeneficiarioCadastroService.obrigatorio;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.obrigatorio;
 import static fatec.fusex.nexus.chefeBeneficiario.ChefeBeneficiarioCadastroService.validarDataNascimento;
-import static fatec.fusex.nexus.chefeBeneficiario.ChefeBeneficiarioCadastroService.validarSenha;
+import static fatec.fusex.nexus.common.validation.ValidacaoCadastro.validarSenha;
 
 import java.time.LocalDate;
 
@@ -19,10 +19,12 @@ import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.chefeBeneficiario.dto.BeneficiarioDetalheResponse;
 import fatec.fusex.nexus.chefeBeneficiario.dto.EditarBeneficiarioRequest;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
+import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
@@ -33,18 +35,18 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 @Service
 public class ChefeBeneficiarioEdicaoService {
 
-    private final ChefeBeneficiarioCadastroService cadastroService;
+    private final UsuarioLogado usuarioLogado;
     private final BeneficiarioRepository beneficiarioRepository;
     private final UsuarioRepository usuarioRepository;
     private final MedicoFusexRepository medicoRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public ChefeBeneficiarioEdicaoService(ChefeBeneficiarioCadastroService cadastroService,
+    public ChefeBeneficiarioEdicaoService(UsuarioLogado usuarioLogado,
                                           BeneficiarioRepository beneficiarioRepository,
                                           UsuarioRepository usuarioRepository,
                                           MedicoFusexRepository medicoRepository,
                                           PasswordEncoder passwordEncoder) {
-        this.cadastroService = cadastroService;
+        this.usuarioLogado = usuarioLogado;
         this.beneficiarioRepository = beneficiarioRepository;
         this.usuarioRepository = usuarioRepository;
         this.medicoRepository = medicoRepository;
@@ -53,14 +55,14 @@ public class ChefeBeneficiarioEdicaoService {
 
     @Transactional(readOnly = true)
     public BeneficiarioDetalheResponse buscar(Long id) {
-        cadastroService.validarChefe();
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
         return BeneficiarioDetalheResponse.de(buscarBeneficiario(id));
     }
 
     // Ordem: perfil (403) -> existe (404) -> formato (422) -> duplicidade com OUTRO usuario (409)
     @Transactional
     public BeneficiarioDetalheResponse editar(Long id, EditarBeneficiarioRequest request) {
-        cadastroService.validarChefe();
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
         Beneficiario beneficiario = buscarBeneficiario(id);
 
         if (request == null) {

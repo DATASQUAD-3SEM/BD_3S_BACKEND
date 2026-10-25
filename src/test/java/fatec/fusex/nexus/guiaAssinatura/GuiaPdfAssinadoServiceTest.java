@@ -23,6 +23,7 @@ import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuia;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
@@ -61,7 +62,7 @@ class GuiaPdfAssinadoServiceTest {
     void configurar() throws Exception {
         MockitoAnnotations.openMocks(this);
         service = new GuiaPdfAssinadoService(guiaRepository, assinaturaGuiaRepository,
-                usuarioRepository, simulacaoLogin, armazenamentoArquivo, carimboAssinaturaPdf);
+                new UsuarioLogado(simulacaoLogin, usuarioRepository), armazenamentoArquivo, carimboAssinaturaPdf);
 
         pdfOriginal = PdfsDeTeste.pdfComRotulos(true, true);
 

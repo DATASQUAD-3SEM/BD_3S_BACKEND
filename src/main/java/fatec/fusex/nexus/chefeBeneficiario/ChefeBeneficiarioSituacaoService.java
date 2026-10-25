@@ -7,14 +7,11 @@ import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.chefeBeneficiario.dto.AlterarSituacaoBeneficiarioRequest;
 import fatec.fusex.nexus.chefeBeneficiario.dto.BeneficiarioSituacaoResponse;
-import fatec.fusex.nexus.common.auth.SimulacaoLogin;
-import fatec.fusex.nexus.common.exception.AcessoNegadoException;
+import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
-import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
-import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
  * T7-BE4: desativar e reativar beneficiario.
@@ -25,21 +22,18 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 public class ChefeBeneficiarioSituacaoService {
 
     private final BeneficiarioRepository beneficiarioRepository;
-    private final UsuarioRepository usuarioRepository;
-    private final SimulacaoLogin simulacaoLogin;
+    private final UsuarioLogado usuarioLogado;
 
     public ChefeBeneficiarioSituacaoService(BeneficiarioRepository beneficiarioRepository,
-                                            UsuarioRepository usuarioRepository,
-                                            SimulacaoLogin simulacaoLogin) {
+                                            UsuarioLogado usuarioLogado) {
         this.beneficiarioRepository = beneficiarioRepository;
-        this.usuarioRepository = usuarioRepository;
-        this.simulacaoLogin = simulacaoLogin;
+        this.usuarioLogado = usuarioLogado;
     }
 
     // Ordem: perfil (403) -> existe (404) -> corpo (422). Repetir a mesma situacao devolve 200 (idempotente).
     @Transactional
     public BeneficiarioSituacaoResponse alterar(Long id, AlterarSituacaoBeneficiarioRequest request) {
-        validarChefe();
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
 
         Beneficiario beneficiario = beneficiarioRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
@@ -52,16 +46,5 @@ public class ChefeBeneficiarioSituacaoService {
         usuario.setAtivo(request.ativo());
 
         return new BeneficiarioSituacaoResponse(beneficiario.getUsuarioId(), usuario.getAtivo());
-    }
-
-    private void validarChefe() {
-        String login = simulacaoLogin.loginAtual();
-
-        Usuario usuario = usuarioRepository.findByLogin(login)
-                .orElseThrow(() -> new NaoAutenticadoException("Usuario logado nao encontrado"));
-
-        if (usuario.getPerfil() != PerfilUsuario.CHEFE_FUSEX || !Boolean.TRUE.equals(usuario.getAtivo())) {
-            throw new AcessoNegadoException("Acesso restrito ao Chefe do FUSEX");
-        }
     }
 }

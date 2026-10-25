@@ -1,9 +1,9 @@
-package fatec.fusex.nexus.MinhasPreGuias;
+package fatec.fusex.nexus.minhasPreGuias;
 
-import fatec.fusex.nexus.MinhasPreGuias.dto.CorrecaoPreGuiaResponse;
-import fatec.fusex.nexus.MinhasPreGuias.dto.EncaminhamentoArquivo;
-import fatec.fusex.nexus.MinhasPreGuias.dto.GuiaPdf;
-import fatec.fusex.nexus.MinhasPreGuias.dto.MinhaPreGuiaResponse;
+import fatec.fusex.nexus.minhasPreGuias.dto.CorrecaoPreGuiaResponse;
+import fatec.fusex.nexus.minhasPreGuias.dto.EncaminhamentoArquivo;
+import fatec.fusex.nexus.minhasPreGuias.dto.GuiaPdf;
+import fatec.fusex.nexus.minhasPreGuias.dto.MinhaPreGuiaResponse;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
