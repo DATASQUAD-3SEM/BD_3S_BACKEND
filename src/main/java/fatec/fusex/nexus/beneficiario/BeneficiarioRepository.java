@@ -26,9 +26,11 @@ public interface BeneficiarioRepository extends JpaRepository<Beneficiario, Long
     boolean existsByPrecCp(String precCp);
 
 
-    @Query("""
-            SELECT b FROM Beneficiario b JOIN b.usuario u
-            WHERE (:busca = '' OR 
+    // T7-BE1: filtro da lista do chefe.
+    // busca = nome sem acento e minusculo (com curingas escapados); digitos = so os digitos,
+    // quando a busca parece CPF/Prec CP (com ou sem mascara), senao vazio.
+    String FILTRO_LISTA_CHEFE = """
+            WHERE (:busca = '' OR
                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
                    REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
@@ -42,13 +44,18 @@ public interface BeneficiarioRepository extends JpaRepository<Beneficiario, Long
                      'ó','o'),'ò','o'),'ô','o'),'õ','o'),'ö','o'),
                      'ú','u'),'ù','u'),'û','u'),'ü','u'),
                      'ç','c')
-                   LIKE CONCAT('%', :busca, '%') OR 
-                   u.login LIKE CONCAT('%', :busca, '%') OR 
-                   b.precCp LIKE CONCAT('%', :busca, '%'))
+                   LIKE CONCAT('%', :busca, '%') ESCAPE '!' OR
+                   (:digitos <> '' AND (u.login LIKE CONCAT('%', :digitos, '%') OR
+                                        b.precCp LIKE CONCAT('%', :digitos, '%'))))
               AND (:ativo IS NULL OR u.ativo = :ativo)
-            """)
+            """;
+
+    // JOIN FETCH traz o usuario junto (login e ativo), sem uma consulta extra por item
+    @Query(value = "SELECT b FROM Beneficiario b JOIN FETCH b.usuario u " + FILTRO_LISTA_CHEFE,
+            countQuery = "SELECT COUNT(b) FROM Beneficiario b JOIN b.usuario u " + FILTRO_LISTA_CHEFE)
     Page<Beneficiario> buscarComFiltros(
             @Param("busca") String busca,
+            @Param("digitos") String digitos,
             @Param("ativo") Boolean ativo,
             Pageable pageable);
 }
