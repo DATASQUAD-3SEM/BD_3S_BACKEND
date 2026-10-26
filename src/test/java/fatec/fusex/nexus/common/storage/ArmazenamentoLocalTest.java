@@ -3,16 +3,21 @@ package fatec.fusex.nexus.common.storage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.core.io.Resource;
 import org.springframework.mock.web.MockMultipartFile;
 
+import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 
-/** Teste sem Spring (rapido): @TempDir cria uma pasta temporaria que e apagada no final. */
+/**
+ * Testes do armazenamento em pasta local: gravacao, leitura, remocao e bloqueio de caminhos fora da pasta.
+ */
 class ArmazenamentoLocalTest {
 
     @TempDir
@@ -65,5 +70,32 @@ class ArmazenamentoLocalTest {
         storage.remover(caminho);
 
         assertThat(Files.exists(pastaTemporaria.resolve(caminho))).isFalse();
+    }
+
+    @Test
+    void carregaArquivoSalvo() throws IOException {
+        ArmazenamentoLocal storage = new ArmazenamentoLocal(pastaTemporaria.toString());
+        MockMultipartFile pdf = new MockMultipartFile("arquivo", "guia.pdf", "application/pdf", "conteudo".getBytes());
+        String caminho = storage.salvar(pdf, "guias");
+
+        Resource lido = storage.carregar(caminho);
+
+        assertThat(lido.getContentAsByteArray()).isEqualTo("conteudo".getBytes());
+    }
+
+    @Test
+    void carregarArquivoInexistente_lancaRecursoNaoEncontrado() {
+        ArmazenamentoLocal storage = new ArmazenamentoLocal(pastaTemporaria.toString());
+
+        assertThatThrownBy(() -> storage.carregar("guias/nao-existe.pdf"))
+                .isInstanceOf(RecursoNaoEncontradoException.class);
+    }
+
+    @Test
+    void carregarRecusaSairDaPastaRaiz() {
+        ArmazenamentoLocal storage = new ArmazenamentoLocal(pastaTemporaria.toString());
+
+        assertThatThrownBy(() -> storage.carregar("../fora.pdf"))
+                .isInstanceOf(RegraDeNegocioException.class);
     }
 }

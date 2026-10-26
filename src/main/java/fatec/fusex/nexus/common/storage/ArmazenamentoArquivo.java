@@ -1,20 +1,29 @@
 package fatec.fusex.nexus.common.storage;
 
+import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 /**
- * Contrato para guardar arquivos (encaminhamento medico em foto/PDF).
- * Quem precisar salvar arquivo usa ESTA interface. Assim, se a decisao de storage mudar
- * (disco -> S3, por exemplo), so a implementacao muda.
+ * Contrato de armazenamento de arquivos (encaminhamentos, Guias e assinaturas).
+ * Os servicos trabalham sempre com o caminho relativo devolvido por {@link #salvar}; o caminho real nunca e exposto na API.
  */
 public interface ArmazenamentoArquivo {
 
-    /**
-     * Salva o arquivo e devolve o caminho relativo (ex: "encaminhamentos/3f2a...pdf").
-     * Este caminho e o que vai para pre_guia.encaminhamento_url.
-     */
     String salvar(MultipartFile arquivo, String pasta);
 
-    /** Apaga um arquivo salvo antes. Se nao existir, nao faz nada. */
     void remover(String caminhoRelativo);
+
+    Resource carregar(String caminhoRelativo);
+
+    /**
+     * Remove o arquivo ignorando falhas. Usado na limpeza apos um erro (ou apos trocar um arquivo),
+     * para que a falha ao apagar nao esconda o resultado ou a causa principal da operacao.
+     */
+    default void removerSemFalhar(String caminhoRelativo) {
+        try {
+            remover(caminhoRelativo);
+        } catch (RuntimeException e) {
+            // ignorado de proposito: a limpeza e apenas uma tentativa
+        }
+    }
 }

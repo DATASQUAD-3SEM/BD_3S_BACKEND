@@ -9,9 +9,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+
 /**
- * Transforma excecoes em respostas JSON padronizadas.
- * Por isso NAO precisa de try/catch no controller: basta lancar a excecao certa.
+ * Converte as excecoes do projeto em respostas JSON padronizadas (ErrorResponse) com o codigo HTTP correto:
+ * 404 (nao encontrado), 400 (regra), 409 (conflito), 401, 403, 422 (dados invalidos) e 429 (tentativas).
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
@@ -28,7 +29,20 @@ public class ApiExceptionHandler {
 
     @ExceptionHandler(ConflitoException.class)
     public ResponseEntity<ErrorResponse> conflito(ConflitoException ex) {
-        return montar(409, "Conflict", ex.getMessage(), List.of());
+        List<String> detalhes = ex.getCampo() == null
+                ? List.of()
+                : List.of(ex.getCampo() + ": " + ex.getMessage());
+        return montar(409, "Conflict", ex.getMessage(), detalhes);
+    }
+
+    @ExceptionHandler(NaoAutenticadoException.class)
+    public ResponseEntity<ErrorResponse> naoAutenticado(NaoAutenticadoException ex) {
+        return montar(401, "Unauthorized", ex.getMessage(), List.of());
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ErrorResponse> acessoNegado(AcessoNegadoException ex) {
+        return montar(403, "Forbidden", ex.getMessage(), List.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -42,6 +56,35 @@ public class ApiExceptionHandler {
     @ExceptionHandler(MaxUploadSizeExceededException.class)
     public ResponseEntity<ErrorResponse> arquivoGrande(MaxUploadSizeExceededException ex) {
         return montar(413, "Payload Too Large", "Arquivo maior que o limite permitido (10MB)", List.of());
+    }
+
+    @ExceptionHandler(DadosInvalidosException.class)
+    public ResponseEntity<ErrorResponse> dadosInvalidos(
+            DadosInvalidosException ex) {
+
+        return montar(
+                422,
+                "Unprocessable Entity",
+                "Dados invalidos",
+                List.of(ex.getCampo() + ": " + ex.getMessage())
+        );
+    }
+
+    @ExceptionHandler(MuitasTentativasException.class)
+    public ResponseEntity<ErrorResponse> muitasTentativas(
+            MuitasTentativasException ex) {
+
+        ErrorResponse corpo = new ErrorResponse(
+                429,
+                "Too Many Requests",
+                ex.getMessage(),
+                List.of(),
+                LocalDateTime.now()
+        );
+
+        return ResponseEntity.status(429)
+                .header("Retry-After", "900")
+                .body(corpo);
     }
 
     private ResponseEntity<ErrorResponse> montar(int status, String erro, String mensagem, List<String> detalhes) {

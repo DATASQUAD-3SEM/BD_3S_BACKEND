@@ -1,58 +1,63 @@
 package fatec.fusex.nexus.beneficiario;
 
+import java.time.LocalDate;
+import java.time.Period;
+import java.time.ZoneId;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-/** Tabela beneficiario. cpf e prec_cp sao unicos. A senha e sempre guardada com BCrypt. */
+import fatec.fusex.nexus.usuario.Usuario;
+
+/**
+ * Entidade da tabela Beneficiario, especializacao 1:1 de Usuario (o id e o mesmo do usuario).
+ * O CPF nao e repetido aqui: ele e o login do usuario. Idade e faixa etaria nao sao gravadas;
+ * sao sempre calculadas a partir da data de nascimento, no fuso de Sao Paulo.
+ */
 @Entity
-@Table(name = "beneficiario")
+@Table(name = "Beneficiario")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Beneficiario {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "usuario_id")
+    private Long usuarioId;
 
-    @Column(nullable = false, unique = true, length = 11)
-    private String cpf;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @MapsId
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
 
-    @Column(length = 20)
-    private String telefone;
-
-    private Integer idade;
-
-    @Column(name = "prec_cp", nullable = false, unique = true, length = 20)
-    private String precCp;
-
-    @Column(nullable = false)
+    @Column(nullable = false, length = 150)
     private String nome;
 
-    @Column(nullable = false, length = 100)
-    private String senha;
+    @Column(name = "prec_cp", nullable = false, length = 11, unique = true)
+    private String precCp;
 
-    public Beneficiario() {
+    @Column(name = "data_nascimento", nullable = false)
+    private LocalDate dataNascimento;
+
+    @Column(nullable = false, length = 11)
+    private String telefone;
+
+    public static final ZoneId FUSO = ZoneId.of("America/Sao_Paulo");
+
+    public static LocalDate hoje() {
+        return LocalDate.now(FUSO);
     }
 
-    public Long getId() { return id; }
-
-    public String getCpf() { return cpf; }
-    public void setCpf(String cpf) { this.cpf = cpf; }
-
-    public String getTelefone() { return telefone; }
-    public void setTelefone(String telefone) { this.telefone = telefone; }
-
-    public Integer getIdade() { return idade; }
-    public void setIdade(Integer idade) { this.idade = idade; }
-
-    public String getPrecCp() { return precCp; }
-    public void setPrecCp(String precCp) { this.precCp = precCp; }
-
-    public String getNome() { return nome; }
-    public void setNome(String nome) { this.nome = nome; }
-
-    public String getSenha() { return senha; }
-    public void setSenha(String senha) { this.senha = senha; }
+    public int idadeEm(LocalDate data) {
+        return Period.between(dataNascimento, data).getYears();
+    }
 }
