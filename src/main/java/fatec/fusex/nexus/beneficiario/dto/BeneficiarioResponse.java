@@ -37,7 +37,7 @@ public record BeneficiarioResponse(
                 idade,
                 FaixaEtaria.de(idade).getRotulo(),
                 b.getTelefone(),
-                b.getUsuario().getAssinaturaUrl() != null);
+                b.getUsuario().getAssinatura() != null);
     }
 
     // CPF e telefone nao podem ir para log.
