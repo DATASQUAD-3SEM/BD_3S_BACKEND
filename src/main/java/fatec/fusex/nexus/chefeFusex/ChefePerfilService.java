@@ -122,9 +122,7 @@ public class ChefePerfilService {
         chefeFusexRepository.save(chefe);
         usuarioRepository.save(usuario);
 
-        boolean assinaturaCadastrada =
-                usuario.getAssinaturaUrl() != null
-                        && !usuario.getAssinaturaUrl().isBlank();
+        boolean assinaturaCadastrada = usuario.getAssinatura() != null;
 
         return new ChefePerfilResponse(
                 chefe.getNome(),

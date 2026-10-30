@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Optional;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -154,14 +155,6 @@ class RegistrarAssinaturaGuiaServiceTest {
     }
 
     @Test
-    void assinaturaEmBranco_contaComoNaoCadastrada() {
-        logarComo(usuario(PerfilUsuario.MEDICO, true, "   "));
-
-        assertThatThrownBy(() -> service.assinar(1L))
-                .isInstanceOf(DadosInvalidosException.class);
-    }
-
-    @Test
     void usuarioInativo_lancaAcessoNegado() {
         logarComo(usuario(PerfilUsuario.MEDICO, false, "assinaturas/medico.png"));
 
@@ -206,7 +199,11 @@ class RegistrarAssinaturaGuiaServiceTest {
         Usuario usuario = new Usuario();
         usuario.setPerfil(perfil);
         usuario.setAtivo(ativo);
-        usuario.setAssinaturaUrl(assinaturaUrl);
+        if (assinaturaUrl != null) {
+            Assinatura assinatura = new Assinatura();
+            assinatura.setAssinaturaUrl(assinaturaUrl);
+            usuario.setAssinatura(assinatura);
+        }
         return usuario;
     }
 

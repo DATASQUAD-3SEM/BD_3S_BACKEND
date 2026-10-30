@@ -69,8 +69,8 @@ WHERE o.contrato_num = 'EXEMPLO-002'
 -- =====================================================================
 
 -- Beneficiario de teste
-INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT '52998224725', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'BENEFICIARIO', NULL FROM DUAL
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '52998224725', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'BENEFICIARIO' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '52998224725');
 
 INSERT INTO Beneficiario (usuario_id, nome, prec_cp, data_nascimento, telefone)
@@ -80,8 +80,8 @@ WHERE u.login = '52998224725'
   AND NOT EXISTS (SELECT 1 FROM Beneficiario b WHERE b.usuario_id = u.id_usuario);
 
 -- Medico de teste
-INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT '11144477735', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'MEDICO', NULL FROM DUAL
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '11144477735', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'MEDICO' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '11144477735');
 
 INSERT INTO MedicoFusex (usuario_id, nome, prec_cp, patente, crm)
@@ -91,8 +91,8 @@ WHERE u.login = '11144477735'
   AND NOT EXISTS (SELECT 1 FROM MedicoFusex m WHERE m.usuario_id = u.id_usuario);
 
 -- Chefe do FUSEX (conta de seed: nao ha tela para criar o primeiro chefe)
-INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT 'chefe.fusex', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'CHEFE_FUSEX', NULL FROM DUAL
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT 'chefe.fusex', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'CHEFE_FUSEX' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'chefe.fusex');
 
 INSERT INTO ChefeFusex (usuario_id, nome, patente)
@@ -102,13 +102,13 @@ WHERE u.login = 'chefe.fusex'
   AND NOT EXISTS (SELECT 1 FROM ChefeFusex c WHERE c.usuario_id = u.id_usuario);
 
 -- Setor de Guias (conta de setor: sem pessoa atribuida, sem assinatura)
-INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT 'setor.guias', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'SETOR_GUIAS', NULL FROM DUAL
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT 'setor.guias', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'SETOR_GUIAS' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'setor.guias');
 
 -- Recepcao (conta de setor: sem pessoa atribuida, sem assinatura)
-INSERT INTO Usuario (login, senha_hash, perfil, assinatura_url)
-SELECT 'recepcao', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RECEPCAO', NULL FROM DUAL
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT 'recepcao', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RECEPCAO' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'recepcao');
 
 -- Contas criadas por versoes antigas deste seed ficaram com o placeholder.

@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.assinaturaGuia;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.guia.Guia;
 import jakarta.persistence.*;
@@ -48,5 +49,9 @@ public class AssinaturaGuia {
 
     @Column(name = "data_assinatura", nullable = false)
     private LocalDateTime dataAssinatura = LocalDateTime.now();
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "assinatura_id", nullable = false)
+    private Assinatura assinatura;
 
 }

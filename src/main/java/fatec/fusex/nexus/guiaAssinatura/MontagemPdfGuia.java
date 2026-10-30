@@ -42,10 +42,8 @@ public class MontagemPdfGuia {
     public byte[] montar(Guia guia) {
         Map<AssinaturaGuiaPapel, byte[]> assinaturas = new EnumMap<>(AssinaturaGuiaPapel.class);
         for (AssinaturaGuia assinatura : assinaturaGuiaRepository.findByGuiaIdGuiaIn(List.of(guia.getIdGuia()))) {
-            String caminhoImagem = assinatura.getUsuario().getAssinaturaUrl();
-            if (caminhoImagem != null) {
-                assinaturas.put(assinatura.getPapel(), lerArquivo(caminhoImagem));
-            }
+            String caminhoImagem = assinatura.getAssinatura().getAssinaturaUrl();
+            assinaturas.put(assinatura.getPapel(), lerArquivo(caminhoImagem));
         }
 
         byte[] original = lerArquivo(guia.getArquivoUrl());

@@ -1,13 +1,15 @@
 package fatec.fusex.nexus.usuario;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * Entidade da tabela Usuario, base de todas as contas. O login e o CPF (so digitos) para beneficiario e medico,
- * e o nome de usuario para chefe e setores. assinatura_url fica nula ate o proprio usuario cadastrar a assinatura.
+ * e o nome de usuario para chefe e setores. assinatura_id aponta para a assinatura vigente do usuario
+ * e fica nulo ate o proprio usuario cadastrar a assinatura. As assinaturas anteriores continuam na tabela
+ * Assinatura, pois as Guias ja assinadas dependem delas.
  */
 @Entity
 @Table(name = "Usuario")
@@ -35,8 +37,9 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean ativo = true;
 
-    @Column(name = "assinatura_url", length = 500)
-    private String assinaturaUrl;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assinatura_id")
+    private Assinatura assinatura;
 
 }
 
