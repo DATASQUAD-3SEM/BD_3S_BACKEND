@@ -7,6 +7,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.ArgumentMatchers.anyString;
 
 import java.awt.Color;
 import java.awt.Graphics2D;
@@ -18,6 +20,7 @@ import java.util.Optional;
 
 import javax.imageio.ImageIO;
 
+import fatec.fusex.nexus.assinatura.AssinaturaRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -50,6 +53,9 @@ class UsuarioAssinaturaServiceTest {
     @Mock
     private ArmazenamentoArquivo armazenamentoArquivo;
 
+    @Mock
+    private AssinaturaRepository assinaturaRepository;
+
     private Usuario usuario;
     private UsuarioAssinaturaService service;
 
@@ -63,7 +69,8 @@ class UsuarioAssinaturaServiceTest {
                 usuarioRepository,
                 simulacaoLogin,
                 armazenamentoArquivo,
-                imagemService);
+                imagemService,
+                assinaturaRepository);
 
         usuario = new Usuario();
         usuario.setIdUsuario(1L);
@@ -86,32 +93,12 @@ class UsuarioAssinaturaServiceTest {
 
         service.atualizarComArquivo(arquivoPng());
 
-        assertThat(usuario.getAssinaturaUrl())
+        assertThat(usuario.getAssinatura().getAssinaturaUrl())
                 .isEqualTo("assinaturas/nova.png");
 
         verify(usuarioRepository).save(usuario);
         verify(armazenamentoArquivo).salvar(
                 any(MultipartFile.class), eq("assinaturas"));
-    }
-
-    @Test
-    void atualizarComArquivo_quandoJaExisteAssinatura_removeArquivoAnterior()
-            throws IOException {
-
-        usuario.setAssinaturaUrl("assinaturas/anterior.png");
-
-        when(armazenamentoArquivo.salvar(
-                any(MultipartFile.class), eq("assinaturas")))
-                .thenReturn("assinaturas/nova.png");
-
-        service.atualizarComArquivo(arquivoPng());
-
-        assertThat(usuario.getAssinaturaUrl())
-                .isEqualTo("assinaturas/nova.png");
-
-        verify(usuarioRepository).save(usuario);
-        verify(armazenamentoArquivo).remover(
-                "assinaturas/anterior.png");
     }
 
     @Test
@@ -127,7 +114,7 @@ class UsuarioAssinaturaServiceTest {
 
         service.atualizarComBase64(base64);
 
-        assertThat(usuario.getAssinaturaUrl())
+        assertThat(usuario.getAssinatura().getAssinaturaUrl())
                 .isEqualTo("assinaturas/nova.png");
 
         verify(usuarioRepository).save(usuario);
@@ -142,6 +129,26 @@ class UsuarioAssinaturaServiceTest {
                 .isInstanceOf(DadosInvalidosException.class);
 
         verifyNoInteractions(armazenamentoArquivo);
+    }
+
+    @Test
+    void atualizarComArquivo_quandoJaExisteAssinatura_naoRemoveArquivoAnterior()
+            throws IOException {
+
+        fatec.fusex.nexus.assinatura.Assinatura anterior =
+                new fatec.fusex.nexus.assinatura.Assinatura();
+        anterior.setAssinaturaUrl("assinaturas/anterior.png");
+        usuario.setAssinatura(anterior);
+
+        when(armazenamentoArquivo.salvar(
+                any(MultipartFile.class), eq("assinaturas")))
+                .thenReturn("assinaturas/nova.png");
+
+        service.atualizarComArquivo(arquivoPng());
+
+        assertThat(usuario.getAssinatura().getAssinaturaUrl())
+                .isEqualTo("assinaturas/nova.png");
+        verify(armazenamentoArquivo, never()).remover(anyString());
     }
 
     @ParameterizedTest
