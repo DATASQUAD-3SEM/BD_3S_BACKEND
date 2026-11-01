@@ -18,12 +18,12 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 /**
  * Utilitario dos testes: gera PDFs com as linhas de assinatura e imagens PNG de assinatura em memoria.
  */
-final class PdfsDeTeste {
+public final class PdfsDeTeste {
 
     private PdfsDeTeste() {
     }
 
-    static byte[] pdfComRotulos(boolean medico, boolean chefe) throws IOException {
+    public static byte[] pdfComRotulos(boolean medico, boolean chefe) throws IOException {
         try (PDDocument documento = new PDDocument();
              ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
 
@@ -45,7 +45,7 @@ final class PdfsDeTeste {
         }
     }
 
-    static byte[] assinaturaPng() throws IOException {
+    public static byte[] assinaturaPng() throws IOException {
         BufferedImage imagem = new BufferedImage(120, 40, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = imagem.createGraphics();
         g.setColor(Color.BLUE);

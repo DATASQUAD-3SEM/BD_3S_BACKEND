@@ -12,13 +12,11 @@ public record ChefePerfilResponse(
         boolean assinaturaCadastrada) {
 
     public static ChefePerfilResponse de(ChefeFusex chefe) {
-        String assinaturaUrl = chefe.getUsuario().getAssinaturaUrl();
-
         return new ChefePerfilResponse(
                 chefe.getNome(),
                 chefe.getPatente(),
                 chefe.getUsuario().getLogin(),
-                assinaturaUrl != null && !assinaturaUrl.isBlank()
+                chefe.getUsuario().getAssinatura() != null
         );
     }
 }

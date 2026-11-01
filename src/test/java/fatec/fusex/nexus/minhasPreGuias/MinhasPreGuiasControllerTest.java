@@ -9,6 +9,7 @@ import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.guiaAssinatura.PdfsDeTeste;
 import fatec.fusex.nexus.medicoFusex.MedicoFusex;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
 import fatec.fusex.nexus.ocs.Ocs;
@@ -22,6 +23,8 @@ import fatec.fusex.nexus.preGuiaHistorico.PreGuiaHistoricoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
+import fatec.fusex.nexus.assinatura.Assinatura;
+import fatec.fusex.nexus.assinatura.AssinaturaRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,6 +40,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
@@ -65,6 +70,7 @@ class MinhasPreGuiasControllerTest {
     private final GuiaRepository guiaRepository;
     private final AssinaturaGuiaRepository assinaturaGuiaRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
+    private final AssinaturaRepository assinaturaRepository;
 
     private Beneficiario joao;
     private Beneficiario maria;
@@ -92,7 +98,8 @@ class MinhasPreGuiasControllerTest {
             PreGuiaHistoricoRepository historicoRepository,
             GuiaRepository guiaRepository,
             AssinaturaGuiaRepository assinaturaGuiaRepository,
-            ArmazenamentoArquivo armazenamentoArquivo) {
+            ArmazenamentoArquivo armazenamentoArquivo,
+            AssinaturaRepository assinaturaRepository) {
         this.mockMvc = mockMvc;
         this.preGuiaRepository = preGuiaRepository;
         this.beneficiarioRepository = beneficiarioRepository;
@@ -103,6 +110,7 @@ class MinhasPreGuiasControllerTest {
         this.guiaRepository = guiaRepository;
         this.assinaturaGuiaRepository = assinaturaGuiaRepository;
         this.armazenamentoArquivo = armazenamentoArquivo;
+        this.assinaturaRepository = assinaturaRepository;
     }
 
     @BeforeEach
@@ -169,16 +177,19 @@ class MinhasPreGuiasControllerTest {
         guiaRepository.save(guia);
         idPreGuiaConcluidaJoao = concluida.getIdPreGuia();
 
+        Assinatura assinaturaJoao = salvarAssinatura(usuarioJoao);
         AssinaturaGuia aMed = new AssinaturaGuia();
         aMed.setGuia(guia);
         aMed.setPapel(AssinaturaGuiaPapel.MEDICO);
         aMed.setUsuario(usuarioJoao);
+        aMed.setAssinatura(assinaturaJoao);
         assinaturaGuiaRepository.save(aMed);
 
         AssinaturaGuia aChefe = new AssinaturaGuia();
         aChefe.setGuia(guia);
         aChefe.setPapel(AssinaturaGuiaPapel.CHEFE);
         aChefe.setUsuario(usuarioJoao);
+        aChefe.setAssinatura(assinaturaJoao);
         assinaturaGuiaRepository.save(aChefe);
 
         // ATENCAO origem MEDICO + histórico
@@ -226,9 +237,30 @@ class MinhasPreGuiasControllerTest {
     }
 
     private String salvarPdfFake(String nome) {
-        byte[] bytes = "%PDF-1.4\nfake\n%%EOF".getBytes(StandardCharsets.UTF_8);
+        byte[] bytes;
+        try {
+            bytes = PdfsDeTeste.pdfComRotulos(true, true);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         MockMultipartFile f = new MockMultipartFile("arquivo", nome, "application/pdf", bytes);
         return armazenamentoArquivo.salvar(f, "guias");
+    }
+
+    private Assinatura salvarAssinatura(Usuario usuario) {
+        byte[] png;
+        try {
+            png = PdfsDeTeste.assinaturaPng();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        MockMultipartFile f = new MockMultipartFile("arquivo", "assinatura.png", "image/png", png);
+        String url = armazenamentoArquivo.salvar(f, "assinaturas");
+
+        Assinatura assinatura = new Assinatura();
+        assinatura.setUsuario(usuario);
+        assinatura.setAssinaturaUrl(url);
+        return assinaturaRepository.save(assinatura);
     }
 
     // ========== T1-BE1 ==========
@@ -443,6 +475,7 @@ class MinhasPreGuiasControllerTest {
         aMed.setGuia(guia1Ass);
         aMed.setPapel(AssinaturaGuiaPapel.MEDICO);
         aMed.setUsuario(usuarioJoao);
+        aMed.setAssinatura(salvarAssinatura(usuarioJoao));
         assinaturaGuiaRepository.save(aMed);
 
         mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf",

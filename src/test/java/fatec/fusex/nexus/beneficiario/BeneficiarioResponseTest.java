@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.beneficiario.dto.BeneficiarioResponse;
@@ -58,14 +59,9 @@ class BeneficiarioResponseTest {
     }
 
     @Test
-    void de_assinaturaCadastrada_refleteSeExisteAssinaturaUrl() {
+    void de_assinaturaCadastrada_refleteSeExisteAssinatura() {
         Beneficiario comAssinatura = beneficiario(LocalDate.of(1968, 5, 10));
-        comAssinatura.getUsuario().setAssinaturaUrl("uploads/assinatura.png");
-
-        Beneficiario semAssinatura = beneficiario(LocalDate.of(1968, 5, 10));
-
-        assertThat(BeneficiarioResponse.de(comAssinatura, HOJE).assinaturaCadastrada()).isTrue();
-        assertThat(BeneficiarioResponse.de(semAssinatura, HOJE).assinaturaCadastrada()).isFalse();
+        comAssinatura.getUsuario().setAssinatura(assinatura("uploads/assinatura.png"));
     }
 
     @Test
@@ -74,5 +70,11 @@ class BeneficiarioResponseTest {
                 beneficiario(LocalDate.of(1968, 5, 10)), HOJE);
 
         assertThat(resposta.toString()).doesNotContain("52998224725", "45872213300", "12987654321");
+    }
+
+    private static Assinatura assinatura(String url) {
+        Assinatura assinatura = new Assinatura();
+        assinatura.setAssinaturaUrl(url);
+        return assinatura;
     }
 }

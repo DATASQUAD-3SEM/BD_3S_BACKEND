@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,7 +54,7 @@ class MedicoPerfilServiceTest {
     @Test
     void buscarPerfilLogado_quandoMedicoCadastrado_retornaPerfil() {
         Usuario usuario = usuarioMedico();
-        usuario.setAssinaturaUrl("assinaturas/medico.png");
+        usuario.setAssinatura(assinatura("assinaturas/medico.png"));
 
         MedicoFusex medico = medico(usuario);
 
@@ -146,5 +147,11 @@ class MedicoPerfilServiceTest {
         medico.setPrecCp("45872213300");
         medico.setCrm("CRM-SP-12345");
         return medico;
+    }
+
+    private static Assinatura assinatura(String url) {
+        Assinatura assinatura = new Assinatura();
+        assinatura.setAssinaturaUrl(url);
+        return assinatura;
     }
 }

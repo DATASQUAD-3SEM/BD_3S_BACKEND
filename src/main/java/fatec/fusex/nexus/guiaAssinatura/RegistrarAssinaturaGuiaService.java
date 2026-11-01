@@ -9,6 +9,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuia;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
@@ -28,6 +29,8 @@ import fatec.fusex.nexus.usuario.Usuario;
 
 /**
  * Registra a assinatura da Guia (T5-BE3). O papel vem do perfil do usuario logado.
+ * A assinatura gravada e um snapshot: aponta para a Assinatura vigente do usuario naquele momento,
+ * e nao muda se o usuario cadastrar uma assinatura nova depois.
  * A segunda assinatura do mesmo papel recebe 409. Com as duas assinaturas, a pre-guia passa a Concluida
  * e o historico registra a mudanca.
  */
@@ -60,7 +63,9 @@ public class RegistrarAssinaturaGuiaService {
         if (Boolean.FALSE.equals(usuario.getAtivo())) {
             throw new AcessoNegadoException("Usuario inativo: nao pode assinar Guias");
         }
-        if (usuario.getAssinaturaUrl() == null || usuario.getAssinaturaUrl().isBlank()) {
+
+        Assinatura assinaturaVigente = usuario.getAssinatura();
+        if (assinaturaVigente == null) {
             throw new DadosInvalidosException("assinatura",
                     "Cadastre sua assinatura em Minhas informacoes antes de assinar");
         }
@@ -82,6 +87,7 @@ public class RegistrarAssinaturaGuiaService {
         assinatura.setGuia(guia);
         assinatura.setPapel(papel);
         assinatura.setUsuario(usuario);
+        assinatura.setAssinatura(assinaturaVigente); // snapshot: a imagem usada nesta assinatura
 
         try {
             assinaturaGuiaRepository.saveAndFlush(assinatura);

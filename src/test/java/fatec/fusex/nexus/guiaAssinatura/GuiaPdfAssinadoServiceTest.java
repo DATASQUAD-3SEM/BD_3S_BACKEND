@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -146,7 +147,9 @@ class GuiaPdfAssinadoServiceTest {
     private static Usuario usuario(PerfilUsuario perfil, String assinaturaUrl) {
         Usuario usuario = new Usuario();
         usuario.setPerfil(perfil);
-        usuario.setAssinaturaUrl(assinaturaUrl);
+        if (assinaturaUrl != null) {
+            usuario.setAssinatura(assinatura(assinaturaUrl));
+        }
         return usuario;
     }
 
@@ -154,6 +157,13 @@ class GuiaPdfAssinadoServiceTest {
         AssinaturaGuia assinatura = new AssinaturaGuia();
         assinatura.setPapel(papel);
         assinatura.setUsuario(usuario);
+        assinatura.setAssinatura(usuario.getAssinatura());
+        return assinatura;
+    }
+
+    private static Assinatura assinatura(String url) {
+        Assinatura assinatura = new Assinatura();
+        assinatura.setAssinaturaUrl(url);
         return assinatura;
     }
 
