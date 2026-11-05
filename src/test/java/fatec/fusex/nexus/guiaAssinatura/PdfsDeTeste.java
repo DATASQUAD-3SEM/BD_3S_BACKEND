@@ -45,6 +45,26 @@ public final class PdfsDeTeste {
         }
     }
 
+    /** PDF com uma linha de texto por argumento (texto selecionavel). Sem argumentos, a pagina fica em branco, como um escaneado. */
+    public static byte[] pdfComTexto(String... linhas) throws IOException {
+        try (PDDocument documento = new PDDocument();
+             ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
+
+            PDPage pagina = new PDPage(PDRectangle.A4);
+            documento.addPage(pagina);
+            PDType1Font fonte = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+
+            try (PDPageContentStream conteudo = new PDPageContentStream(documento, pagina)) {
+                for (int i = 0; i < linhas.length; i++) {
+                    escrever(conteudo, fonte, 50, 780 - i * 14, linhas[i]);
+                }
+            }
+
+            documento.save(saida);
+            return saida.toByteArray();
+        }
+    }
+
     public static byte[] assinaturaPng() throws IOException {
         BufferedImage imagem = new BufferedImage(120, 40, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = imagem.createGraphics();
