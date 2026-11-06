@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 
 /**
  * Converte as excecoes do projeto em respostas JSON padronizadas (ErrorResponse) com o codigo HTTP correto:
@@ -16,6 +18,8 @@ import org.springframework.web.multipart.MaxUploadSizeExceededException;
  */
 @RestControllerAdvice
 public class ApiExceptionHandler {
+
+    private static final String ROTA_LEITURA_GUIA = "/setor-guias/extrair-numero-guia";
 
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     public ResponseEntity<ErrorResponse> naoEncontrado(RecursoNaoEncontradoException ex) {
@@ -54,8 +58,20 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(MaxUploadSizeExceededException.class)
-    public ResponseEntity<ErrorResponse> arquivoGrande(MaxUploadSizeExceededException ex) {
+    public ResponseEntity<ErrorResponse> arquivoGrande(MaxUploadSizeExceededException ex, HttpServletRequest request) {
+        // Na leitura da Guia (T11-BE1) o limite de 10 MB vira 400, como no contrato da rota
+        if (request.getRequestURI().endsWith(ROTA_LEITURA_GUIA)) {
+            return montar(400, "Bad Request", "O PDF passa de 10 MB. Envie um arquivo menor.", List.of());
+        }
         return montar(413, "Payload Too Large", "Arquivo maior que o limite permitido (10MB)", List.of());
+    }
+
+    @ExceptionHandler(LimiteRequisicoesException.class)
+    public ResponseEntity<ErrorResponse> limiteRequisicoes(LimiteRequisicoesException ex) {
+        ErrorResponse corpo = new ErrorResponse(429, "Too Many Requests", ex.getMessage(), List.of(), LocalDateTime.now());
+        return ResponseEntity.status(429)
+                .header("Retry-After", "60")
+                .body(corpo);
     }
 
     @ExceptionHandler(DadosInvalidosException.class)
