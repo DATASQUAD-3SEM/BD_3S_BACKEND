@@ -116,6 +116,7 @@ class AssinaturaGuiaUnicaRepositoryTest {
         PreGuia preGuia = new PreGuia();
         preGuia.setBeneficiario(beneficiario);
         preGuia.setOcs(ocs);
+        preGuia.setEncaminhamentoUrl("encaminhamentos/teste.pdf");
         em.persist(preGuia);
 
         Usuario inseridaPor = novoUsuario("setor-" + numero, PerfilUsuario.SETOR_GUIAS);
