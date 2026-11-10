@@ -13,6 +13,7 @@ import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.login.dto.LoginRequest;
 import fatec.fusex.nexus.login.dto.LoginResponse;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
+import fatec.fusex.nexus.ocs.ContaOcsRepository;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
@@ -33,17 +34,20 @@ public class LoginService {
     private final BeneficiarioRepository beneficiarioRepository;
     private final MedicoFusexRepository medicoRepository;
     private final ChefeFusexRepository chefeRepository;
+    private final ContaOcsRepository contaOcsRepository;
     private final PasswordEncoder passwordEncoder;
 
     public LoginService(UsuarioRepository usuarioRepository,
                         BeneficiarioRepository beneficiarioRepository,
                         MedicoFusexRepository medicoRepository,
                         ChefeFusexRepository chefeRepository,
+                        ContaOcsRepository contaOcsRepository,
                         PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.medicoRepository = medicoRepository;
         this.chefeRepository = chefeRepository;
+        this.contaOcsRepository = contaOcsRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -79,6 +83,7 @@ public class LoginService {
             case CHEFE_FUSEX -> chefeRepository.findById(id).map(c -> c.getNome()).orElse(usuario.getLogin());
             case SETOR_GUIAS -> "Setor de Guias";
             case RECEPCAO -> "Recepcao";
+            case OCS -> contaOcsRepository.findById(id).map(c -> c.getOcs().getNome()).orElse(usuario.getLogin());
         };
     }
 }
