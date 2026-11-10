@@ -140,6 +140,7 @@ class SetorGuiasDetalhePreGuiaTest {
                 .andExpect(jsonPath("$.status").value("PENDENTE"))
                 .andExpect(jsonPath("$.origem").value("BENEFICIARIO"))
                 .andExpect(jsonPath("$.beneficiario.nome").value("Marta Souza Lima"))
+                .andExpect(jsonPath("$.beneficiario.cpf").value("52998224725")) // T17-BE1
                 .andExpect(jsonPath("$.beneficiario.precCp").value("45810020001"))
                 .andExpect(jsonPath("$.ocsNome").value("Laboratorio Exemplo"))
                 .andExpect(jsonPath("$.medicoCriador").value(nullValue()))
@@ -171,6 +172,7 @@ class SetorGuiasDetalhePreGuiaTest {
         mockMvc.perform(get("/setor-guias/pre-guias/" + pg.getIdPreGuia()).header(HEADER, SETOR))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.origem").value("MEDICO"))
+                .andExpect(jsonPath("$.beneficiario.cpf").value("52998224725")) // T17-BE1
                 .andExpect(jsonPath("$.medicoCriador.patente").value("Capitao"))
                 .andExpect(jsonPath("$.medicoCriador.nome").value("Cap Med Ribeiro"))
                 .andExpect(jsonPath("$.medicoCriador.crm").value("CRM-TESTE-1"))
