@@ -2,9 +2,12 @@ package fatec.fusex.nexus.common.auth;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import jakarta.persistence.EntityManager;
+
+import org.springframework.http.MediaType;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -53,15 +56,23 @@ class PerfilOcsAcessoTest {
             "GET,/medicos/me/perfil",
             "GET,/setor-guias/pre-guias",
             "GET,/recepcao/guias",
-            "POST,/usuarios/me/senha"
+            "POST,/usuarios/me/senha",
+            "POST,/setor-guias/pre-guias/1/guia/concluir",
+            "PUT,/setor-guias/pre-guias/1/guia-rascunho"
     })
     void rotasDeOutrosPerfisRespondem403ParaOcs(String metodo, String caminho) throws Exception {
-        var requisicao = "POST".equals(metodo) ? post(caminho) : get(caminho);
+        var requisicao = switch (metodo) {
+            case "POST" -> post(caminho);
+            case "PUT" -> put(caminho).contentType(MediaType.MULTIPART_FORM_DATA);
+            default -> get(caminho);
+        };
+
+        if (!"PUT".equals(metodo)) {
+            requisicao = requisicao.contentType("application/json").content("{}");
+        }
 
         mockMvc.perform(requisicao
-                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS)
-                        .contentType("application/json")
-                        .content("{}"))
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS))
                 .andExpect(status().isForbidden());
     }
 }
