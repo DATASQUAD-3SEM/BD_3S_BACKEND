@@ -7,6 +7,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -44,6 +46,22 @@ public class Guia {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "inserida_por", nullable = false)
     private Usuario usuario;
+
+    // Data impressa em NAO RECEBER APOS (coluna validade_ate, V8). Nula em Guias antigas ate a correcao da T16.
+    @Column(name = "validade_ate")
+    private LocalDate dataValidadeAte;
+
+    @Column(name = "data_envio")
+    private LocalDateTime dataEnvio;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "enviada_por")
+    private Usuario enviadaPor;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "situacao_execucao", nullable = false, length = 20)
+    private SituacaoExecucao situacaoExecucao = SituacaoExecucao.NAO_ENVIADA;
 
     public LocalDate validadeAte() {
         return dataInsercao.toLocalDate().plusMonths(2);
