@@ -20,6 +20,9 @@ public interface GuiaRepository extends JpaRepository<Guia, Long> {
 
     Optional<Guia> findByPreGuiaIdPreGuia(Long idPreGuia);
 
+    /** Guias do beneficiario (dono da pre-guia), da mais recente para a mais antiga (T18-BE1). */
+    List<Guia> findByPreGuiaBeneficiarioUsuarioIdOrderByDataInsercaoDescIdGuiaDesc(Long usuarioId);
+
     @Query("""
             select g from Guia g
             join fetch g.preGuia pg
