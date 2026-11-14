@@ -111,6 +111,19 @@ INSERT INTO Usuario (login, senha_hash, perfil)
 SELECT 'recepcao', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RECEPCAO' FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'recepcao');
 
+-- OCS de teste (conta de OCS: sem pessoa atribuida, sem assinatura), ligada a EXEMPLO-001 por ContaOcs
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT 'ocs.laboratorio', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'OCS' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'ocs.laboratorio');
+
+INSERT INTO ContaOcs (usuario_id, ocs_id)
+SELECT u.id_usuario, o.id_ocs
+FROM Usuario u
+JOIN Ocs o ON o.contrato_num = 'EXEMPLO-001'
+WHERE u.login = 'ocs.laboratorio'
+  AND NOT EXISTS (SELECT 1 FROM ContaOcs c WHERE c.usuario_id = u.id_usuario)
+  AND NOT EXISTS (SELECT 1 FROM ContaOcs c WHERE c.ocs_id = o.id_ocs);
+
 -- Contas criadas por versoes antigas deste seed ficaram com o placeholder.
 -- Este UPDATE corrige so essas linhas; senhas ja trocadas pelos usuarios nao sao tocadas.
 UPDATE Usuario SET senha_hash = '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO'
