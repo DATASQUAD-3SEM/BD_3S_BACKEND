@@ -19,7 +19,13 @@ public record DetalhePreGuiaResponse(
         GuiaRascunhoDto guiaRascunho,
         boolean guiaConcluida) {
 
-    public record BeneficiarioDto(String nome, String precCp, String faixaEtaria) {}
+    public record BeneficiarioDto(String nome, String cpf, String precCp, String faixaEtaria) {
+        // O toString omite o CPF para que ele nao apareca em log.
+        @Override
+        public String toString() {
+            return "BeneficiarioDto[nome=" + nome + ", precCp=" + precCp + ", faixaEtaria=" + faixaEtaria + "]";
+        }
+    }
 
     public record ProcedimentoDto(String codigoTuss, String nome) {}
 

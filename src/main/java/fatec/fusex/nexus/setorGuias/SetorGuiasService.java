@@ -106,9 +106,11 @@ public class SetorGuiasService {
         Beneficiario beneficiario = preGuia.getBeneficiario();
         boolean origemMedico = preGuia.getMedicoFusex() != null;
 
+        // T17-BE1: CPF vem do login da conta do beneficiario
         DetalhePreGuiaResponse.BeneficiarioDto beneficiarioDto =
                 new DetalhePreGuiaResponse.BeneficiarioDto(
                         beneficiario.getNome(),
+                        beneficiario.getUsuario().getLogin(),
                         beneficiario.getPrecCp(),
                         FaixaEtaria.de(beneficiario.idadeEm(Beneficiario.hoje())).getRotulo());
 
