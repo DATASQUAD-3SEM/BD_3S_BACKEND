@@ -42,7 +42,7 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
  * Testes da assinatura da Guia (T5-BE3): assinatura de cada papel, conclusao com as duas, segunda assinatura,
- * usuario sem assinatura cadastrada, usuario inativo e perfil errado.
+ * usuario sem assinatura cadastrada, usuario inativo, perfil errado e motivo de cada conflito (T9-BE1).
  */
 class RegistrarAssinaturaGuiaServiceTest {
 
@@ -133,14 +133,66 @@ class RegistrarAssinaturaGuiaServiceTest {
     }
 
     @Test
-    void doisMedicosAoMesmoTempo_violacaoDeUnicidadeViraConflito() {
+    void medicoJaAssinouAGuia_motivoPeloUsuario() {
+        logarComo(usuarioComId(PerfilUsuario.MEDICO, 7L));
+        when(assinaturaGuiaRepository.buscarComLockPorGuia(1L))
+                .thenReturn(List.of(assinaturaDe(AssinaturaGuiaPapel.MEDICO, 7L)));
+
+        assertThatThrownBy(() -> service.assinar(1L))
+                .isInstanceOfSatisfying(AssinaturaGuiaConflitoException.class,
+                        e -> assertThat(e.getMotivo()).isEqualTo(MotivoFalhaAssinatura.JA_ASSINADA_PELO_USUARIO));
+
+        verify(assinaturaGuiaRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void medicoAssinadaPorOutroMedico_motivoPorMedico() {
+        logarComo(usuarioComId(PerfilUsuario.MEDICO, 7L));
+        when(assinaturaGuiaRepository.buscarComLockPorGuia(1L))
+                .thenReturn(List.of(assinaturaDe(AssinaturaGuiaPapel.MEDICO, 9L)));
+
+        assertThatThrownBy(() -> service.assinar(1L))
+                .isInstanceOfSatisfying(AssinaturaGuiaConflitoException.class,
+                        e -> assertThat(e.getMotivo()).isEqualTo(MotivoFalhaAssinatura.JA_ASSINADA_POR_MEDICO));
+
+        verify(assinaturaGuiaRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void chefeJaAssinou_motivoPeloChefe() {
+        logarComo(usuarioComId(PerfilUsuario.CHEFE_FUSEX, 3L));
+        when(assinaturaGuiaRepository.buscarComLockPorGuia(1L))
+                .thenReturn(List.of(assinaturaDe(AssinaturaGuiaPapel.CHEFE, 3L)));
+
+        assertThatThrownBy(() -> service.assinar(1L))
+                .isInstanceOfSatisfying(AssinaturaGuiaConflitoException.class,
+                        e -> assertThat(e.getMotivo()).isEqualTo(MotivoFalhaAssinatura.JA_ASSINADA_PELO_CHEFE));
+    }
+
+    @Test
+    void preGuiaJaConcluida_motivoConcluida_eNaoGrava() {
+        preGuia.setStatus(PreGuiaStatus.CONCLUIDA);
+        logarComo(usuarioComId(PerfilUsuario.MEDICO, 7L));
+        when(assinaturaGuiaRepository.buscarComLockPorGuia(1L))
+                .thenReturn(List.of(assinaturaDe(AssinaturaGuiaPapel.CHEFE, 3L)));
+
+        assertThatThrownBy(() -> service.assinar(1L))
+                .isInstanceOfSatisfying(AssinaturaGuiaConflitoException.class,
+                        e -> assertThat(e.getMotivo()).isEqualTo(MotivoFalhaAssinatura.CONCLUIDA));
+
+        verify(assinaturaGuiaRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void doisMedicosAoMesmoTempo_violacaoDeUnicidadeViraConflitoComMotivo() {
         logarComo(usuario(PerfilUsuario.MEDICO, true, "assinaturas/medico.png"));
         when(assinaturaGuiaRepository.buscarComLockPorGuia(1L)).thenReturn(List.of());
         when(assinaturaGuiaRepository.saveAndFlush(any()))
                 .thenThrow(new DataIntegrityViolationException("uk_assinaturaguia_guia_id_papel_unico"));
 
         assertThatThrownBy(() -> service.assinar(1L))
-                .isInstanceOf(ConflitoException.class);
+                .isInstanceOfSatisfying(AssinaturaGuiaConflitoException.class,
+                        e -> assertThat(e.getMotivo()).isEqualTo(MotivoFalhaAssinatura.JA_ASSINADA_POR_MEDICO));
     }
 
     @Test
@@ -207,9 +259,23 @@ class RegistrarAssinaturaGuiaServiceTest {
         return usuario;
     }
 
+    private static Usuario usuarioComId(PerfilUsuario perfil, Long id) {
+        Usuario usuario = usuario(perfil, true, "assinaturas/" + perfil.name().toLowerCase() + ".png");
+        usuario.setIdUsuario(id);
+        return usuario;
+    }
+
     private static AssinaturaGuia assinatura(AssinaturaGuiaPapel papel) {
         AssinaturaGuia assinatura = new AssinaturaGuia();
         assinatura.setPapel(papel);
+        return assinatura;
+    }
+
+    private static AssinaturaGuia assinaturaDe(AssinaturaGuiaPapel papel, Long idUsuario) {
+        Usuario autor = new Usuario();
+        autor.setIdUsuario(idUsuario);
+        AssinaturaGuia assinatura = assinatura(papel);
+        assinatura.setUsuario(autor);
         return assinatura;
     }
 }
