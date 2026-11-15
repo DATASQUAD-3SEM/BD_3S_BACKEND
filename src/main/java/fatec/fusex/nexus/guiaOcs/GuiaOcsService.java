@@ -26,6 +26,7 @@ import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.Procedime
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.SessaoDto;
 import fatec.fusex.nexus.guiaOcs.dto.GuiaOcsDetalheResponse;
 import fatec.fusex.nexus.guiaOcs.dto.GuiaOcsResponse;
+import fatec.fusex.nexus.guiaAssinatura.MontagemPdfGuia;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.ocs.ContaOcsService;
 import fatec.fusex.nexus.ocs.Ocs;
@@ -55,6 +56,7 @@ public class GuiaOcsService {
     private final SessaoRepository sessaoRepository;
     private final ViradaValidadeGuia viradaValidade;
     private final UsuarioLogado usuarioLogado;
+    private final MontagemPdfGuia montagemPdfGuia;
     private final TransactionTemplate transacaoLeitura;
     private final TransactionTemplate transacaoEscrita;
 
@@ -64,6 +66,7 @@ public class GuiaOcsService {
                           SessaoRepository sessaoRepository,
                           ViradaValidadeGuia viradaValidade,
                           UsuarioLogado usuarioLogado,
+                          MontagemPdfGuia montagemPdfGuia,
                           PlatformTransactionManager transactionManager) {
         this.contaOcsService = contaOcsService;
         this.guiaRepository = guiaRepository;
@@ -71,6 +74,7 @@ public class GuiaOcsService {
         this.sessaoRepository = sessaoRepository;
         this.viradaValidade = viradaValidade;
         this.usuarioLogado = usuarioLogado;
+        this.montagemPdfGuia = montagemPdfGuia;
         this.transacaoLeitura = new TransactionTemplate(transactionManager);
         this.transacaoLeitura.setReadOnly(true);
         this.transacaoEscrita = new TransactionTemplate(transactionManager);
@@ -149,6 +153,25 @@ public class GuiaOcsService {
         if (guia.getSituacaoExecucao() == SituacaoExecucao.ENVIADA) {
             guia.setSituacaoExecucao(SituacaoExecucao.EM_EXECUCAO);
         }
+    }
+
+    /**
+     * T19-BE4: PDF da guia para a OCS. Mesma regra de acesso do T19-BE2 (404 para outra OCS, nao enviada ou
+     * vencida). A montagem roda dentro da transacao de leitura, porque le as assinaturas (lazy).
+     * Nada e gravado: o arquivo guardado nao muda.
+     */
+    public byte[] pdfDaGuia(Long idGuia) {
+        Long idOcs = contaOcsService.ocsDaContaLogada().getIdOcs();
+        LocalDate hoje = Beneficiario.hoje();
+
+        Guia guia = transacaoLeitura.execute(status -> buscarDaOcs(idGuia, idOcs))
+                .orElseThrow(() -> naoEncontrada(idGuia));
+        viradaValidade.virarVencidas(List.of(guia), hoje);
+
+        return transacaoLeitura.execute(status -> buscarDaOcs(idGuia, idOcs)
+                .filter(atual -> !OCULTAS.contains(atual.getSituacaoExecucao()))
+                .map(montagemPdfGuia::montar)
+                .orElseThrow(() -> naoEncontrada(idGuia)));
     }
 
     private List<Guia> buscarEnviadas(Long idOcs) {
