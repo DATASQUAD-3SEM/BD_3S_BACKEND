@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -33,5 +34,12 @@ public class GuiaOcsController {
     @GetMapping("/{id}")
     public ResponseEntity<GuiaOcsDetalheResponse> detalhar(@PathVariable("id") Long id) {
         return ResponseEntity.ok(service.detalhar(id));
+    }
+
+    /** T19-BE3: requer a assinatura de uma sessao da guia (uma por requisicao, sem corpo). */
+    @PostMapping("/{id}/sessoes/{sessaoId}/solicitacao")
+    public ResponseEntity<GuiaOcsDetalheResponse> solicitarAssinatura(@PathVariable("id") Long id,
+                                                                      @PathVariable("sessaoId") Long sessaoId) {
+        return ResponseEntity.ok(service.solicitarAssinatura(id, sessaoId));
     }
 }
