@@ -8,6 +8,7 @@ import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guia.ViradaValidadeGuia;
+import fatec.fusex.nexus.guia.SituacaoExecucao;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.ProcedimentoDto;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.SessaoDto;
@@ -15,6 +16,7 @@ import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;              // ← 
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.sessao.Sessao;
 import fatec.fusex.nexus.sessao.SessaoRepository;
+import fatec.fusex.nexus.sessao.SituacaoSessao;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
@@ -24,12 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
-<<<<<<< HEAD
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.EnumSet;
-=======
->>>>>>> origin/develop
+
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
