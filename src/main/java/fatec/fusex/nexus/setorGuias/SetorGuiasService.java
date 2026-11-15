@@ -20,6 +20,7 @@ import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimentoRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoRepository;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaRepository;
@@ -47,6 +48,7 @@ public class SetorGuiasService {
     private final PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
     private final GuiaRepository guiaRepository;
     private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository;
     private final UsuarioLogado usuarioLogado;
     private final ArmazenamentoArquivo armazenamentoArquivo;
 
@@ -54,12 +56,14 @@ public class SetorGuiasService {
                              PreGuiaProcedimentoRepository preGuiaProcedimentoRepository,
                              GuiaRepository guiaRepository,
                              GuiaRascunhoRepository guiaRascunhoRepository,
+                             GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository,
                              UsuarioLogado usuarioLogado,
                              ArmazenamentoArquivo armazenamentoArquivo) {
         this.preGuiaRepository = preGuiaRepository;
         this.preGuiaProcedimentoRepository = preGuiaProcedimentoRepository;
         this.guiaRepository = guiaRepository;
         this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.guiaRascunhoProcedimentoRepository = guiaRascunhoProcedimentoRepository;
         this.usuarioLogado = usuarioLogado;
         this.armazenamentoArquivo = armazenamentoArquivo;
     }
@@ -134,7 +138,10 @@ public class SetorGuiasService {
                 origemMedico ? null : encaminhamentoDe(preGuia.getEncaminhamentoUrl());
 
         DetalhePreGuiaResponse.GuiaRascunhoDto rascunho = guiaRascunhoRepository.findById(idPreGuia)
-                .map(r -> new DetalhePreGuiaResponse.GuiaRascunhoDto(r.getNumero(), r.getNomeArquivo()))
+                .map(r -> new DetalhePreGuiaResponse.GuiaRascunhoDto(
+                        r.getNumero(),
+                        r.getNomeArquivo(),
+                        examesDoRascunho(idPreGuia)))
                 .orElse(null);
 
         boolean guiaConcluida = guiaRepository.findByPreGuiaIdPreGuia(idPreGuia).isPresent();
@@ -151,6 +158,16 @@ public class SetorGuiasService {
                 encaminhamento,
                 rascunho,
                 guiaConcluida);
+    }
+
+    // T22-BE1: exames do rascunho na ordem gravada (vazia para rascunho anterior a esta task)
+    private List<DetalhePreGuiaResponse.ExameDto> examesDoRascunho(Long idPreGuia) {
+        return guiaRascunhoProcedimentoRepository.listarDaPreGuia(idPreGuia).stream()
+                .map(e -> new DetalhePreGuiaResponse.ExameDto(
+                        e.getCodDgp(),
+                        e.getDescricaoProcedimento(),
+                        e.getQuantidadeAutorizada()))
+                .toList();
     }
 
     /** T4-BE2: devolve o arquivo do encaminhamento para visualizacao inline. Nao expoe o caminho. */
