@@ -2,6 +2,7 @@ package fatec.fusex.nexus.sessao;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -20,4 +21,9 @@ public interface SessaoRepository extends JpaRepository<Sessao, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from Sessao s where s.guiaProcedimento.guia.idGuia = :guiaId")
     List<Sessao> buscarComLockPorGuia(@Param("guiaId") Long guiaId);
+
+    /** Sessao com lock, para a solicitacao de assinatura pela OCS (T19-BE3). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from Sessao s where s.idSessao = :id")
+    Optional<Sessao> buscarComLockPorId(@Param("id") Long id);
 }
