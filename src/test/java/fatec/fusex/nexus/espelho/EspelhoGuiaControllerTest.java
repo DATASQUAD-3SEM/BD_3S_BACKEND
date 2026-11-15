@@ -240,10 +240,8 @@ class EspelhoGuiaControllerTest {
 
     @Test
     void procedimentoSemSessaoAssinada_recebe400() throws Exception {
-        Guia guia = guiaComUmExame(ocs, SituacaoExecucao.ENCERRADA, "41001109", 1);
-        GuiaProcedimento exame = procedimentoRepository
-                .findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(java.util.List.of(guia.getIdGuia()))
-                .get(0);
+        Guia guia = novaGuia(ocs, SituacaoExecucao.REALIZADA);
+        GuiaProcedimento exame = novoProcedimento(guia, "41001109", 1);
         novaSessao(exame, 1, SituacaoSessao.DISPONIVEL);
 
         mockMvc.perform(post("/ocs/espelho/guias/{id}", guia.getIdGuia())
