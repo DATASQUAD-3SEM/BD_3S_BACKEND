@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.espelho;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,4 +19,9 @@ public interface EspelhoItemRepository extends JpaRepository<EspelhoItem, Long> 
             order by g.idGuia asc, gp.idGuiaProcedimento asc
             """)
     List<EspelhoItem> buscarComDadosPorEspelho(@Param("idEspelho") Long idEspelho);
+
+    List<EspelhoItem> findByEspelhoIdEspelhoAndGuiaProcedimentoGuiaIdGuiaIn(Long idEspelho,
+                                                                            Collection<Long> guiaIds);
+
+    boolean existsByEspelhoIdEspelho(Long idEspelho);
 }
