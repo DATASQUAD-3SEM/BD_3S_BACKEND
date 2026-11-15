@@ -2,6 +2,8 @@ package fatec.fusex.nexus.guiaOcs;
 
 import java.util.List;
 
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +36,15 @@ public class GuiaOcsController {
     @GetMapping("/{id}")
     public ResponseEntity<GuiaOcsDetalheResponse> detalhar(@PathVariable("id") Long id) {
         return ResponseEntity.ok(service.detalhar(id));
+    }
+
+    /** T19-BE4: PDF da guia com as assinaturas, sem cache. 404 fora da regra de acesso (ver T19-BE2). */
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> pdf(@PathVariable("id") Long id) {
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(service.pdfDaGuia(id));
     }
 
     /** T19-BE3: requer a assinatura de uma sessao da guia (uma por requisicao, sem corpo). */
