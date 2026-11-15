@@ -11,9 +11,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import fatec.fusex.nexus.setorGuias.dto.GuiaRascunhoResponse;
 
-//T4-BE5: PUT /setor-guias/pre-guias/{id}/guia-rascunho (multipart com numeroGuia e pdf)
+//T4-BE5: PUT /setor-guias/pre-guias/{id}/guia-rascunho (multipart com numeroGuia, pdf e exames)
 /**
- * PUT /setor-guias/pre-guias/{id}/guia-rascunho (T4-BE5): anexa ou troca o numero e o PDF da Guia (multipart).
+ * PUT /setor-guias/pre-guias/{id}/guia-rascunho (T4-BE5, T22-BE1): anexa ou troca o numero, o PDF e a lista
+ * de exames da Guia (multipart; exames em texto JSON).
  */
 @RestController
 @RequestMapping("/setor-guias/pre-guias")
@@ -29,7 +30,8 @@ public class AnexarGuiaController {
     @PutMapping(value = "/{id}/guia-rascunho", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public GuiaRascunhoResponse anexar(@PathVariable Long id,
                                        @RequestParam(required = false) String numeroGuia,
-                                       @RequestPart(required = false) MultipartFile pdf) {
-        return anexarGuiaService.anexar(id, numeroGuia, pdf);
+                                       @RequestPart(required = false) MultipartFile pdf,
+                                       @RequestParam(required = false) String exames) {
+        return anexarGuiaService.anexar(id, numeroGuia, pdf, exames);
     }
 }

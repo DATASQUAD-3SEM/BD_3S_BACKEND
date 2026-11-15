@@ -2,14 +2,22 @@ package fatec.fusex.nexus.setorGuias;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.tuple;
+import static org.hamcrest.Matchers.startsWith;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.HttpMethod;
@@ -28,6 +36,8 @@ import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunho;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimento;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimentoRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoRepository;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
@@ -50,6 +60,9 @@ class AnexarGuiaControllerTest {
     private static final String SETOR = "setor.teste";
     private static final String BENEFICIARIO = "52998224725";
     private static final byte[] PDF = "%PDF-1.4 guia de teste".getBytes();
+    private static final String EXAMES_VALIDOS = """
+            [{"codDgp":"41001109","descricao":"TC - Abdome superior","quantidade":1},
+             {"codDgp":"50011015","descricao":"Consulta pediatra","quantidade":2}]""";
 
     private final MockMvc mockMvc;
     private final UsuarioRepository usuarioRepository;
@@ -58,6 +71,7 @@ class AnexarGuiaControllerTest {
     private final PreGuiaRepository preGuiaRepository;
     private final GuiaRepository guiaRepository;
     private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final GuiaRascunhoProcedimentoRepository procedimentoRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
     private final EntityManager entityManager;
 
@@ -73,6 +87,7 @@ class AnexarGuiaControllerTest {
             PreGuiaRepository preGuiaRepository,
             GuiaRepository guiaRepository,
             GuiaRascunhoRepository guiaRascunhoRepository,
+            GuiaRascunhoProcedimentoRepository procedimentoRepository,
             ArmazenamentoArquivo armazenamentoArquivo,
             EntityManager entityManager) {
         this.mockMvc = mockMvc;
@@ -82,6 +97,7 @@ class AnexarGuiaControllerTest {
         this.preGuiaRepository = preGuiaRepository;
         this.guiaRepository = guiaRepository;
         this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.procedimentoRepository = procedimentoRepository;
         this.armazenamentoArquivo = armazenamentoArquivo;
         this.entityManager = entityManager;
     }
@@ -124,6 +140,12 @@ class AnexarGuiaControllerTest {
     }
 
     private ResultActions anexar(String login, Long id, String numero, MockMultipartFile arquivo) throws Exception {
+        return anexar(login, id, numero, arquivo, EXAMES_VALIDOS);
+    }
+
+    // exames null: o campo nao e enviado (422 em exames)
+    private ResultActions anexar(String login, Long id, String numero, MockMultipartFile arquivo, String exames)
+            throws Exception {
         MockMultipartHttpServletRequestBuilder req = multipart(HttpMethod.PUT, "/setor-guias/pre-guias/" + id + "/guia-rascunho");
         if (arquivo != null) {
             req.file(arquivo);
@@ -131,7 +153,16 @@ class AnexarGuiaControllerTest {
         if (numero != null) {
             req.param("numeroGuia", numero);
         }
+        if (exames != null) {
+            req.param("exames", exames);
+        }
         return mockMvc.perform(req.header(SimulacaoLoginFilter.HEADER, login));
+    }
+
+    private List<GuiaRascunhoProcedimento> examesNoBanco(Long idPreGuia) {
+        entityManager.flush();
+        entityManager.clear();
+        return procedimentoRepository.listarDaPreGuia(idPreGuia);
     }
 
     private static MockMultipartFile pdf(String nome) {
@@ -288,5 +319,118 @@ class AnexarGuiaControllerTest {
         mockMvc.perform(multipart(HttpMethod.PUT, "/setor-guias/pre-guias/" + p.getIdPreGuia() + "/guia-rascunho")
                         .file(pdf("guia.pdf")).param("numeroGuia", "2026001234"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // T22-BE1: exames do rascunho
+
+    @Test
+    void listaValida_gravaOsExamesNaOrdemEnviada() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf")).andExpect(status().isOk());
+
+        assertThat(examesNoBanco(p.getIdPreGuia()))
+                .extracting(GuiaRascunhoProcedimento::getCodDgp,
+                        GuiaRascunhoProcedimento::getDescricaoProcedimento,
+                        GuiaRascunhoProcedimento::getQuantidadeAutorizada)
+                .containsExactly(tuple("41001109", "TC - Abdome superior", 1),
+                        tuple("50011015", "Consulta pediatra", 2));
+    }
+
+    @Test
+    void novoAnexo_substituiAListaAnterior() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("primeira.pdf")).andExpect(status().isOk());
+
+        String nova = "[{\"codDgp\":\"41001109\",\"descricao\":\"TC - Abdome superior\",\"quantidade\":3}]";
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("corrigida.pdf"), nova).andExpect(status().isOk());
+
+        assertThat(examesNoBanco(p.getIdPreGuia()))
+                .extracting(GuiaRascunhoProcedimento::getCodDgp,
+                        GuiaRascunhoProcedimento::getDescricaoProcedimento,
+                        GuiaRascunhoProcedimento::getQuantidadeAutorizada)
+                .containsExactly(tuple("41001109", "TC - Abdome superior", 3));
+    }
+
+    @Test
+    void detalhe_devolveOsExamesGravadosNaOrdem() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf")).andExpect(status().isOk());
+
+        mockMvc.perform(get("/setor-guias/pre-guias/" + p.getIdPreGuia()).header(SimulacaoLoginFilter.HEADER, SETOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guiaRascunho.exames[0].codDgp").value("41001109"))
+                .andExpect(jsonPath("$.guiaRascunho.exames[0].descricao").value("TC - Abdome superior"))
+                .andExpect(jsonPath("$.guiaRascunho.exames[1].codDgp").value("50011015"))
+                .andExpect(jsonPath("$.guiaRascunho.exames[1].quantidade").value(2));
+    }
+
+    @Test
+    void detalhe_rascunhoAnteriorAosExames_devolveListaVazia() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        GuiaRascunho antigo = new GuiaRascunho();
+        antigo.setPreGuia(p);
+        antigo.setNumero("2026001234");
+        antigo.setArquivoUrl("guias-rascunho/antigo.pdf");
+        antigo.setNomeArquivo("antigo.pdf");
+        guiaRascunhoRepository.saveAndFlush(antigo);
+
+        mockMvc.perform(get("/setor-guias/pre-guias/" + p.getIdPreGuia()).header(SimulacaoLoginFilter.HEADER, SETOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guiaRascunho.numero").value("2026001234"))
+                .andExpect(jsonPath("$.guiaRascunho.exames").isEmpty());
+    }
+
+    @Test
+    void examesAusentes_retorna422SemGravarNada() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), null)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value(startsWith("exames: ")));
+
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
+    }
+
+    @Test
+    void maisDe50Exames_retorna422SemGravarNada() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        String cinquentaEUm = IntStream.rangeClosed(1, 51)
+                .mapToObj(i -> "{\"codDgp\":\"" + (40000000 + i) + "\",\"descricao\":\"Exame " + i + "\",\"quantidade\":1}")
+                .collect(Collectors.joining(",", "[", "]"));
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), cinquentaEUm)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value(startsWith("exames: ")));
+
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "[]",
+            "{}",
+            "isto nao e json",
+            "[{\"codDgp\":\"41a\",\"descricao\":\"TC\",\"quantidade\":1}]",
+            "[{\"codDgp\":\"12345678901\",\"descricao\":\"TC\",\"quantidade\":1}]",
+            "[{\"codDgp\":\"\",\"descricao\":\"TC\",\"quantidade\":1}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\"\",\"quantidade\":1}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\" TC \",\"quantidade\":1}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\"TC\",\"quantidade\":0}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\"TC\",\"quantidade\":-1}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\"TC\",\"quantidade\":1.5}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\"TC\",\"quantidade\":1000}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\"TC\",\"quantidade\":1},"
+                    + "{\"codDgp\":\"41001109\",\"descricao\":\"Outro\",\"quantidade\":2}]",
+            "[{\"codDgp\":\"41001109\",\"descricao\":\"TC\"}]"
+    })
+    void listaInvalida_retorna422SemGravarNada(String exames) throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), exames)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value(startsWith("exames: ")));
+
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
     }
 }
