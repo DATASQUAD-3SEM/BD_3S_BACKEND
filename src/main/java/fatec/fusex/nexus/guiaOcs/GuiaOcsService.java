@@ -3,6 +3,7 @@ package fatec.fusex.nexus.guiaOcs;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -11,21 +12,24 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
+import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guia.SituacaoExecucao;
 import fatec.fusex.nexus.guia.ViradaValidadeGuia;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.ProcedimentoDto;
+import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.SessaoDto;
+import fatec.fusex.nexus.guiaOcs.dto.GuiaOcsDetalheResponse;
 import fatec.fusex.nexus.guiaOcs.dto.GuiaOcsResponse;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.ocs.ContaOcsService;
-import fatec.fusex.nexus.ocs.Ocs;
+import fatec.fusex.nexus.sessao.SessaoRepository;
 
 /**
- * T19-BE1: regras de GET /ocs/guias.
+ * T19-BE1 e T19-BE2: regras de GET /ocs/guias e GET /ocs/guias/{id}.
  *
- * Lista as guias enviadas a OCS logada (via ContaOcs). Antes de devolver, aplica a virada de validade
- * (T18-BE1); so depois exclui NAO_ENVIADA e VENCIDA, porque a virada pode transformar uma guia em VENCIDA.
+ * A OCS ve as guias enviadas a ela (via ContaOcs). Antes de devolver, aplica a virada de validade (T18-BE1);
+ * so depois exclui NAO_ENVIADA e VENCIDA, porque a virada pode transformar uma guia em VENCIDA.
  */
 @Service
 public class GuiaOcsService {
@@ -37,17 +41,20 @@ public class GuiaOcsService {
     private final ContaOcsService contaOcsService;
     private final GuiaRepository guiaRepository;
     private final GuiaProcedimentoRepository procedimentoRepository;
+    private final SessaoRepository sessaoRepository;
     private final ViradaValidadeGuia viradaValidade;
     private final TransactionTemplate transacaoLeitura;
 
     public GuiaOcsService(ContaOcsService contaOcsService,
                           GuiaRepository guiaRepository,
                           GuiaProcedimentoRepository procedimentoRepository,
+                          SessaoRepository sessaoRepository,
                           ViradaValidadeGuia viradaValidade,
                           PlatformTransactionManager transactionManager) {
         this.contaOcsService = contaOcsService;
         this.guiaRepository = guiaRepository;
         this.procedimentoRepository = procedimentoRepository;
+        this.sessaoRepository = sessaoRepository;
         this.viradaValidade = viradaValidade;
         this.transacaoLeitura = new TransactionTemplate(transactionManager);
         this.transacaoLeitura.setReadOnly(true);
@@ -63,8 +70,31 @@ public class GuiaOcsService {
         return transacaoLeitura.execute(status -> montar(idOcs));
     }
 
+    /** T19-BE2: modelo digitalizado de uma guia. 404 se nao for da OCS, nao enviada ou vencida. */
+    public GuiaOcsDetalheResponse detalhar(Long idGuia) {
+        Long idOcs = contaOcsService.ocsDaContaLogada().getIdOcs();
+        LocalDate hoje = Beneficiario.hoje();
+
+        Guia guia = transacaoLeitura.execute(status -> buscarDaOcs(idGuia, idOcs))
+                .orElseThrow(() -> naoEncontrada(idGuia));
+        viradaValidade.virarVencidas(List.of(guia), hoje);
+
+        return transacaoLeitura.execute(status -> buscarDaOcs(idGuia, idOcs)
+                .filter(atual -> !OCULTAS.contains(atual.getSituacaoExecucao()))
+                .map(this::montarDetalhe)
+                .orElseThrow(() -> naoEncontrada(idGuia)));
+    }
+
     private List<Guia> buscarEnviadas(Long idOcs) {
         return guiaRepository.findByPreGuiaOcsIdOcsAndDataEnvioIsNotNullOrderByDataEnvioDescIdGuiaDesc(idOcs);
+    }
+
+    private Optional<Guia> buscarDaOcs(Long idGuia, Long idOcs) {
+        return guiaRepository.findByIdGuiaAndPreGuiaOcsIdOcsAndDataEnvioIsNotNull(idGuia, idOcs);
+    }
+
+    private static RecursoNaoEncontradoException naoEncontrada(Long idGuia) {
+        return new RecursoNaoEncontradoException("Guia " + idGuia + " nao encontrada para esta OCS");
     }
 
     private List<GuiaOcsResponse> montar(Long idOcs) {
@@ -86,5 +116,20 @@ public class GuiaOcsService {
                 .map(guia -> GuiaOcsResponse.fromEntity(
                         guia, procedimentos.getOrDefault(guia.getIdGuia(), List.of())))
                 .toList();
+    }
+
+    private GuiaOcsDetalheResponse montarDetalhe(Guia guia) {
+        List<ProcedimentoDto> procedimentos = procedimentoRepository
+                .findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(List.of(guia.getIdGuia())).stream()
+                .map(ProcedimentoDto::fromEntity)
+                .toList();
+
+        List<SessaoDto> sessoes = sessaoRepository
+                .findByGuiaProcedimentoGuiaIdGuiaInOrderByGuiaProcedimentoIdGuiaProcedimentoAscNumeroAsc(
+                        List.of(guia.getIdGuia())).stream()
+                .map(SessaoDto::fromEntity)
+                .toList();
+
+        return GuiaOcsDetalheResponse.fromEntity(guia, procedimentos, sessoes);
     }
 }
