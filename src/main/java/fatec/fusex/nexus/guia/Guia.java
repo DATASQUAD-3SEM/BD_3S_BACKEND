@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.guia;
 
+import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.usuario.Usuario;
 import jakarta.persistence.*;
@@ -62,6 +63,10 @@ public class Guia {
     @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "situacao_execucao", nullable = false, length = 20)
     private SituacaoExecucao situacaoExecucao = SituacaoExecucao.NAO_ENVIADA;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "espelho_id")
+    private Espelho espelho;
 
     public LocalDate validadeAte() {
         return dataInsercao.toLocalDate().plusMonths(2);
