@@ -406,6 +406,19 @@ class AnexarGuiaControllerTest {
         assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
     }
 
+    @Test
+    void descricaoComMaisDe500Caracteres_retorna422SemGravarNada() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        String descricao501 = "T".repeat(501);
+        String exames = "[{\"codDgp\":\"41001109\",\"descricao\":\"" + descricao501 + "\",\"quantidade\":1}]";
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), exames)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value(startsWith("exames: ")));
+
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
+    }
+
     @ParameterizedTest
     @ValueSource(strings = {
             "[]",
