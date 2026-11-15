@@ -172,7 +172,8 @@ class GuiaFinalizadaControllerTest {
                 .andExpect(jsonPath("$[0].id").value(guia.getIdGuia()))
                 .andExpect(jsonPath("$[0].situacao").value("ENCERRADA"))
                 .andExpect(jsonPath("$[0].procedimentos", hasSize(1)))
-                .andExpect(jsonPath("$[0].procedimentos[0].codDgp").value("41001109"));
+                .andExpect(jsonPath("$[0].procedimentos[0].codDgp").value("41001109"))
+                .andExpect(jsonPath("$[0].procedimentos[0].quantidadeAssinadas").value(1));
 
         assertSituacao(guia, SituacaoExecucao.ENCERRADA);
     }

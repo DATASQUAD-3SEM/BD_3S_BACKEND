@@ -7,14 +7,13 @@ import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.StatusEspelho;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.SituacaoExecucao;
-import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.ProcedimentoDto;
 import fatec.fusex.nexus.guiaFinalizada.VinculoEspelho;
 
 public record GuiaFinalizadaResponse(
         Long id,
         String numero,
         BeneficiarioDto beneficiario,
-        List<ProcedimentoDto> procedimentos,
+        List<ProcedimentoFinalizadoDto> procedimentos,
         LocalDateTime dataEnvio,
         SituacaoExecucao situacao,
         VinculoEspelho vinculo,
@@ -22,7 +21,7 @@ public record GuiaFinalizadaResponse(
 
     public record BeneficiarioDto(String nome, String precCp) {}
 
-    public static GuiaFinalizadaResponse fromEntity(Guia guia, List<ProcedimentoDto> procedimentos) {
+    public static GuiaFinalizadaResponse fromEntity(Guia guia, List<ProcedimentoFinalizadoDto> procedimentos) {
         var beneficiario = guia.getPreGuia().getBeneficiario();
         Espelho espelho = guia.getEspelho();
         return new GuiaFinalizadaResponse(

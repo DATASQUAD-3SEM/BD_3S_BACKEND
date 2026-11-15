@@ -14,10 +14,12 @@ import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guia.SituacaoExecucao;
 import fatec.fusex.nexus.guia.ViradaValidadeGuia;
-import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.ProcedimentoDto;
 import fatec.fusex.nexus.guiaFinalizada.dto.GuiaFinalizadaResponse;
+import fatec.fusex.nexus.guiaFinalizada.dto.ProcedimentoFinalizadoDto;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.ocs.ContaOcsService;
+import fatec.fusex.nexus.sessao.SessaoRepository;
+import fatec.fusex.nexus.sessao.SituacaoSessao;
 
 @Service
 public class GuiaFinalizadaService {
@@ -29,6 +31,7 @@ public class GuiaFinalizadaService {
     private final GuiaRepository guiaRepository;
     private final GuiaFinalizadaRepository guiaFinalizadaRepository;
     private final GuiaProcedimentoRepository procedimentoRepository;
+    private final SessaoRepository sessaoRepository;
     private final ViradaValidadeGuia viradaValidade;
     private final TransactionTemplate transacaoLeitura;
 
@@ -36,12 +39,14 @@ public class GuiaFinalizadaService {
                                  GuiaRepository guiaRepository,
                                  GuiaFinalizadaRepository guiaFinalizadaRepository,
                                  GuiaProcedimentoRepository procedimentoRepository,
+                                 SessaoRepository sessaoRepository,
                                  ViradaValidadeGuia viradaValidade,
                                  PlatformTransactionManager transactionManager) {
         this.contaOcsService = contaOcsService;
         this.guiaRepository = guiaRepository;
         this.guiaFinalizadaRepository = guiaFinalizadaRepository;
         this.procedimentoRepository = procedimentoRepository;
+        this.sessaoRepository = sessaoRepository;
         this.viradaValidade = viradaValidade;
         this.transacaoLeitura = new TransactionTemplate(transactionManager);
         this.transacaoLeitura.setReadOnly(true);
@@ -65,11 +70,25 @@ public class GuiaFinalizadaService {
         }
         List<Long> ids = finalizadas.stream().map(Guia::getIdGuia).toList();
 
-        Map<Long, List<ProcedimentoDto>> procedimentos = procedimentoRepository
-                .findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(ids).stream()
+        Map<Long, Long> assinadasPorProcedimento = sessaoRepository
+                .findByGuiaProcedimentoGuiaIdGuiaInOrderByGuiaProcedimentoIdGuiaProcedimentoAscNumeroAsc(ids)
+                .stream()
+                .filter(sessao -> sessao.getStatus() == SituacaoSessao.ASSINADA)
+                .collect(Collectors.groupingBy(
+                        sessao -> sessao.getGuiaProcedimento().getIdGuiaProcedimento(),
+                        Collectors.counting()));
+
+        Map<Long, List<ProcedimentoFinalizadoDto>> procedimentos = procedimentoRepository
+                .findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(ids)
+                .stream()
                 .collect(Collectors.groupingBy(
                         procedimento -> procedimento.getGuia().getIdGuia(),
-                        Collectors.mapping(ProcedimentoDto::fromEntity, Collectors.toList())));
+                        Collectors.mapping(
+                                procedimento -> ProcedimentoFinalizadoDto.fromEntity(
+                                        procedimento,
+                                        assinadasPorProcedimento.getOrDefault(
+                                                procedimento.getIdGuiaProcedimento(), 0L)),
+                                Collectors.toList())));
 
         return finalizadas.stream()
                 .map(guia -> GuiaFinalizadaResponse.fromEntity(
