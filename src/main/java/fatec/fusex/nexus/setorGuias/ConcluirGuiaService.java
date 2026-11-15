@@ -12,7 +12,11 @@ import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.guia.Guia;
+import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;
+import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunho;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimento;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimentoRepository;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.setorGuias.dto.GuiaConcluidaResponse;
@@ -32,15 +36,22 @@ public class ConcluirGuiaService {
             List.of(AssinaturaGuiaPapel.MEDICO.name(), AssinaturaGuiaPapel.CHEFE.name());
 
     private final ConcluirGuiaRepository repository;
+    private final GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository;
+    private final GuiaProcedimentoRepository guiaProcedimentoRepository;
     private final UsuarioLogado usuarioLogado;
 
     public ConcluirGuiaService(ConcluirGuiaRepository repository,
+                               GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository,
+                               GuiaProcedimentoRepository guiaProcedimentoRepository,
                                UsuarioLogado usuarioLogado) {
         this.repository = repository;
+        this.guiaRascunhoProcedimentoRepository = guiaRascunhoProcedimentoRepository;
+        this.guiaProcedimentoRepository = guiaProcedimentoRepository;
         this.usuarioLogado = usuarioLogado;
     }
 
-    // Ordem: perfil (403) -> existe (404) -> status (409) -> Guia ja criada (409) -> rascunho (409)
+    // Ordem: perfil (403) -> existe (404) -> status (409) -> Guia ja criada (409) -> rascunho (409) -> exames (409)
+    // T22-BE2: os exames do rascunho viram GuiaProcedimento na mesma transacao: tudo ou nada.
     @Transactional
     public GuiaConcluidaResponse concluir(Long id) {
         Usuario setor = usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
@@ -60,6 +71,10 @@ public class ConcluirGuiaService {
         if (repository.numeroUsadoEmGuia(rascunho.getNumero())) {
             throw new ConflitoException("numeroGuia", "Numero de Guia ja usado em outra Guia");
         }
+        List<GuiaRascunhoProcedimento> exames = guiaRascunhoProcedimentoRepository.listarDaPreGuia(id);
+        if (exames.isEmpty()) {
+            throw new ConflitoException("Exames da Guia não informados");
+        }
 
         Guia guia = new Guia();
         guia.setPreGuia(preGuia);
@@ -74,6 +89,19 @@ public class ConcluirGuiaService {
             // UNIQUE do banco (pre_guia_id ou numero) barrou uma conclusao concorrente
             throw new ConflitoException("A Guia desta pre-guia ja foi criada");
         }
+
+        // valor_unitario nao e preenchido (decisao do produto)
+        List<GuiaProcedimento> procedimentos = exames.stream()
+                .map(e -> {
+                    GuiaProcedimento procedimento = new GuiaProcedimento();
+                    procedimento.setGuia(guia);
+                    procedimento.setCodDgp(e.getCodDgp());
+                    procedimento.setDescricaoProcedimento(e.getDescricaoProcedimento());
+                    procedimento.setQuantidadeAutorizada(e.getQuantidadeAutorizada());
+                    return procedimento;
+                })
+                .toList();
+        guiaProcedimentoRepository.saveAllAndFlush(procedimentos);
 
         return new GuiaConcluidaResponse(guia.getIdGuia(), guia.getNumero(), guia.validadeAte(), ASSINATURAS_PENDENTES);
     }
