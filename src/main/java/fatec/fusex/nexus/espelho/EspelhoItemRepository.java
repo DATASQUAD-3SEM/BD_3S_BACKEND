@@ -20,6 +20,18 @@ public interface EspelhoItemRepository extends JpaRepository<EspelhoItem, Long> 
             """)
     List<EspelhoItem> buscarComDadosPorEspelho(@Param("idEspelho") Long idEspelho);
 
+    @Query("""
+            select i from EspelhoItem i
+            join fetch i.espelho e
+            join fetch i.guiaProcedimento gp
+            join fetch gp.guia g
+            join fetch g.preGuia pg
+            join fetch pg.beneficiario
+            where e.idEspelho in :idsEspelho
+            order by e.idEspelho asc, g.idGuia asc, gp.idGuiaProcedimento asc
+            """)
+    List<EspelhoItem> buscarComDadosPorEspelhos(@Param("idsEspelho") Collection<Long> idsEspelho);
+
     List<EspelhoItem> findByEspelhoIdEspelhoAndGuiaProcedimentoGuiaIdGuiaIn(Long idEspelho,
                                                                             Collection<Long> guiaIds);
 
