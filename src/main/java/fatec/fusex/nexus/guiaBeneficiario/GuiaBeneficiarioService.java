@@ -12,7 +12,7 @@ import fatec.fusex.nexus.guia.SituacaoExecucao;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.ProcedimentoDto;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.SessaoDto;
-import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;              // ← este
+import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.sessao.Sessao;
 import fatec.fusex.nexus.sessao.SessaoRepository;
@@ -28,8 +28,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.EnumSet;
-
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -107,7 +105,8 @@ public class GuiaBeneficiarioService {
 
     // Ordem: perfil (403) -> existe (404) -> dono (403) -> situacao (409) -> validade (409) -> exames (409).
     // Trava a Guia (findByIdComLock) para que dois envios simultaneos nao criem sessao em dobro.
-    @Transactional
+
+    @Transactional(rollbackFor = Exception.class) // CORRIGIDO: Adicionado o @
     public GuiaBeneficiarioResponse enviar(Long idGuia) {
         Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
 
@@ -159,5 +158,5 @@ public class GuiaBeneficiarioService {
                 .toList();
 
         return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
-        }
+    } 
 }
