@@ -12,11 +12,12 @@ import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;
 public record EspelhoResponse(
         Long id,
         LocalDateTime dataInicio,
+        LocalDateTime dataEnvio,
         List<ItemResponse> itens,
         BigDecimal valorTotal) {
 
     public static EspelhoResponse vazio() {
-        return new EspelhoResponse(null, null, List.of(), BigDecimal.ZERO.setScale(2));
+        return new EspelhoResponse(null, null, null, List.of(), BigDecimal.ZERO.setScale(2));
     }
 
     public static EspelhoResponse fromEntity(Espelho espelho, List<EspelhoItem> itens) {
@@ -26,7 +27,12 @@ public record EspelhoResponse(
         BigDecimal total = linhas.stream()
                 .map(ItemResponse::valorTotal)
                 .reduce(BigDecimal.ZERO.setScale(2), BigDecimal::add);
-        return new EspelhoResponse(espelho.getIdEspelho(), espelho.getDataCriacao(), linhas, total);
+        return new EspelhoResponse(
+                espelho.getIdEspelho(),
+                espelho.getDataCriacao(),
+                espelho.getDataEnvio(),
+                linhas,
+                total);
     }
 
     public record ItemResponse(
