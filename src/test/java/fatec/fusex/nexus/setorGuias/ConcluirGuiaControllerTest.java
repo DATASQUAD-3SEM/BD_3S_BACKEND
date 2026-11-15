@@ -1,6 +1,7 @@
 package fatec.fusex.nexus.setorGuias;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -8,6 +9,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +26,11 @@ import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunho;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimento;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimentoId;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimentoRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoRepository;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
@@ -54,6 +60,8 @@ class ConcluirGuiaControllerTest {
     private final PreGuiaRepository preGuiaRepository;
     private final GuiaRepository guiaRepository;
     private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository;
+    private final GuiaProcedimentoRepository guiaProcedimentoRepository;
     private final EntityManager entityManager;
 
     private Usuario setor;
@@ -68,6 +76,8 @@ class ConcluirGuiaControllerTest {
             PreGuiaRepository preGuiaRepository,
             GuiaRepository guiaRepository,
             GuiaRascunhoRepository guiaRascunhoRepository,
+            GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository,
+            GuiaProcedimentoRepository guiaProcedimentoRepository,
             EntityManager entityManager) {
         this.mockMvc = mockMvc;
         this.usuarioRepository = usuarioRepository;
@@ -76,6 +86,8 @@ class ConcluirGuiaControllerTest {
         this.preGuiaRepository = preGuiaRepository;
         this.guiaRepository = guiaRepository;
         this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.guiaRascunhoProcedimentoRepository = guiaRascunhoProcedimentoRepository;
+        this.guiaProcedimentoRepository = guiaProcedimentoRepository;
         this.entityManager = entityManager;
     }
 
@@ -116,8 +128,18 @@ class ConcluirGuiaControllerTest {
         return preGuiaRepository.saveAndFlush(p);
     }
 
-    // O rascunho e semeado direto no repositorio (como pede a task), sem passar pelo T4-BE5
+    // O rascunho e semeado direto no repositorio (como pede a task), sem passar pelo T4-BE5.
+    // Com dois exames, como o setor deixaria conferidos.
     private void rascunho(PreGuia preGuia, String numero) {
+        rascunhoSemExames(preGuia, numero);
+        guiaRascunhoProcedimentoRepository.saveAllAndFlush(List.of(
+                new GuiaRascunhoProcedimento(new GuiaRascunhoProcedimentoId(preGuia.getIdPreGuia(), 1),
+                        "41001109", "TC - Abdome superior", 1),
+                new GuiaRascunhoProcedimento(new GuiaRascunhoProcedimentoId(preGuia.getIdPreGuia(), 2),
+                        "50011015", "Consulta pediatra", 2)));
+    }
+
+    private void rascunhoSemExames(PreGuia preGuia, String numero) {
         GuiaRascunho r = new GuiaRascunho();
         r.setPreGuia(preGuia);
         r.setNumero(numero);
@@ -160,6 +182,37 @@ class ConcluirGuiaControllerTest {
                 .extracting(Guia::getNumero).contains("2026001234");
     }
 
+    // T22-BE2: os exames do rascunho viram GuiaProcedimento, com valor_unitario nulo
+    @Test
+    void sucesso_copiaOsExamesDoRascunhoParaAGuia() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        rascunho(p, "2026001234");
+
+        concluir(SETOR, p.getIdPreGuia()).andExpect(status().isCreated());
+
+        entityManager.flush();
+        entityManager.clear();
+        Long guiaId = guiaRepository.findByPreGuiaIdPreGuia(p.getIdPreGuia()).orElseThrow().getIdGuia();
+        assertThat(guiaProcedimentoRepository.findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(List.of(guiaId)))
+                .extracting(gp -> gp.getCodDgp(), gp -> gp.getDescricaoProcedimento(),
+                        gp -> gp.getQuantidadeAutorizada(), gp -> gp.getValorUnitario())
+                .containsExactly(tuple("41001109", "TC - Abdome superior", 1, null),
+                        tuple("50011015", "Consulta pediatra", 2, null));
+    }
+
+    @Test
+    void rascunhoSemExames_retorna409SemCriarGuiaNemExames() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        rascunhoSemExames(p, "2026001234");
+
+        concluir(SETOR, p.getIdPreGuia())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value("Exames da Guia não informados"));
+
+        assertThat(guiaRepository.findByPreGuiaIdPreGuia(p.getIdPreGuia())).isEmpty();
+        assertThat(guiaProcedimentoRepository.count()).isZero();
+    }
+
     @Test
     void semRascunho_retorna409GuiaNaoAnexada() throws Exception {
         PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
@@ -182,6 +235,7 @@ class ConcluirGuiaControllerTest {
                 .andExpect(jsonPath("$.mensagem").value("A Guia desta pre-guia ja foi criada"));
 
         assertThat(guiaRepository.count()).isEqualTo(1);
+        assertThat(guiaProcedimentoRepository.count()).isEqualTo(2);
     }
 
     @Test
