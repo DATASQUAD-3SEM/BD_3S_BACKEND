@@ -8,7 +8,6 @@ import java.util.TreeSet;
 import org.springframework.stereotype.Service;
 
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
-import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
@@ -21,9 +20,6 @@ import fatec.fusex.nexus.usuario.Usuario;
 public class AssinarLoteService {
 
     static final int LIMITE_GUIAS_POR_LOTE = 50;
-
-    static final String MOTIVO_NAO_ENCONTRADA = "guia_nao_encontrada";
-    static final String MOTIVO_JA_ASSINADA_PELO_CHEFE = "ja_assinada_pelo_chefe";
 
     private final RegistrarAssinaturaGuiaService registrarAssinaturaGuiaService;
     private final LimiteLoteAssinatura limiteLoteAssinatura;
@@ -39,15 +35,15 @@ public class AssinarLoteService {
 
     // Cada guia tem a propria transacao (RegistrarAssinaturaGuiaService), entao uma falha nao desfaz as outras
     public AssinarLoteResponse assinar(List<Long> guiaIds) {
-        Usuario chefe = usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
+        Usuario usuario = usuarioLogado.exigirPerfilAtivo(PerfilUsuario.MEDICO, PerfilUsuario.CHEFE_FUSEX);
 
-        if (chefe.getAssinatura() == null) {
+        if (usuario.getAssinatura() == null) {
             throw new DadosInvalidosException("assinatura",
                     "Cadastre sua assinatura em Minhas informacoes antes de assinar");
         }
 
         List<Long> ids = validarEOrdenar(guiaIds);
-        limiteLoteAssinatura.registrar(chefe.getLogin());
+        limiteLoteAssinatura.registrar(usuario.getLogin());
 
         List<Long> assinadas = new ArrayList<>();
         List<FalhaAssinaturaLote> falhas = new ArrayList<>();
@@ -57,10 +53,9 @@ public class AssinarLoteService {
                 registrarAssinaturaGuiaService.assinar(guiaId);
                 assinadas.add(guiaId);
             } catch (RecursoNaoEncontradoException e) {
-                falhas.add(new FalhaAssinaturaLote(guiaId, MOTIVO_NAO_ENCONTRADA));
-            } catch (ConflitoException e) {
-                // Para o chefe, o conflito e sempre "ja assinou" (guia concluida tambem tem a assinatura dele)
-                falhas.add(new FalhaAssinaturaLote(guiaId, MOTIVO_JA_ASSINADA_PELO_CHEFE));
+                falhas.add(new FalhaAssinaturaLote(guiaId, MotivoFalhaAssinatura.GUIA_NAO_ENCONTRADA.getCodigo()));
+            } catch (AssinaturaGuiaConflitoException e) {
+                falhas.add(new FalhaAssinaturaLote(guiaId, e.getMotivo().getCodigo()));
             }
         }
 
