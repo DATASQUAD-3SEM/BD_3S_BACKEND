@@ -15,6 +15,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 
 import fatec.fusex.nexus.assinatura.Assinatura;
@@ -34,7 +35,7 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 import jakarta.persistence.EntityManager;
 
 /**
- * Ponta a ponta do POST /guias/assinar-lote (T10-BE1) com o banco: filtro de login, servico do lote,
+ * Ponta a ponta do POST /guias/assinar-lote (T9-BE1 e T10-BE1) com o banco: filtro de login, servico do lote,
  * assinatura por guia e conclusao da pre-guia quando a segunda assinatura entra.
  */
 @SpringBootTest
@@ -45,6 +46,8 @@ class AssinarLoteIntegracaoTest {
 
     private static final String CHEFE = "chefe.lote";
     private static final String MEDICO = "medico.lote";
+    private static final String MEDICO_OUTRO = "medico.outro.lote";
+    private static final String BENEFICIARIO = "benef.lote";
 
     private final MockMvc mockMvc;
     private final UsuarioRepository usuarioRepository;
@@ -53,6 +56,7 @@ class AssinarLoteIntegracaoTest {
 
     private Usuario chefe;
     private Usuario medico;
+    private Usuario medicoOutro;
 
     AssinarLoteIntegracaoTest(MockMvc mockMvc,
                               UsuarioRepository usuarioRepository,
@@ -70,6 +74,9 @@ class AssinarLoteIntegracaoTest {
         chefe.setAssinatura(novaAssinatura(chefe));
         medico = novoUsuario(MEDICO, PerfilUsuario.MEDICO);
         medico.setAssinatura(novaAssinatura(medico));
+        medicoOutro = novoUsuario(MEDICO_OUTRO, PerfilUsuario.MEDICO);
+        medicoOutro.setAssinatura(novaAssinatura(medicoOutro));
+        novoUsuario(BENEFICIARIO, PerfilUsuario.BENEFICIARIO);
         em.flush();
     }
 
@@ -117,15 +124,52 @@ class AssinarLoteIntegracaoTest {
     }
 
     @Test
-    void medicoNaoPodeUsarOLoteDoChefe_devolve403() throws Exception {
+    void medicoAssinaGuiaComAAssinaturaDoChefe_eConcluiAPreGuia() throws Exception {
         Guia guia = novaGuia("202610906");
+        assine(guia, AssinaturaGuiaPapel.CHEFE, chefe);
         em.flush();
 
         lote(MEDICO, "[" + guia.getIdGuia() + "]")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assinadas[0]").value(guia.getIdGuia()));
+
+        assertThat(statusDaPreGuia(guia)).isEqualTo(PreGuiaStatus.CONCLUIDA);
+    }
+
+    @Test
+    void medicoQueJaAssinou_viraFalha207ComMotivoPeloUsuario() throws Exception {
+        Guia guia = novaGuia("202610907");
+        assine(guia, AssinaturaGuiaPapel.MEDICO, medico);
+        em.flush();
+
+        lote(MEDICO, "[" + guia.getIdGuia() + "]")
+                .andExpect(status().isMultiStatus())
+                .andExpect(jsonPath("$.falhas[0].guiaId").value(guia.getIdGuia()))
+                .andExpect(jsonPath("$.falhas[0].motivo").value("ja_assinada_pelo_usuario"));
+    }
+
+    @Test
+    void guiaAssinadaPorOutroMedico_viraFalha207ComMotivoPorMedico() throws Exception {
+        Guia guia = novaGuia("202610908");
+        assine(guia, AssinaturaGuiaPapel.MEDICO, medicoOutro);
+        em.flush();
+
+        lote(MEDICO, "[" + guia.getIdGuia() + "]")
+                .andExpect(status().isMultiStatus())
+                .andExpect(jsonPath("$.falhas[0].guiaId").value(guia.getIdGuia()))
+                .andExpect(jsonPath("$.falhas[0].motivo").value("ja_assinada_por_medico"));
+    }
+
+    @Test
+    void beneficiarioNaoPodeUsarOLote_devolve403() throws Exception {
+        Guia guia = novaGuia("202610909");
+        em.flush();
+
+        lote(BENEFICIARIO, "[" + guia.getIdGuia() + "]")
                 .andExpect(status().isForbidden());
     }
 
-    private org.springframework.test.web.servlet.ResultActions lote(String login, String guiaIds) throws Exception {
+    private ResultActions lote(String login, String guiaIds) throws Exception {
         return mockMvc.perform(post("/guias/assinar-lote")
                 .header(SimulacaoLoginFilter.HEADER, login)
                 .contentType(MediaType.APPLICATION_JSON)
