@@ -33,5 +33,8 @@ public record DetalhePreGuiaResponse(
 
     public record EncaminhamentoDto(String nome, String tipo, long tamanhoBytes) {}
 
-    public record GuiaRascunhoDto(String numero, String nomeArquivo) {}
+    // exames: na ordem gravada; lista vazia quando o rascunho e anterior aos exames (T22-BE1)
+    public record GuiaRascunhoDto(String numero, String nomeArquivo, List<ExameDto> exames) {}
+
+    public record ExameDto(String codDgp, String descricao, Integer quantidade) {}
 }
