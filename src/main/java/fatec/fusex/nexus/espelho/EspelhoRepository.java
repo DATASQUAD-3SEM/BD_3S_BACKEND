@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.espelho;
 
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
@@ -16,4 +17,6 @@ public interface EspelhoRepository extends JpaRepository<Espelho, Long> {
     @Query("select e from Espelho e where e.ocs.idOcs = :idOcs and e.status = :status")
     Optional<Espelho> buscarComLockPorOcsEStatus(@Param("idOcs") Long idOcs,
                                                  @Param("status") StatusEspelho status);
+
+    List<Espelho> findByOcsIdOcsAndStatusOrderByDataEnvioDescIdEspelhoDesc(Long idOcs, StatusEspelho status);
 }
