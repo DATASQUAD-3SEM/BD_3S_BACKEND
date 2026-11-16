@@ -503,4 +503,33 @@ class MinhasPreGuiasControllerTest {
                         .header(SimulacaoLoginFilter.HEADER, "11111111111"))
                 .andExpect(status().isNotFound());
     }
+
+    @Test
+    @DisplayName("PDF guia: 404 quando o arquivo guardado nao existe no armazenamento (T23-BE2)")
+    void pdfGuia_arquivoGuardadoAusente_retorna404() throws Exception {
+        // Pre-guia CONCLUIDA com as 2 assinaturas (para passar das regras de 403), mas com o arquivo ausente
+        PreGuia concluida = criarPreGuia(joao, PreGuiaStatus.CONCLUIDA, D1, null);
+        Guia guia = new Guia();
+        guia.setPreGuia(concluida);
+        guia.setNumero("00077");
+        guia.setArquivoUrl("guias/arquivo-que-nao-existe.pdf");
+        guia.setDataInsercao(D1);
+        guia.setUsuario(usuarioJoao);
+        guiaRepository.save(guia);
+
+        Assinatura assinatura = salvarAssinatura(usuarioJoao);
+        for (AssinaturaGuiaPapel papel : java.util.List.of(AssinaturaGuiaPapel.MEDICO, AssinaturaGuiaPapel.CHEFE)) {
+            AssinaturaGuia assinaturaGuia = new AssinaturaGuia();
+            assinaturaGuia.setGuia(guia);
+            assinaturaGuia.setPapel(papel);
+            assinaturaGuia.setUsuario(usuarioJoao);
+            assinaturaGuia.setAssinatura(assinatura);
+            assinaturaGuiaRepository.save(assinaturaGuia);
+        }
+
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", concluida.getIdPreGuia())
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isNotFound());
+    }
 }
