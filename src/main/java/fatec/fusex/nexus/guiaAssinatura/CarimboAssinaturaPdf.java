@@ -36,7 +36,22 @@ public class CarimboAssinaturaPdf {
             AssinaturaGuiaPapel.MEDICO, "Assinatura Auditoria Pr\u00e9via Med/Dent",
             AssinaturaGuiaPapel.CHEFE, "Chefe do FuSEx");
 
+    // T23-BE1: campo do beneficiario (celula pequena). Caixa de 50 x 16 pontos, topo 4 pontos acima da base do rotulo.
+    static final String ROTULO_RESPONSAVEL = "Assinatura do Respons\u00e1vel";
+    static final float LARGURA_RESPONSAVEL = 50f;
+    static final float ALTURA_RESPONSAVEL = 16f;
+    static final float ACIMA_DA_BASE_RESPONSAVEL = 4f;
+
     public byte[] aplicar(byte[] pdfOriginal, Map<AssinaturaGuiaPapel, byte[]> assinaturas) {
+        return aplicar(pdfOriginal, assinaturas, null);
+    }
+
+    /**
+     * Aplica as assinaturas do medico e do chefe e, se {@code assinaturaResponsavel} nao for nulo, a do beneficiario
+     * no campo "Assinatura do Responsavel". Com a assinatura do beneficiario, a linha precisa existir no PDF.
+     */
+    public byte[] aplicar(byte[] pdfOriginal, Map<AssinaturaGuiaPapel, byte[]> assinaturas,
+                          byte[] assinaturaResponsavel) {
         try (PDDocument documento = Loader.loadPDF(pdfOriginal)) {
             List<List<TextPosition>> paginas = coletarGlifos(documento);
 
@@ -47,6 +62,13 @@ public class CarimboAssinaturaPdf {
                                 "PDF da guia sem a linha de assinatura: " + rotuloEsperado));
 
                 carimbar(documento, rotulo, assinatura.getKey(), assinatura.getValue());
+            }
+
+            if (assinaturaResponsavel != null) {
+                Rotulo rotulo = localizar(paginas, ROTULO_RESPONSAVEL)
+                        .orElseThrow(() -> new RegraDeNegocioException(
+                                "PDF da guia sem a linha de assinatura: " + ROTULO_RESPONSAVEL));
+                carimbarResponsavel(documento, rotulo, assinaturaResponsavel);
             }
 
             try (ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
@@ -109,6 +131,29 @@ public class CarimboAssinaturaPdf {
         }
     }
 
+    /**
+     * Imagem do beneficiario: mantem a proporcao, cabe na caixa de 50 x 16 e fica centralizada sobre o rotulo,
+     * com o topo 4 pontos acima da base do rotulo.
+     */
+    private static void carimbarResponsavel(PDDocument documento, Rotulo rotulo, byte[] imagem) throws IOException {
+        PDPage pagina = documento.getPage(rotulo.pagina());
+        float alturaDaPagina = pagina.getMediaBox().getHeight();
+
+        PDImageXObject figura = PDImageXObject.createFromByteArray(documento, imagem, "assinatura-responsavel");
+        float escala = Math.min(LARGURA_RESPONSAVEL / figura.getWidth(), ALTURA_RESPONSAVEL / figura.getHeight());
+        float largura = figura.getWidth() * escala;
+        float altura = figura.getHeight() * escala;
+
+        float x = (rotulo.x0() + rotulo.x1()) / 2f - largura / 2f;
+        float baseDoRotulo = alturaDaPagina - rotulo.base();
+        float y = baseDoRotulo + ACIMA_DA_BASE_RESPONSAVEL - altura;
+
+        try (PDPageContentStream conteudo = new PDPageContentStream(
+                documento, pagina, PDPageContentStream.AppendMode.APPEND, true, true)) {
+            conteudo.drawImage(figura, x, y, largura, altura);
+        }
+    }
+
     private static String normalizar(String texto) {
         return Normalizer.normalize(texto, Normalizer.Form.NFC);
     }
@@ -123,7 +168,7 @@ public class CarimboAssinaturaPdf {
         return limpo.toString();
     }
 
-    private record Rotulo(int pagina, float x0, float x1, float topo) {
+    private record Rotulo(int pagina, float x0, float x1, float topo, float base) {
 
         static Rotulo de(int pagina, List<TextPosition> glifos) {
             float x0 = Float.MAX_VALUE;
@@ -135,7 +180,8 @@ public class CarimboAssinaturaPdf {
                 x1 = Math.max(x1, glifo.getXDirAdj() + glifo.getWidthDirAdj());
                 topo = Math.min(topo, glifo.getYDirAdj() - glifo.getHeightDir());
             }
-            return new Rotulo(pagina, x0, x1, topo);
+            float base = glifos.get(0).getYDirAdj();
+            return new Rotulo(pagina, x0, x1, topo, base);
         }
     }
 
