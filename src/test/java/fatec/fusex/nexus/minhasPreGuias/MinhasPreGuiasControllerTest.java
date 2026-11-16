@@ -487,12 +487,12 @@ class MinhasPreGuiasControllerTest {
     }
 
     @Test
-    @DisplayName("PDF guia: 404 pre-guia de outro beneficiario")
-    void pdfGuia_deOutroBeneficiario_retorna404() throws Exception {
+    @DisplayName("PDF guia: 403 pre-guia de outro beneficiario")
+    void pdfGuia_deOutroBeneficiario_retorna403() throws Exception {
         mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaMaria)
                         .param("modo", "baixar")
                         .header(SimulacaoLoginFilter.HEADER, "11111111111"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
     }
 
     @Test
