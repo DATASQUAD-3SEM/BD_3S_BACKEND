@@ -3,6 +3,7 @@ package fatec.fusex.nexus.guiaAssinatura;
 import java.util.List;
 
 import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -60,7 +61,9 @@ public class GuiaAssinaturaController {
                 .filename(pdf.nomeArquivo())
                 .build();
 
+        // T23-BE2: o PDF muda quando a Guia e finalizada, entao nao pode ficar em cache
         return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposicao.toString())
                 .body(pdf.arquivo());
