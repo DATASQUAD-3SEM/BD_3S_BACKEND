@@ -100,6 +100,17 @@ class AnexarGuiaServiceConferenciaPrecCpTest {
         verify(armazenamentoArquivo).salvar(any(), anyString());
     }
 
+    @Test
+    void pdfIlegivel_naoBloqueiaEGrava() {
+        when(repository.buscarPreGuiaParaAnexar(1L)).thenReturn(Optional.of(preGuiaComPrecCp("45872213300")));
+        MockMultipartFile pdf = new MockMultipartFile(
+                "pdf", "guia.pdf", "application/pdf", "%PDF-1.4 falso".getBytes());
+
+        service.anexar(1L, "202610280", pdf, EXAMES_OK);
+
+        verify(armazenamentoArquivo).salvar(any(), anyString());
+    }
+
     private PreGuia preGuiaComPrecCp(String precCp) {
         Beneficiario beneficiario = new Beneficiario();
         beneficiario.setPrecCp(precCp);
