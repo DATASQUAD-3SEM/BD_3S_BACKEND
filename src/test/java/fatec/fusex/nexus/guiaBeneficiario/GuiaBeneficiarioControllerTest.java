@@ -124,6 +124,7 @@ class GuiaBeneficiarioControllerTest {
                 .andExpect(jsonPath("$", hasSize(2)))
                 .andExpect(jsonPath("$[0].id").value(maisRecente.getIdGuia()))
                 .andExpect(jsonPath("$[0].ocs").value("Hospital Central"))
+                .andExpect(jsonPath("$[0].preGuiaId").value(maisRecente.getPreGuia().getIdPreGuia()))
                 .andExpect(jsonPath("$[0].validadeAte").value("2099-01-01"))
                 .andExpect(jsonPath("$[0].situacao").value("ENVIADA"));
     }
