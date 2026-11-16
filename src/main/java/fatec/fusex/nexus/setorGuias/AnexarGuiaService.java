@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -156,16 +157,23 @@ public class AnexarGuiaService {
         }
     }
 
-    // Prec CP lido no PDF diferente do da pre-guia: a Guia e de outro paciente e nada e gravado
     private static void conferirPrecCp(PreGuia preGuia, MultipartFile pdf) {
         String cadastrado = preGuia.getBeneficiario() == null ? null : preGuia.getBeneficiario().getPrecCp();
         if (cadastrado == null || cadastrado.isBlank()) {
             return;
         }
-        String lido = LeitorGuiaPdf.precCpDoPaciente(LeitorGuiaPdf.lerTexto(pdf)).orElse(null);
+        String lido = precCpLidoDoPdf(pdf).orElse(null);
         if (lido != null && !LeitorGuiaPdf.precCpConfere(lido, cadastrado)) {
             throw new DadosInvalidosException("pdf",
                     "Esta Guia e de outro paciente: o Prec CP e diferente do da pre-guia.");
+        }
+    }
+
+    private static Optional<String> precCpLidoDoPdf(MultipartFile pdf) {
+        try {
+            return LeitorGuiaPdf.precCpDoPaciente(LeitorGuiaPdf.lerTexto(pdf));
+        } catch (DadosInvalidosException e) {
+            return Optional.empty();
         }
     }
 
