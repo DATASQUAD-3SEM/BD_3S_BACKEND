@@ -69,7 +69,8 @@ class GuiaPdfAssinadoServiceTest {
     @BeforeEach
     void configurar() throws Exception {
         MockitoAnnotations.openMocks(this);
-        service = new GuiaPdfAssinadoService(guiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository),
+        service = new GuiaPdfAssinadoService(guiaRepository, assinaturaGuiaRepository,
+                new UsuarioLogado(simulacaoLogin, usuarioRepository),
                 new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, carimboAssinaturaPdf,
                         sessaoRepository));
 

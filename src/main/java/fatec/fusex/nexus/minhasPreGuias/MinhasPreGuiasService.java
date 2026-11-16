@@ -174,8 +174,9 @@ public class MinhasPreGuiasService {
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Pre-guia nao encontrada"));
 
+        // T23-BE2: guia de outro beneficiario responde 403 (acesso negado), conforme a spec
         if (!preGuia.getBeneficiario().getUsuarioId().equals(beneficiario.getUsuarioId())) {
-            throw new RecursoNaoEncontradoException("Pre-guia nao encontrada");
+            throw new AcessoNegadoException("Guia de outro beneficiario: acesso negado");
         }
 
         if (preGuia.getStatus() != PreGuiaStatus.CONCLUIDA) {

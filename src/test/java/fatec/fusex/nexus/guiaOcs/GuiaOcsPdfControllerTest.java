@@ -137,9 +137,21 @@ class GuiaOcsPdfControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Type", "application/pdf"))
                 .andExpect(header().string("Cache-Control", org.hamcrest.Matchers.containsString("no-store")))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.startsWith("inline")))
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.containsString("guia-")))
                 .andReturn();
 
         assertArrayEquals(original, resultado.getResponse().getContentAsByteArray());
+    }
+
+    @Test
+    void arquivoGuardadoAusente_recebe404() throws Exception {
+        Guia guia = criarGuia(ocs, LocalDateTime.of(2026, 10, 1, 10, 0), FUTURA,
+                SituacaoExecucao.ENVIADA, PdfsDeTeste.pdfComRotulos(true, true));
+        Files.delete(RAIZ_ARQUIVOS.resolve(guia.getArquivoUrl()));
+
+        mockMvc.perform(get(url(guia)).header(SimulacaoLoginFilter.HEADER, LOGIN_OCS))
+                .andExpect(status().isNotFound());
     }
 
     @Test
