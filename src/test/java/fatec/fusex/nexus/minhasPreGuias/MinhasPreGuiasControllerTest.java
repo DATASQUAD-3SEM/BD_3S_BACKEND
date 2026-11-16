@@ -392,6 +392,7 @@ class MinhasPreGuiasControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment")))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("guia-00042.pdf")))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, containsString("no-store")))
                 .andReturn();
 
         byte[] corpo = result.getResponse().getContentAsByteArray();
