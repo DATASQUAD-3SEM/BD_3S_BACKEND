@@ -15,8 +15,6 @@ import java.util.List;
  */
 public record GuiaBeneficiarioResponse(
         Long id,
-        /** Id da pre-guia da guia: usado pelo front para pedir o PDF em GET /beneficiarios/me/pre-guias/{id}/guia/pdf (T23-FE1). */
-        Long preGuiaId,
         String numero,
         String ocs,
         LocalDate validadeAte,
@@ -60,7 +58,6 @@ public record GuiaBeneficiarioResponse(
                                                       List<SessaoDto> sessoes) {
         return new GuiaBeneficiarioResponse(
                 guia.getIdGuia(),
-                guia.getPreGuia().getIdPreGuia(),
                 guia.getNumero(),
                 guia.getPreGuia().getOcs().getNome(),
                 guia.getDataValidadeAte(),
