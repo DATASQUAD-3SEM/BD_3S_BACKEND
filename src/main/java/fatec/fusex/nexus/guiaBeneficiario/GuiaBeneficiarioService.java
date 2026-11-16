@@ -5,6 +5,7 @@ import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
+import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guia.ViradaValidadeGuia;
@@ -154,6 +155,73 @@ public class GuiaBeneficiarioService {
                 .map(ProcedimentoDto::fromEntity)
                 .toList();
         List<SessaoDto> sessoesDto = sessoes.stream()
+                .map(SessaoDto::fromEntity)
+                .toList();
+
+        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
+      }
+    // Ordem: perfil (403) -> existe guia (404) -> dono (403) -> existe sessao (404)
+    //-> sessao da guia (404) -> status SOLICITADA (409) -> assinatura cadastrada (422) -> regra 25 (409).
+    // A Guia e travada com findByIdComLock: duas requisicoes simultaneas para a mesma sessao serializam, e a segunda ve o status ja como ASSINADA (cai no 409).
+    @Transactional(rollbackFor = Exception.class)
+    public GuiaBeneficiarioResponse assinar(Long idGuia, Long idSessao) {
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
+
+        Guia guia = guiaRepository.findByIdComLock(idGuia)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Guia nao encontrada: id " + idGuia));
+
+        if (!guia.getPreGuia().getBeneficiario().getUsuarioId().equals(usuario.getIdUsuario())) {
+            throw new AcessoNegadoException("A Guia nao pertence ao usuario logado");
+        }
+
+        Sessao sessao = sessaoRepository.findById(idSessao)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Sessao nao encontrada: id " + idSessao));
+
+        if (!sessao.getGuiaProcedimento().getGuia().getIdGuia().equals(idGuia)) {
+            throw new RecursoNaoEncontradoException(
+                    "Sessao nao pertence a esta Guia: id " + idSessao);
+        }
+
+        if (sessao.getStatus() != SituacaoSessao.SOLICITADA) {
+            throw new ConflitoException("A sessao nao esta aguardando assinatura");
+        }
+
+        if (usuario.getAssinatura() == null) {
+            throw new DadosInvalidosException("assinatura",
+                    "Você ainda não tem assinatura cadastrada. Cadastre em Minhas informações para assinar.");
+        }
+
+        // Regra 25: nao assinar alem da quantidade autorizada do procedimento.
+        GuiaProcedimento procedimento = sessao.getGuiaProcedimento();
+        long jaAssinadas = sessaoRepository.countByGuiaProcedimentoIdGuiaProcedimentoAndStatus(
+                procedimento.getIdGuiaProcedimento(), SituacaoSessao.ASSINADA);
+        if (jaAssinadas >= procedimento.getQuantidadeAutorizada()) {
+            throw new ConflitoException(
+                    "Todas as sessoes autorizadas deste procedimento ja foram assinadas");
+        }
+
+        sessao.setStatus(SituacaoSessao.ASSINADA);
+        sessao.setDataAssinatura(LocalDateTime.now());
+        sessao.setAssinadoPor(usuario);
+        sessao.setAssinatura(usuario.getAssinatura());
+
+        // A entidade 'sessao' esta gerenciada: o stream abaixo, mesmo indo ao banco, ve o status
+        // ja atualizado (Hibernate devolve a instancia do persistence context).
+        List<Sessao> sessoesDaGuia = sessaoRepository
+                .findByGuiaProcedimentoGuiaIdGuiaInOrderByGuiaProcedimentoIdGuiaProcedimentoAscNumeroAsc(
+                        List.of(idGuia));
+
+        boolean todasAssinadas = sessoesDaGuia.stream()
+                .allMatch(s -> s.getStatus() == SituacaoSessao.ASSINADA);
+        guia.setSituacaoExecucao(todasAssinadas
+                ? SituacaoExecucao.REALIZADA
+                : SituacaoExecucao.EM_EXECUCAO);
+
+        List<ProcedimentoDto> procedimentosDto = procedimentoRepository
+                .findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(List.of(idGuia)).stream()
+                .map(ProcedimentoDto::fromEntity)
+                .toList();
+        List<SessaoDto> sessoesDto = sessoesDaGuia.stream()
                 .map(SessaoDto::fromEntity)
                 .toList();
 

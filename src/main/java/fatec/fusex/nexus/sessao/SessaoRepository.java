@@ -26,4 +26,6 @@ public interface SessaoRepository extends JpaRepository<Sessao, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from Sessao s where s.idSessao = :id")
     Optional<Sessao> buscarComLockPorId(@Param("id") Long id);
+
+    long countByGuiaProcedimentoIdGuiaProcedimentoAndStatus(Long idGuiaProcedimento, SituacaoSessao status);
 }
