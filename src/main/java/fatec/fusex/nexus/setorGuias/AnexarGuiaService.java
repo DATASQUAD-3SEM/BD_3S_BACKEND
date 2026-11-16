@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -92,6 +93,7 @@ public class AnexarGuiaService {
         if (repository.numeroUsadoEmGuia(numero) || repository.numeroUsadoEmOutroRascunho(numero, id)) {
             throw new ConflitoException("numeroGuia", "Numero de Guia ja usado em outra Guia");
         }
+        conferirPrecCp(preGuia, pdf);
 
         GuiaRascunho rascunho = repository.findById(id).orElse(null);
         String arquivoAnterior = rascunho == null ? null : rascunho.getArquivoUrl();
@@ -152,6 +154,26 @@ public class AnexarGuiaService {
         if (pdf.getSize() > tamanhoMaximoBytes) {
             throw new DadosInvalidosException("pdf",
                     "O PDF deve ter no maximo " + (tamanhoMaximoBytes / (1024 * 1024)) + " MB");
+        }
+    }
+
+    private static void conferirPrecCp(PreGuia preGuia, MultipartFile pdf) {
+        String cadastrado = preGuia.getBeneficiario() == null ? null : preGuia.getBeneficiario().getPrecCp();
+        if (cadastrado == null || cadastrado.isBlank()) {
+            return;
+        }
+        String lido = precCpLidoDoPdf(pdf).orElse(null);
+        if (lido != null && !LeitorGuiaPdf.precCpConfere(lido, cadastrado)) {
+            throw new DadosInvalidosException("pdf",
+                    "Esta Guia e de outro paciente: o Prec CP e diferente do da pre-guia.");
+        }
+    }
+
+    private static Optional<String> precCpLidoDoPdf(MultipartFile pdf) {
+        try {
+            return LeitorGuiaPdf.precCpDoPaciente(LeitorGuiaPdf.lerTexto(pdf));
+        } catch (DadosInvalidosException e) {
+            return Optional.empty();
         }
     }
 
