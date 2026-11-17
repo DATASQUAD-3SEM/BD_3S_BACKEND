@@ -6,5 +6,9 @@ public record ExtracaoNumeroGuiaResponse(
         String numeroGuia,
         String precCpLido,
         Boolean precCpConfere,
-        List<ExameLidoResponse> examesNaGuia) {
+        List<ExameLidoResponse> examesNaGuia,
+
+        String ug,
+        String ugOrigem,
+        String validadeAte) {
 }
