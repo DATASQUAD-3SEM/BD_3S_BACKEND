@@ -19,6 +19,7 @@ import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
+import fatec.fusex.nexus.sessao.SessaoRepository;
 import fatec.fusex.nexus.usuario.Usuario;
 
 /**
@@ -27,6 +28,7 @@ import fatec.fusex.nexus.usuario.Usuario;
 class MontagemPdfGuiaTest {
 
     private AssinaturaGuiaRepository assinaturaGuiaRepository;
+    private SessaoRepository sessaoRepository;
     private ArmazenamentoArquivo armazenamentoArquivo;
     private MontagemPdfGuia montagem;
     private byte[] pdfOriginal;
@@ -35,8 +37,10 @@ class MontagemPdfGuiaTest {
     @BeforeEach
     void preparar() throws IOException {
         assinaturaGuiaRepository = mock(AssinaturaGuiaRepository.class);
+        sessaoRepository = mock(SessaoRepository.class);
         armazenamentoArquivo = mock(ArmazenamentoArquivo.class);
-        montagem = new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, new CarimboAssinaturaPdf());
+        montagem = new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, new CarimboAssinaturaPdf(),
+                sessaoRepository);
 
         pdfOriginal = PdfsDeTeste.pdfComRotulos(true, true);
         guia = new Guia();

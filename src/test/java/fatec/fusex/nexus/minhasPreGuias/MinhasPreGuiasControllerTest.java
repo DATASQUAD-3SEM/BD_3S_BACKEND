@@ -392,6 +392,7 @@ class MinhasPreGuiasControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, startsWith("attachment")))
                 .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("guia-00042.pdf")))
+                .andExpect(header().string(HttpHeaders.CACHE_CONTROL, containsString("no-store")))
                 .andReturn();
 
         byte[] corpo = result.getResponse().getContentAsByteArray();
@@ -486,18 +487,47 @@ class MinhasPreGuiasControllerTest {
     }
 
     @Test
-    @DisplayName("PDF guia: 404 pre-guia de outro beneficiario")
-    void pdfGuia_deOutroBeneficiario_retorna404() throws Exception {
+    @DisplayName("PDF guia: 403 pre-guia de outro beneficiario")
+    void pdfGuia_deOutroBeneficiario_retorna403() throws Exception {
         mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", idPreGuiaMaria)
                         .param("modo", "baixar")
                         .header(SimulacaoLoginFilter.HEADER, "11111111111"))
-                .andExpect(status().isNotFound());
+                .andExpect(status().isForbidden());
     }
 
     @Test
     @DisplayName("PDF guia: 404 pre-guia inexistente")
     void pdfGuia_inexistente_retorna404() throws Exception {
         mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", 99999L)
+                        .param("modo", "baixar")
+                        .header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @DisplayName("PDF guia: 404 quando o arquivo guardado nao existe no armazenamento (T23-BE2)")
+    void pdfGuia_arquivoGuardadoAusente_retorna404() throws Exception {
+        // Pre-guia CONCLUIDA com as 2 assinaturas (para passar das regras de 403), mas com o arquivo ausente
+        PreGuia concluida = criarPreGuia(joao, PreGuiaStatus.CONCLUIDA, D1, null);
+        Guia guia = new Guia();
+        guia.setPreGuia(concluida);
+        guia.setNumero("00077");
+        guia.setArquivoUrl("guias/arquivo-que-nao-existe.pdf");
+        guia.setDataInsercao(D1);
+        guia.setUsuario(usuarioJoao);
+        guiaRepository.save(guia);
+
+        Assinatura assinatura = salvarAssinatura(usuarioJoao);
+        for (AssinaturaGuiaPapel papel : java.util.List.of(AssinaturaGuiaPapel.MEDICO, AssinaturaGuiaPapel.CHEFE)) {
+            AssinaturaGuia assinaturaGuia = new AssinaturaGuia();
+            assinaturaGuia.setGuia(guia);
+            assinaturaGuia.setPapel(papel);
+            assinaturaGuia.setUsuario(usuarioJoao);
+            assinaturaGuia.setAssinatura(assinatura);
+            assinaturaGuiaRepository.save(assinaturaGuia);
+        }
+
+        mockMvc.perform(get("/beneficiarios/me/pre-guias/{id}/guia/pdf", concluida.getIdPreGuia())
                         .param("modo", "baixar")
                         .header(SimulacaoLoginFilter.HEADER, "11111111111"))
                 .andExpect(status().isNotFound());

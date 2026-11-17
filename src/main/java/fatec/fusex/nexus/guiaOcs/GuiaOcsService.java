@@ -25,6 +25,7 @@ import fatec.fusex.nexus.guia.ViradaValidadeGuia;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.ProcedimentoDto;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.SessaoDto;
 import fatec.fusex.nexus.guiaOcs.dto.GuiaOcsDetalheResponse;
+import fatec.fusex.nexus.guiaOcs.dto.PdfGuiaOcs;
 import fatec.fusex.nexus.guiaOcs.dto.GuiaOcsResponse;
 import fatec.fusex.nexus.guiaAssinatura.MontagemPdfGuia;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
@@ -160,7 +161,7 @@ public class GuiaOcsService {
      * vencida). A montagem roda dentro da transacao de leitura, porque le as assinaturas (lazy).
      * Nada e gravado: o arquivo guardado nao muda.
      */
-    public byte[] pdfDaGuia(Long idGuia) {
+    public PdfGuiaOcs pdfDaGuia(Long idGuia) {
         Long idOcs = contaOcsService.ocsDaContaLogada().getIdOcs();
         LocalDate hoje = Beneficiario.hoje();
 
@@ -170,7 +171,7 @@ public class GuiaOcsService {
 
         return transacaoLeitura.execute(status -> buscarDaOcs(idGuia, idOcs)
                 .filter(atual -> !OCULTAS.contains(atual.getSituacaoExecucao()))
-                .map(montagemPdfGuia::montar)
+                .map(alvo -> new PdfGuiaOcs(montagemPdfGuia.montar(alvo), "guia-" + alvo.getNumero() + ".pdf"))
                 .orElseThrow(() -> naoEncontrada(idGuia)));
     }
 

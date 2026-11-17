@@ -24,6 +24,10 @@ public final class PdfsDeTeste {
     }
 
     public static byte[] pdfComRotulos(boolean medico, boolean chefe) throws IOException {
+        return pdfComRotulos(medico, chefe, false);
+    }
+
+    public static byte[] pdfComRotulos(boolean medico, boolean chefe, boolean responsavel) throws IOException {
         try (PDDocument documento = new PDDocument();
              ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
 
@@ -37,6 +41,9 @@ public final class PdfsDeTeste {
                 }
                 if (chefe) {
                     escrever(conteudo, fonte, 360, 300, "Chefe do FuSEx");
+                }
+                if (responsavel) {
+                    escrever(conteudo, fonte, 60, 150, "Assinatura do Responsável:");
                 }
             }
 
