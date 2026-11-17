@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,10 +28,8 @@ final class LeitorGuiaPdf {
     private static final Pattern LINHA_EXAME = Pattern.compile("^(.*?\\p{L}.*?)\\s+(\\d{4,})(?!\\d)(.*)$");
     private static final Pattern QUANTIDADE = Pattern.compile("^\\s+(\\d{1,4})(?![\\d.,])");
 
-    // T16-BE1: Padrões para UG, UG Origem e Validade
-    private static final Pattern UG_PATTERN = Pattern.compile("(?i)UG:\\s*(.*?)(?=\\s*UG\\s*Origem:|\\s*Nr:|\\s*N[ÃA]O\\s+RECEBER|$)");
-    private static final Pattern UG_ORIGEM_PATTERN = Pattern.compile("(?i)UG\\s*Origem:\\s*(.*?)(?=\\s*UG:|\\s*Nr:|\\s*N[ÃA]O\\s+RECEBER|$)");
-    private static final Pattern VALIDADE_PATTERN = Pattern.compile("(?i)N[ÃA]O\\s+RECEBER\\s+AP[ÓO]S:\\s*(\\d{2}/\\d{2}/\\d{4})");
+    // T16-BE1: Padrões para UG, UG Origem e Validade (com UNICODE_CASE para acentos e maiúsculas/minúsculas)
+    private static final Pattern VALIDADE_PATTERN = Pattern.compile("(?iu)N[ÃA]O\\s+RECEBER\\s+AP[ÓO]S:\\s*(\\d{2}/\\d{2}/\\d{4})");
 
     private LeitorGuiaPdf() {
     }
@@ -102,11 +101,20 @@ final class LeitorGuiaPdf {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();
         }
-        String normalizado = texto.replaceAll("\\s+", " ");
-        Matcher m = UG_PATTERN.matcher(normalizado);
-        if (m.find()) {
-            String valor = m.group(1).trim();
-            return valor.isEmpty() ? Optional.empty() : Optional.of(valor);
+        String[] linhas = texto.split("\\R");
+        for (int i = 0; i < linhas.length; i++) {
+            String limpa = linhas[i].trim();
+            if (limpa.matches("(?iu)^UG:\\s*.*") && !limpa.matches("(?iu)^UG\\s+Origem:.*")) {
+                String valor = limpa.replaceFirst("(?iu)^UG:\\s*", "").trim();
+                // Tenta juntar a próxima linha se não for um campo novo (Nr, UG, NÃO RECEBER)
+                if (i + 1 < linhas.length) {
+                    String proxima = linhas[i + 1].trim();
+                    if (!proxima.isEmpty() && !proxima.matches("(?iu)^(UG|Nr|N[ÃA]O\\s+RECEBER).*")) {
+                        valor = (valor + " " + proxima).trim();
+                    }
+                }
+                return valor.isEmpty() ? Optional.empty() : Optional.of(valor);
+            }
         }
         return Optional.empty();
     }
@@ -115,11 +123,20 @@ final class LeitorGuiaPdf {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();
         }
-        String normalizado = texto.replaceAll("\\s+", " ");
-        Matcher m = UG_ORIGEM_PATTERN.matcher(normalizado);
-        if (m.find()) {
-            String valor = m.group(1).trim();
-            return valor.isEmpty() ? Optional.empty() : Optional.of(valor);
+        String[] linhas = texto.split("\\R");
+        for (int i = 0; i < linhas.length; i++) {
+            String limpa = linhas[i].trim();
+            if (limpa.matches("(?iu)^UG\\s+Origem:.*")) {
+                String valor = limpa.replaceFirst("(?iu)^UG\\s+Origem:\\s*", "").trim();
+                // Tenta juntar a próxima linha se não for um campo novo (Nr, UG, NÃO RECEBER)
+                if (i + 1 < linhas.length) {
+                    String proxima = linhas[i + 1].trim();
+                    if (!proxima.isEmpty() && !proxima.matches("(?iu)^(UG|Nr|N[ÃA]O\\s+RECEBER).*")) {
+                        valor = (valor + " " + proxima).trim();
+                    }
+                }
+                return valor.isEmpty() ? Optional.empty() : Optional.of(valor);
+            }
         }
         return Optional.empty();
     }
@@ -128,13 +145,14 @@ final class LeitorGuiaPdf {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();
         }
-        String normalizado = texto.replaceAll("\\s+", " ");
-        Matcher m = VALIDADE_PATTERN.matcher(normalizado);
+        Matcher m = VALIDADE_PATTERN.matcher(texto);
         if (m.find()) {
             String dataStr = m.group(1);
             try {
-                LocalDate data = LocalDate.parse(dataStr, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                return Optional.of(data.format(DateTimeFormatter.ISO_LOCAL_DATE)); // Retorna yyyy-mm-dd
+                // T16-BE1: ResolverStyle.STRICT evita que 31/02 vire 28/02
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/uuuu").withResolverStyle(ResolverStyle.STRICT);
+                LocalDate data = LocalDate.parse(dataStr, formatter);
+                return Optional.of(data.format(DateTimeFormatter.ISO_LOCAL_DATE));
             } catch (DateTimeParseException e) {
                 return Optional.empty();
             }

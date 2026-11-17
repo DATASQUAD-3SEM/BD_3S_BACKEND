@@ -23,7 +23,7 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
 /**
- * T11-BE1 estendido pela T21-BE1 e T16-BE1: POST /setor-guias/extrair-numero-guia. Le o numero, o Prec CP,
+ * T11-BE1 estendido pela T21-BE1 e T16-BE1: POST /setor-guias/extrair-numero-guia. Le o numero, o Prec CP do paciente,
  * os exames, a UG, a UG Origem e a validade da Guia no PDF anexado, sem gravar nada.
  */
 @Service
