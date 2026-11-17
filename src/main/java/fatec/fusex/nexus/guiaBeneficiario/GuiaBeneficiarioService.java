@@ -4,12 +4,12 @@ import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ConflitoException;
-import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
+import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
-import fatec.fusex.nexus.guia.ViradaValidadeGuia;
 import fatec.fusex.nexus.guia.SituacaoExecucao;
+import fatec.fusex.nexus.guia.ViradaValidadeGuia;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.ProcedimentoDto;
 import fatec.fusex.nexus.guiaBeneficiario.dto.GuiaBeneficiarioResponse.SessaoDto;
@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 /**
  * T18-BE1: regras de GET /guias/minhas.
  * T18-BE-2: envio da guia à OCS, criando uma sessão por unidade autorizada.
+ * T18-BE-3: assinatura de uma sessão SOLICITADA, uma por vez, com regra 25 e lock pessimista.
  *
  * Ao listar, aplica a virada de validade (ViradaValidadeGuia) nas guias do beneficiario; a leitura final
  * roda em transacao somente leitura.
@@ -107,7 +108,7 @@ public class GuiaBeneficiarioService {
     // Ordem: perfil (403) -> existe (404) -> dono (403) -> situacao (409) -> validade (409) -> exames (409).
     // Trava a Guia (findByIdComLock) para que dois envios simultaneos nao criem sessao em dobro.
 
-    @Transactional(rollbackFor = Exception.class) // CORRIGIDO: Adicionado o @
+    @Transactional(rollbackFor = Exception.class)
     public GuiaBeneficiarioResponse enviar(Long idGuia) {
         Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
 
@@ -159,10 +160,10 @@ public class GuiaBeneficiarioService {
                 .toList();
 
         return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
-      }
-    // Ordem: perfil (403) -> existe guia (404) -> dono (403) -> existe sessao (404)
-    //-> sessao da guia (404) -> status SOLICITADA (409) -> assinatura cadastrada (422) -> regra 25 (409).
-    // A Guia e travada com findByIdComLock: duas requisicoes simultaneas para a mesma sessao serializam, e a segunda ve o status ja como ASSINADA (cai no 409).
+    }
+
+    // Ordem: perfil (403) -> guia existe (404) -> dono (403) -> sessao da guia (404)
+    //     -> status SOLICITADA (409) -> assinatura cadastrada (422) -> regra 25 (409).
     @Transactional(rollbackFor = Exception.class)
     public GuiaBeneficiarioResponse assinar(Long idGuia, Long idSessao) {
         Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
@@ -174,13 +175,13 @@ public class GuiaBeneficiarioService {
             throw new AcessoNegadoException("A Guia nao pertence ao usuario logado");
         }
 
-        Sessao sessao = sessaoRepository.findById(idSessao)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Sessao nao encontrada: id " + idSessao));
+        // Trava todas as sessoes da guia e le a versao corrente (nao o snapshot do REPEATABLE READ).
+        List<Sessao> sessoesDaGuia = sessaoRepository.buscarComLockPorGuia(idGuia);
 
-        if (!sessao.getGuiaProcedimento().getGuia().getIdGuia().equals(idGuia)) {
-            throw new RecursoNaoEncontradoException(
-                    "Sessao nao pertence a esta Guia: id " + idSessao);
-        }
+        Sessao sessao = sessoesDaGuia.stream()
+                .filter(s -> s.getIdSessao().equals(idSessao))
+                .findFirst()
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Sessao nao encontrada: id " + idSessao));
 
         if (sessao.getStatus() != SituacaoSessao.SOLICITADA) {
             throw new ConflitoException("A sessao nao esta aguardando assinatura");
@@ -192,9 +193,13 @@ public class GuiaBeneficiarioService {
         }
 
         // Regra 25: nao assinar alem da quantidade autorizada do procedimento.
+        // Conta a partir da lista travada (current read), nao de um countBy no snapshot.
         GuiaProcedimento procedimento = sessao.getGuiaProcedimento();
-        long jaAssinadas = sessaoRepository.countByGuiaProcedimentoIdGuiaProcedimentoAndStatus(
-                procedimento.getIdGuiaProcedimento(), SituacaoSessao.ASSINADA);
+        long jaAssinadas = sessoesDaGuia.stream()
+                .filter(s -> s.getGuiaProcedimento().getIdGuiaProcedimento()
+                        .equals(procedimento.getIdGuiaProcedimento()))
+                .filter(s -> s.getStatus() == SituacaoSessao.ASSINADA)
+                .count();
         if (jaAssinadas >= procedimento.getQuantidadeAutorizada()) {
             throw new ConflitoException(
                     "Todas as sessoes autorizadas deste procedimento ja foram assinadas");
@@ -205,12 +210,7 @@ public class GuiaBeneficiarioService {
         sessao.setAssinadoPor(usuario);
         sessao.setAssinatura(usuario.getAssinatura());
 
-        // A entidade 'sessao' esta gerenciada: o stream abaixo, mesmo indo ao banco, ve o status
-        // ja atualizado (Hibernate devolve a instancia do persistence context).
-        List<Sessao> sessoesDaGuia = sessaoRepository
-                .findByGuiaProcedimentoGuiaIdGuiaInOrderByGuiaProcedimentoIdGuiaProcedimentoAscNumeroAsc(
-                        List.of(idGuia));
-
+        // A lista travada contem a mesma instancia gerenciada: o novo status e visivel nela.
         boolean todasAssinadas = sessoesDaGuia.stream()
                 .allMatch(s -> s.getStatus() == SituacaoSessao.ASSINADA);
         guia.setSituacaoExecucao(todasAssinadas
@@ -226,5 +226,5 @@ public class GuiaBeneficiarioService {
                 .toList();
 
         return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
-    } 
+    }
 }

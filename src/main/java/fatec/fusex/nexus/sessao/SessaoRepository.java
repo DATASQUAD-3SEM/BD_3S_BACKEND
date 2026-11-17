@@ -11,7 +11,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 /**
- * Acesso as sessoes das Guias. A leitura com lock e usada na virada de validade (T18-BE1).
+ * Acesso as sessoes das Guias. A leitura com lock e usada na virada de validade (T18-BE1)
+ * e na assinatura de sessao (T18-BE-3).
  */
 public interface SessaoRepository extends JpaRepository<Sessao, Long> {
 
@@ -26,6 +27,4 @@ public interface SessaoRepository extends JpaRepository<Sessao, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from Sessao s where s.idSessao = :id")
     Optional<Sessao> buscarComLockPorId(@Param("id") Long id);
-
-    long countByGuiaProcedimentoIdGuiaProcedimentoAndStatus(Long idGuiaProcedimento, SituacaoSessao status);
 }
