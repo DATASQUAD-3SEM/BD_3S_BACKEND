@@ -28,7 +28,16 @@ final class LeitorGuiaPdf {
     private static final Pattern LINHA_EXAME = Pattern.compile("^(.*?\\p{L}.*?)\\s+(\\d{4,})(?!\\d)(.*)$");
     private static final Pattern QUANTIDADE = Pattern.compile("^\\s+(\\d{1,4})(?![\\d.,])");
 
-    // T16-BE1: Padrões para UG, UG Origem e Validade (com UNICODE_CASE para acentos e maiúsculas/minúsculas)
+    // T16-BE1: UG e UG Origem sao lidas linha a linha. Antes do rotulo pode haver caractere de borda
+    // (ex.: "< UG: Cmdo Bda Inf Amv"). "UG:" nao casa com "UG Origem:", porque ha espaco antes do ":".
+    private static final Pattern UG_LINHA = Pattern.compile("(?iu)^[^\\p{L}\\p{N}]*UG:\\s*(.*)$");
+    private static final Pattern UG_ORIGEM_LINHA = Pattern.compile("(?iu)^[^\\p{L}\\p{N}]*UG\\s+Origem:\\s*(.*)$");
+    // Rotulos de outros campos do cabecalho e do corpo da Guia: a linha seguinte a UG Origem nao e continuacao se comecar com um deles.
+    private static final Pattern ROTULO_DE_CAMPO = Pattern.compile(
+            "(?iu)^[^\\p{L}\\p{N}]*(UG|Nr|N[ÃA]O\\s+RECEBER|Prec|Assinatura|Titular|Benefici|GUIA|Data:|Validade|Operador|"
+                    + "Procedimentos|Cod|Prest|Endere|Contato|Prof|Cotista|Obs)");
+
+    // T16-BE1: validade (com UNICODE_CASE para acentos e maiúsculas/minúsculas)
     private static final Pattern VALIDADE_PATTERN = Pattern.compile("(?iu)N[ÃA]O\\s+RECEBER\\s+AP[ÓO]S:\\s*(\\d{2}/\\d{2}/\\d{4})");
 
     private LeitorGuiaPdf() {
@@ -97,41 +106,36 @@ final class LeitorGuiaPdf {
     // T16-BE1: Novos métodos de extração
     // ==========================================
 
+    // A linha de UG pode vir com um caractere de borda antes do rotulo (ex.: "< UG: Cmdo Bda Inf Amv").
+    // A UG cabe em uma linha: nao junta a linha seguinte (o cabecalho da Guia segue logo abaixo).
     static Optional<String> extrairUg(String texto) {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();
         }
-        String[] linhas = texto.split("\\R");
-        for (int i = 0; i < linhas.length; i++) {
-            String limpa = linhas[i].trim();
-            if (limpa.matches("(?iu)^UG:\\s*.*") && !limpa.matches("(?iu)^UG\\s+Origem:.*")) {
-                String valor = limpa.replaceFirst("(?iu)^UG:\\s*", "").trim();
-                // Tenta juntar a próxima linha se não for um campo novo (Nr, UG, NÃO RECEBER)
-                if (i + 1 < linhas.length) {
-                    String proxima = linhas[i + 1].trim();
-                    if (!proxima.isEmpty() && !proxima.matches("(?iu)^(UG|Nr|N[ÃA]O\\s+RECEBER).*")) {
-                        valor = (valor + " " + proxima).trim();
-                    }
-                }
+        for (String linha : texto.split("\\R")) {
+            Matcher m = UG_LINHA.matcher(linha.trim());
+            if (m.matches()) {
+                String valor = m.group(1).trim();
                 return valor.isEmpty() ? Optional.empty() : Optional.of(valor);
             }
         }
         return Optional.empty();
     }
 
+    // A UG Origem pode quebrar o valor em duas linhas ("UG Origem: Cmdo" + "Bda Inf Amv").
+    // Junta a linha seguinte so se ela nao for um rotulo de outro campo.
     static Optional<String> extrairUgOrigem(String texto) {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();
         }
         String[] linhas = texto.split("\\R");
         for (int i = 0; i < linhas.length; i++) {
-            String limpa = linhas[i].trim();
-            if (limpa.matches("(?iu)^UG\\s+Origem:.*")) {
-                String valor = limpa.replaceFirst("(?iu)^UG\\s+Origem:\\s*", "").trim();
-                // Tenta juntar a próxima linha se não for um campo novo (Nr, UG, NÃO RECEBER)
+            Matcher m = UG_ORIGEM_LINHA.matcher(linhas[i].trim());
+            if (m.matches()) {
+                String valor = m.group(1).trim();
                 if (i + 1 < linhas.length) {
                     String proxima = linhas[i + 1].trim();
-                    if (!proxima.isEmpty() && !proxima.matches("(?iu)^(UG|Nr|N[ÃA]O\\s+RECEBER).*")) {
+                    if (!proxima.isEmpty() && !ROTULO_DE_CAMPO.matcher(proxima).find()) {
                         valor = (valor + " " + proxima).trim();
                     }
                 }
