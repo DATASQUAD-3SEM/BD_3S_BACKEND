@@ -13,8 +13,9 @@ import java.util.List;
 
 /**
  * T18-BE1: GET /guias/minhas, lista das guias do beneficiario logado.
- * T18-BE-2: POST /guias/{id}/envio, envia a guia pronta para a OCS da pre-guia
-*/
+ * T18-BE-2: POST /guias/{id}/envio, envia a guia pronta para a OCS da pre-guia.
+ * T18-BE-3: POST /guias/{id}/sessoes/{sessaoId}/assinatura, assina uma sessao SOLICITADA.
+ */
 @RestController
 @RequestMapping("/guias")
 public class GuiaBeneficiarioController {
@@ -33,5 +34,12 @@ public class GuiaBeneficiarioController {
     @PostMapping("/{id}/envio")
     public ResponseEntity<GuiaBeneficiarioResponse> enviar(@PathVariable("id") Long id) {
         return ResponseEntity.ok(service.enviar(id));
+    }
+
+    @PostMapping("/{id}/sessoes/{sessaoId}/assinatura")
+    public ResponseEntity<GuiaBeneficiarioResponse> assinar(
+            @PathVariable("id") Long id,
+            @PathVariable("sessaoId") Long sessaoId) {
+        return ResponseEntity.ok(service.assinar(id, sessaoId));
     }
 }
