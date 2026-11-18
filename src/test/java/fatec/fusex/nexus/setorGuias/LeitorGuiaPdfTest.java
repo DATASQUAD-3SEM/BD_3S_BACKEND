@@ -92,8 +92,15 @@ class LeitorGuiaPdfTest {
     }
 
     @Test
-    void ugOrigem_naoJuntaALinhaQueComecaComOutroRotulo() {
-        assertEquals(Optional.of("Cmdo"), LeitorGuiaPdf.extrairUgOrigem("UG Origem: Cmdo\nPrec CP:\n98317046100"));
+    void ugOrigem_valorIncompletoSemContinuacaoDevolveVazio() {
+        assertEquals(Optional.empty(), LeitorGuiaPdf.extrairUgOrigem("UG Origem: Cmdo\nPrec CP:\n98317046100"));
+        assertEquals(Optional.empty(), LeitorGuiaPdf.extrairUgOrigem("UG Origem: Cmdo Bda\nPrec CP:\n98317046100"));
+    }
+
+    @Test
+    void ugOrigem_valorCompletoEmUmaLinhaContinuaSendoLido() {
+        assertEquals(Optional.of("Cmdo Bda Inf Amv"),
+                LeitorGuiaPdf.extrairUgOrigem("UG Origem: Cmdo Bda Inf Amv\nPrec CP:\n98317046100"));
     }
 
     @Test
