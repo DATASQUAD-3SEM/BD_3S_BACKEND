@@ -48,7 +48,7 @@ public class Guia {
     @JoinColumn(name = "inserida_por", nullable = false)
     private Usuario usuario;
 
-    // Data impressa em NAO RECEBER APOS (coluna validade_ate, V8). Nula em Guias antigas ate a correcao da T16.
+    // Data impressa em NAO RECEBER APOS (coluna validade_ate, V9). Nula em Guias antigas ate a correcao da T16.
     @Column(name = "validade_ate")
     private LocalDate dataValidadeAte;
 
