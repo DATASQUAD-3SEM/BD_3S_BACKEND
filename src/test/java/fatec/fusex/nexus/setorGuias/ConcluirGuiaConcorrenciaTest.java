@@ -121,6 +121,7 @@ class ConcluirGuiaConcorrenciaTest {
         r.setArquivoUrl("guias-rascunho/concorrencia.pdf");
         r.setNomeArquivo("concorrencia.pdf");
         r.setDataAtualizacao(LocalDateTime.now());
+        r.setValidadeAte(LocalDate.of(2099, 1, 1));
         guiaRascunhoRepository.saveAndFlush(r);
         guiaRascunhoProcedimentoRepository.saveAndFlush(new GuiaRascunhoProcedimento(
                 new GuiaRascunhoProcedimentoId(idPreGuia, 1), "41001109", "TC - Abdome superior", 1));
