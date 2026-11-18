@@ -21,6 +21,6 @@ public class CorrecaoValidadeGuiasRunner implements ApplicationRunner {
 
     @Override
     public void run(ApplicationArguments args) {
-        correcaoValidadeGuias.executar();
+        correcaoValidadeGuias.executar(); // vazio quando a rotina ja rodou antes: nada a fazer
     }
 }
