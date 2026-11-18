@@ -140,7 +140,7 @@ class RecepcaoGuiasServiceTest {
     }
 
     @Test
-    void buscar_mapeiaOsCamposDoContrato_evalidadeEDoisMesesDepoisDaInsercao() {
+    void buscar_mapeiaOsCamposDoContrato_evalidadeEADataGravadaNaGuia() {
         when(guiaRepository.buscarConcluidasParaRecepcao(
                 eq(PreGuiaStatus.CONCLUIDA), eq("Antonio"), isNull(), any(Pageable.class)))
                 .thenReturn(List.of(guia(7L, "202610701",
@@ -153,7 +153,7 @@ class RecepcaoGuiasServiceTest {
         assertThat(r.beneficiarioNome()).isEqualTo("Antonio Carlos Ferreira");
         assertThat(r.precCp()).isEqualTo("45872213300");
         assertThat(r.ocsNome()).isEqualTo("Hospital Exemplo");
-        assertThat(r.validadeAte()).isEqualTo(LocalDate.of(2026, 12, 22));
+        assertThat(r.validadeAte()).isEqualTo(LocalDate.of(2026, 11, 30));
     }
 
     @Test
@@ -189,6 +189,7 @@ class RecepcaoGuiasServiceTest {
         guia.setNumero(numero);
         guia.setPreGuia(preGuia);
         guia.setDataInsercao(insercao);
+        guia.setDataValidadeAte(LocalDate.of(2026, 11, 30));
         return guia;
     }
 }
