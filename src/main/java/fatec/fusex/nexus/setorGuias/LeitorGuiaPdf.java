@@ -124,6 +124,10 @@ final class LeitorGuiaPdf {
 
     // A UG Origem pode quebrar o valor em duas linhas ("UG Origem: Cmdo" + "Bda Inf Amv").
     // Junta a linha seguinte so se ela nao for um rotulo de outro campo.
+    // T16-BE1: UG do FUSEX (unica aceita). Um valor lido que e so um prefixo dela (ex.: "Cmdo", quando a
+    // continuacao nao foi encontrada) e leitura incompleta: devolve vazio, e a conferencia nao bloqueia.
+    static final String UG_FUSEX = "Cmdo Bda Inf Amv";
+
     static Optional<String> extrairUgOrigem(String texto) {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();
@@ -139,10 +143,17 @@ final class LeitorGuiaPdf {
                         valor = (valor + " " + proxima).trim();
                     }
                 }
-                return valor.isEmpty() ? Optional.empty() : Optional.of(valor);
+                if (valor.isEmpty() || ehPrefixoIncompletoDaUgFusex(valor)) {
+                    return Optional.empty();
+                }
+                return Optional.of(valor);
             }
         }
         return Optional.empty();
+    }
+
+    private static boolean ehPrefixoIncompletoDaUgFusex(String valor) {
+        return valor.length() < UG_FUSEX.length() && UG_FUSEX.startsWith(valor);
     }
 
     static Optional<String> extrairValidade(String texto) {
