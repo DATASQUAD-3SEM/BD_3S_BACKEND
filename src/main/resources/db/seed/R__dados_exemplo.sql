@@ -128,3 +128,135 @@ WHERE u.login = 'ocs.laboratorio'
 -- Este UPDATE corrige so essas linhas; senhas ja trocadas pelos usuarios nao sao tocadas.
 UPDATE Usuario SET senha_hash = '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO'
 WHERE senha_hash = 'HASH_BCRYPT_AQUI';
+
+-- =====================================================================
+-- Dependentes e responsaveis legais de exemplo (T29-BE2, para QA das telas de T30 e T31).
+-- Titulares: Antonio (52998224725) e Marta (70000000663). Logins de CPF; senha de todas: senha123.
+-- Cenarios:
+--   Lucas ........ menor, titular Antonio, responsavel so o titular (vigencia determinada)
+--   Sofia ........ menor, titular Marta, dois responsaveis: a titular e a externa Renata
+--   Helena ....... maior, vitalicia, com conta propria; tambem responsavel legal de Lucas (acumulo de papeis)
+--   Pedro ........ maior, vigencia determinada (data de termino futura)
+--   Joao ......... ENCERRADO (removido pelo chefe), com historico de responsavel legal de Lucas
+-- Idempotente: cada linha e inserida so se a chave natural ainda nao existir.
+-- =====================================================================
+
+-- Titular Marta (segundo titular de exemplo)
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '70000000663', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'BENEFICIARIO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '70000000663');
+
+INSERT INTO Beneficiario (usuario_id, nome, prec_cp, data_nascimento, telefone)
+SELECT u.id_usuario, 'Marta Souza Lima', '45810020001', '1975-09-02', '11988887777'
+FROM Usuario u
+WHERE u.login = '70000000663'
+  AND NOT EXISTS (SELECT 1 FROM Beneficiario b WHERE b.usuario_id = u.id_usuario);
+
+-- Helena: maior com conta propria (perfil BENEFICIARIO), dependente vitalicia de Antonio
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '30000000205', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'BENEFICIARIO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '30000000205');
+
+INSERT INTO Beneficiario (usuario_id, nome, prec_cp, data_nascimento, telefone)
+SELECT u.id_usuario, 'Helena Ferreira', '45872213303', '1970-05-20', '12977776666'
+FROM Usuario u
+WHERE u.login = '30000000205'
+  AND NOT EXISTS (SELECT 1 FROM Beneficiario b WHERE b.usuario_id = u.id_usuario);
+
+-- Joao: maior com conta propria, dependente encerrado de Antonio
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '50000000485', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'BENEFICIARIO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '50000000485');
+
+INSERT INTO Beneficiario (usuario_id, nome, prec_cp, data_nascimento, telefone)
+SELECT u.id_usuario, 'Joao Ferreira', '45872213305', '2001-01-01', '12966665555'
+FROM Usuario u
+WHERE u.login = '50000000485'
+  AND NOT EXISTS (SELECT 1 FROM Beneficiario b WHERE b.usuario_id = u.id_usuario);
+
+-- Renata: pessoa externa, sem Prec CP e sem Beneficiario; login pelo CPF; assinatura cadastrada no primeiro acesso
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '60000000574', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RESPONSAVEL_EXTERNO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '60000000574');
+
+-- Dependentes de Antonio (titular 52998224725)
+INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, telefone, prec_cp, vinculo,
+                        tipo_vigencia, vigencia_fim, situacao, data_encerramento)
+SELECT b.usuario_id, NULL, 'Lucas Ferreira', '2015-06-10', '98765432100', NULL, '45872213301', 'Filho',
+       'DETERMINADA', '2037-06-09', 'ATIVO', NULL
+FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
+WHERE u.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45872213301');
+
+INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, telefone, prec_cp, vinculo,
+                        tipo_vigencia, vigencia_fim, situacao, data_encerramento)
+SELECT b.usuario_id, (SELECT c.id_usuario FROM Usuario c WHERE c.login = '30000000205'),
+       'Helena Ferreira', '1970-05-20', '30000000205', NULL, '45872213303', 'Conjuge',
+       'VITALICIA', NULL, 'ATIVO', NULL
+FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
+WHERE u.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45872213303');
+
+INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, telefone, prec_cp, vinculo,
+                        tipo_vigencia, vigencia_fim, situacao, data_encerramento)
+SELECT b.usuario_id, NULL, 'Pedro Ferreira', '1998-08-08', '40000000396', NULL, '45872213304', 'Irmao',
+       'DETERMINADA', '2030-12-31', 'ATIVO', NULL
+FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
+WHERE u.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45872213304');
+
+INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, telefone, prec_cp, vinculo,
+                        tipo_vigencia, vigencia_fim, situacao, data_encerramento)
+SELECT b.usuario_id, (SELECT c.id_usuario FROM Usuario c WHERE c.login = '50000000485'),
+       'Joao Ferreira', '2001-01-01', '50000000485', NULL, '45872213305', 'Filho',
+       'VITALICIA', NULL, 'ENCERRADO', '2021-01-05 10:00:00'
+FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
+WHERE u.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45872213305');
+
+-- Dependente de Marta (titular 70000000663)
+INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, telefone, prec_cp, vinculo,
+                        tipo_vigencia, vigencia_fim, situacao, data_encerramento)
+SELECT b.usuario_id, NULL, 'Sofia Souza', '2017-02-01', '20000000108', NULL, '45810020002', 'Filha',
+       'DETERMINADA', '2038-01-31', 'ATIVO', NULL
+FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
+WHERE u.login = '70000000663'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45810020002');
+
+-- Responsaveis legais (ResponsavelLegal aponta para Usuario; a linha segue mesmo se o dependente encerrar)
+-- Lucas: Antonio desde o nascimento; Helena desde 2019 (acumulo de papeis); Joao de 2019 a 2021 (historico)
+INSERT INTO ResponsavelLegal (dependente_id, usuario_id, data_inicio, data_fim)
+SELECT d.id_dependente, u.id_usuario, '2015-06-10', NULL
+FROM Dependente d JOIN Usuario u ON u.login = '52998224725'
+WHERE d.prec_cp = '45872213301'
+  AND NOT EXISTS (SELECT 1 FROM ResponsavelLegal r
+                  WHERE r.dependente_id = d.id_dependente AND r.usuario_id = u.id_usuario AND r.data_inicio = '2015-06-10');
+
+INSERT INTO ResponsavelLegal (dependente_id, usuario_id, data_inicio, data_fim)
+SELECT d.id_dependente, u.id_usuario, '2019-01-01', NULL
+FROM Dependente d JOIN Usuario u ON u.login = '30000000205'
+WHERE d.prec_cp = '45872213301'
+  AND NOT EXISTS (SELECT 1 FROM ResponsavelLegal r
+                  WHERE r.dependente_id = d.id_dependente AND r.usuario_id = u.id_usuario AND r.data_inicio = '2019-01-01');
+
+INSERT INTO ResponsavelLegal (dependente_id, usuario_id, data_inicio, data_fim)
+SELECT d.id_dependente, u.id_usuario, '2019-01-01', '2021-01-05'
+FROM Dependente d JOIN Usuario u ON u.login = '50000000485'
+WHERE d.prec_cp = '45872213301'
+  AND NOT EXISTS (SELECT 1 FROM ResponsavelLegal r
+                  WHERE r.dependente_id = d.id_dependente AND r.usuario_id = u.id_usuario AND r.data_inicio = '2019-01-01');
+
+-- Sofia: Marta e Renata, os dois responsaveis ativos
+INSERT INTO ResponsavelLegal (dependente_id, usuario_id, data_inicio, data_fim)
+SELECT d.id_dependente, u.id_usuario, '2017-02-01', NULL
+FROM Dependente d JOIN Usuario u ON u.login = '70000000663'
+WHERE d.prec_cp = '45810020002'
+  AND NOT EXISTS (SELECT 1 FROM ResponsavelLegal r
+                  WHERE r.dependente_id = d.id_dependente AND r.usuario_id = u.id_usuario AND r.data_inicio = '2017-02-01');
+
+INSERT INTO ResponsavelLegal (dependente_id, usuario_id, data_inicio, data_fim)
+SELECT d.id_dependente, u.id_usuario, '2017-02-01', NULL
+FROM Dependente d JOIN Usuario u ON u.login = '60000000574'
+WHERE d.prec_cp = '45810020002'
+  AND NOT EXISTS (SELECT 1 FROM ResponsavelLegal r
+                  WHERE r.dependente_id = d.id_dependente AND r.usuario_id = u.id_usuario AND r.data_inicio = '2017-02-01');
