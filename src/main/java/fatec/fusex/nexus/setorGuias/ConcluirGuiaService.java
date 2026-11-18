@@ -50,7 +50,8 @@ public class ConcluirGuiaService {
         this.usuarioLogado = usuarioLogado;
     }
 
-    // Ordem: perfil (403) -> existe (404) -> status (409) -> Guia ja criada (409) -> rascunho (409) -> exames (409)
+    // Ordem: perfil (403) -> existe (404) -> status (409) -> Guia ja criada (409) -> rascunho (409)
+    //        -> validade do rascunho (409) -> numero repetido (409) -> exames (409)
     // T22-BE2: os exames do rascunho viram GuiaProcedimento na mesma transacao: tudo ou nada.
     @Transactional
     public GuiaConcluidaResponse concluir(Long id) {
