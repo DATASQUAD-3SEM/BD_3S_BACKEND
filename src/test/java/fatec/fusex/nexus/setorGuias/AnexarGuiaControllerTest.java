@@ -60,6 +60,10 @@ class AnexarGuiaControllerTest {
     private static final String SETOR = "setor.teste";
     private static final String BENEFICIARIO = "52998224725";
     private static final byte[] PDF = "%PDF-1.4 guia de teste".getBytes();
+    // T16-BE2: UG do FUSEX e validade futura (passam na conferencia)
+    private static final String UG_VALIDA = "Cmdo Bda Inf Amv";
+    private static final String VALIDADE_VALIDA = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo"))
+            .plusYears(1).toString();
     private static final String EXAMES_VALIDOS = """
             [{"codDgp":"41001109","descricao":"TC - Abdome superior","quantidade":1},
              {"codDgp":"50011015","descricao":"Consulta pediatra","quantidade":2}]""";
@@ -143,9 +147,14 @@ class AnexarGuiaControllerTest {
         return anexar(login, id, numero, arquivo, EXAMES_VALIDOS);
     }
 
-    // exames null: o campo nao e enviado (422 em exames)
     private ResultActions anexar(String login, Long id, String numero, MockMultipartFile arquivo, String exames)
             throws Exception {
+        return anexar(login, id, numero, arquivo, exames, UG_VALIDA, UG_VALIDA, VALIDADE_VALIDA);
+    }
+
+    // exames, ug, ugOrigem e validade null: o campo nao e enviado (422 no campo)
+    private ResultActions anexar(String login, Long id, String numero, MockMultipartFile arquivo, String exames,
+                                 String ug, String ugOrigem, String validadeAte) throws Exception {
         MockMultipartHttpServletRequestBuilder req = multipart(HttpMethod.PUT, "/setor-guias/pre-guias/" + id + "/guia-rascunho");
         if (arquivo != null) {
             req.file(arquivo);
@@ -155,6 +164,15 @@ class AnexarGuiaControllerTest {
         }
         if (exames != null) {
             req.param("exames", exames);
+        }
+        if (ug != null) {
+            req.param("ug", ug);
+        }
+        if (ugOrigem != null) {
+            req.param("ugOrigem", ugOrigem);
+        }
+        if (validadeAte != null) {
+            req.param("validadeAte", validadeAte);
         }
         return mockMvc.perform(req.header(SimulacaoLoginFilter.HEADER, login));
     }
@@ -278,6 +296,79 @@ class AnexarGuiaControllerTest {
                 .andExpect(jsonPath("$.detalhes[0]").value("numeroGuia: Informe o numero da Guia"));
         anexar(SETOR, p.getIdPreGuia(), "1".repeat(21), pdf("guia.pdf"))
                 .andExpect(status().isUnprocessableEntity());
+    }
+
+    // T16-BE2: UG, UG Origem e validade conferidas no servidor (422, nada gravado)
+    @Test
+    void ugDiferenteDoFusex_retorna422SemGravarNada() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), EXAMES_VALIDOS,
+                "Cmdo Bda Inf Sul", UG_VALIDA, VALIDADE_VALIDA)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value(
+                        "ug: A Guia não é do FUSEX. A UG deve ser Cmdo Bda Inf Amv."));
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
+    }
+
+    @Test
+    void ugOrigemDiferenteDoFusex_retorna422MesmoComUgCorreta() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), EXAMES_VALIDOS,
+                UG_VALIDA, "Cmdo Bda Inf Sul", VALIDADE_VALIDA)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value(
+                        "ugOrigem: A UG Origem impressa na Guia é diferente de Cmdo Bda Inf Amv. Esta Guia não é do FUSEX."));
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
+    }
+
+    @Test
+    void validadeVencida_retorna422ComAData() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), EXAMES_VALIDOS,
+                UG_VALIDA, UG_VALIDA, "2020-01-15")
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value(
+                        "validadeAte: Esta Guia já venceu em 15/01/2020. Não é possível concluir."));
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
+    }
+
+    @Test
+    void ugOuValidadeAusentes_retornam422() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), EXAMES_VALIDOS, null, UG_VALIDA, VALIDADE_VALIDA)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value("ug: Informe a UG impressa na Guia"));
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), EXAMES_VALIDOS, UG_VALIDA, UG_VALIDA, null)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.detalhes[0]").value("validadeAte: Informe a validade da Guia"));
+        assertThat(guiaRascunhoRepository.findById(p.getIdPreGuia())).isEmpty();
+    }
+
+    @Test
+    void ugComEspacosEMaiusculasTrocadas_eValidadeDeHoje_grava() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        String hoje = LocalDate.now(java.time.ZoneId.of("America/Sao_Paulo")).toString();
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), EXAMES_VALIDOS,
+                "  cmdo   BDA inf amv ", " CMDO Bda Inf Amv", hoje)
+                .andExpect(status().isOk());
+
+        assertThat(rascunhoNoBanco(p.getIdPreGuia()).getValidadeAte()).isEqualTo(LocalDate.parse(hoje));
+    }
+
+    @Test
+    void validadeFutura_gravaAValidadeNoRascunho() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+
+        anexar(SETOR, p.getIdPreGuia(), "2026001234", pdf("guia.pdf"), EXAMES_VALIDOS,
+                UG_VALIDA, UG_VALIDA, "2027-01-01")
+                .andExpect(status().isOk());
+
+        assertThat(rascunhoNoBanco(p.getIdPreGuia()).getValidadeAte()).isEqualTo(LocalDate.of(2027, 1, 1));
     }
 
     @Test
