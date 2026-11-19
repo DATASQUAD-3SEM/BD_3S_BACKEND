@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -125,7 +126,7 @@ class AnexarGuiaRascunhoTransacaoTest {
 
         MockMultipartFile pdf = new MockMultipartFile("pdf", "guia.pdf", "application/pdf", "%PDF-1.4 guia".getBytes());
 
-        assertThatThrownBy(() -> service.anexar(preGuia.getIdPreGuia(), "2026001234", pdf, EXAMES))
+        assertThatThrownBy(() -> service.anexar(preGuia.getIdPreGuia(), "2026001234", pdf, EXAMES, "Cmdo Bda Inf Amv", "Cmdo Bda Inf Amv", LocalDate.now(ZoneId.of("America/Sao_Paulo")).plusYears(1).toString()))
                 .isInstanceOf(IllegalStateException.class);
 
         assertThat(guiaRascunhoRepository.findById(preGuia.getIdPreGuia())).isEmpty();

@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.guiaRascunho;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import fatec.fusex.nexus.preGuia.PreGuia;
@@ -48,4 +49,8 @@ public class GuiaRascunho {
 
     @Column(name = "data_atualizacao", nullable = false)
     private LocalDateTime dataAtualizacao = LocalDateTime.now();
+
+    // T16-BE2: validade lida do PDF ("NAO RECEBER APOS"). Nula em rascunhos anteriores a V12.
+    @Column(name = "validade_ate")
+    private LocalDate validadeAte;
 }

@@ -2,7 +2,12 @@ package fatec.fusex.nexus.setorGuias;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -54,6 +59,15 @@ public class AnexarGuiaService {
     private static final Pattern COD_DGP = Pattern.compile("[0-9]{1,10}");
     private static final ObjectMapper JSON = new ObjectMapper();
 
+    // T16-BE2: UG do FUSEX (unica aceita; ug e ugOrigem so sao conferidas, nao gravadas), limite de 100 caracteres,
+    // validade em yyyy-mm-dd conferida no fuso de Sao Paulo
+    static final String UG_FUSEX = "Cmdo Bda Inf Amv";
+    private static final int UG_MAXIMA = 100;
+    private static final ZoneId FUSO = ZoneId.of("America/Sao_Paulo");
+    private static final DateTimeFormatter DATA_ISO = DateTimeFormatter.ofPattern("uuuu-MM-dd")
+            .withResolverStyle(ResolverStyle.STRICT);
+    private static final DateTimeFormatter DATA_BR = DateTimeFormatter.ofPattern("dd/MM/uuuu");
+
     private final AnexarGuiaRepository repository;
     private final GuiaRascunhoProcedimentoRepository procedimentoRepository;
     private final ArmazenamentoArquivo armazenamentoArquivo;
@@ -72,9 +86,11 @@ public class AnexarGuiaService {
         this.tamanhoMaximoBytes = tamanhoMaximoBytes;
     }
 
-    // Ordem: perfil (403) -> existe (404) -> numero, arquivo e exames (422) -> status/Guia concluida (409) -> numero repetido (409)
+    // Ordem: perfil (403) -> existe (404) -> numero, arquivo, exames, UG, UG Origem e validade (422)
+    //        -> status/Guia concluida (409) -> numero repetido (409)
     @Transactional
-    public GuiaRascunhoResponse anexar(Long id, String numeroGuia, MultipartFile pdf, String exames) {
+    public GuiaRascunhoResponse anexar(Long id, String numeroGuia, MultipartFile pdf, String exames,
+                                       String ug, String ugOrigem, String validadeAte) {
         usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
 
         PreGuia preGuia = repository.buscarPreGuiaParaAnexar(id)
@@ -83,6 +99,11 @@ public class AnexarGuiaService {
         String numero = validarNumero(numeroGuia);
         validarPdf(pdf);
         List<GuiaRascunhoProcedimento> linhasExames = validarExames(exames, id);
+        validarUg(ug, "ug", "Informe a UG impressa na Guia",
+                "A Guia não é do FUSEX. A UG deve ser " + UG_FUSEX + ".");
+        validarUg(ugOrigem, "ugOrigem", "Informe a UG Origem impressa na Guia",
+                "A UG Origem impressa na Guia é diferente de " + UG_FUSEX + ". Esta Guia não é do FUSEX.");
+        LocalDate validade = validarValidade(validadeAte, LocalDate.now(FUSO));
 
         if (preGuia.getStatus() != PreGuiaStatus.EM_ANALISE) {
             throw new ConflitoException("A pre-guia nao esta Em analise: ela ja foi alterada");
@@ -108,6 +129,7 @@ public class AnexarGuiaService {
             rascunho.setArquivoUrl(arquivoNovo);
             rascunho.setNomeArquivo(nomeDoArquivo(pdf));
             rascunho.setDataAtualizacao(LocalDateTime.now());
+            rascunho.setValidadeAte(validade);
             repository.saveAndFlush(rascunho);
 
             // A lista nova substitui a anterior (mesma transacao: ou grava tudo, ou nada).
@@ -140,6 +162,39 @@ public class AnexarGuiaService {
             throw new DadosInvalidosException("numeroGuia", "O numero da Guia deve ter no maximo " + NUMERO_MAXIMO + " digitos");
         }
         return numero;
+    }
+
+    // T16-BE2: sem espacos nas pontas, espacos internos reduzidos a um e sem diferenca de maiusculas
+    static void validarUg(String ug, String campo, String mensagemVazia, String mensagemNaoFusex) {
+        if (ug == null || ug.isBlank()) {
+            throw new DadosInvalidosException(campo, mensagemVazia);
+        }
+        String recebida = ug.strip();
+        if (recebida.length() > UG_MAXIMA) {
+            throw new DadosInvalidosException(campo, "A UG deve ter no maximo " + UG_MAXIMA + " caracteres");
+        }
+        String normalizada = recebida.replaceAll("\\s+", " ");
+        if (!normalizada.equalsIgnoreCase(UG_FUSEX)) {
+            throw new DadosInvalidosException(campo, mensagemNaoFusex);
+        }
+    }
+
+    // T16-BE2: obrigatoria, formato yyyy-mm-dd (sem dia inexistente) e nao anterior a hoje
+    static LocalDate validarValidade(String validadeAte, LocalDate hoje) {
+        if (validadeAte == null || validadeAte.isBlank()) {
+            throw new DadosInvalidosException("validadeAte", "Informe a validade da Guia");
+        }
+        LocalDate validade;
+        try {
+            validade = LocalDate.parse(validadeAte.strip(), DATA_ISO);
+        } catch (DateTimeParseException e) {
+            throw new DadosInvalidosException("validadeAte", "A validade deve estar no formato aaaa-mm-dd");
+        }
+        if (validade.isBefore(hoje)) {
+            throw new DadosInvalidosException("validadeAte",
+                    "Esta Guia já venceu em " + validade.format(DATA_BR) + ". Não é possível concluir.");
+        }
+        return validade;
     }
 
     // So PDF (extensao e conteudo comecando com %PDF) e ate o limite configurado

@@ -27,11 +27,15 @@ public class AnexarGuiaController {
     }
 
     // required = false: campo ausente cai na validacao do service (422 apontando o campo)
+    // T16-BE2: ug, ugOrigem e validadeAte sao obrigatorios (ausentes caem na validacao do service: 422)
     @PutMapping(value = "/{id}/guia-rascunho", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public GuiaRascunhoResponse anexar(@PathVariable Long id,
                                        @RequestParam(required = false) String numeroGuia,
                                        @RequestPart(required = false) MultipartFile pdf,
-                                       @RequestParam(required = false) String exames) {
-        return anexarGuiaService.anexar(id, numeroGuia, pdf, exames);
+                                       @RequestParam(required = false) String exames,
+                                       @RequestParam(required = false) String ug,
+                                       @RequestParam(required = false) String ugOrigem,
+                                       @RequestParam(required = false) String validadeAte) {
+        return anexarGuiaService.anexar(id, numeroGuia, pdf, exames, ug, ugOrigem, validadeAte);
     }
 }
