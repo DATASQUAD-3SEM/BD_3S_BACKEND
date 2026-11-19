@@ -31,7 +31,7 @@ public class Usuario {
 
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
-    @Column(nullable = false, length = 15)
+    @Column(nullable = false, length = 20)
     private PerfilUsuario perfil;
 
     @Column(nullable = false)
