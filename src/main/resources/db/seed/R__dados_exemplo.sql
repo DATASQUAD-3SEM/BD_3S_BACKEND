@@ -137,6 +137,7 @@ WHERE senha_hash = 'HASH_BCRYPT_AQUI';
 --   Sofia ........ menor, titular Marta, dois responsaveis: a titular e a externa Renata
 --   Helena ....... maior, vitalicia, com conta propria; tambem responsavel legal de Lucas (acumulo de papeis)
 --   Pedro ........ maior, vigencia determinada (data de termino futura)
+--   Rafael ........ maior, vigencia determinada ja vencida (situacao ATIVO, sem remocao registrada)
 --   Joao ......... ENCERRADO (removido pelo chefe), com historico de responsavel legal de Lucas
 -- Idempotente: cada linha e inserida so se a chave natural ainda nao existir.
 -- =====================================================================
@@ -222,6 +223,16 @@ SELECT b.usuario_id, NULL, 'Sofia Souza', '2017-02-01', '20000000108', NULL, '45
 FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
 WHERE u.login = '70000000663'
   AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45810020002');
+
+-- Rafael: vigencia vencida (DETERMINADA com vigencia_fim no passado). Situacao continua ATIVO, sem remocao
+-- registrada: a vigencia encerrou, mas o chefe nao removeu o dependente. Nao aparece como paciente da pre-guia.
+INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, telefone, prec_cp, vinculo,
+                        tipo_vigencia, vigencia_fim, situacao, data_encerramento)
+SELECT b.usuario_id, NULL, 'Rafael Ferreira', '1995-04-10', '80000000752', NULL, '45872213306', 'Irmao',
+       'DETERMINADA', '2025-12-31', 'ATIVO', NULL
+FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
+WHERE u.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45872213306');
 
 -- Responsaveis legais (ResponsavelLegal aponta para Usuario; a linha segue mesmo se o dependente encerrar)
 -- Lucas: Antonio desde o nascimento; Helena desde 2019 (acumulo de papeis); Joao de 2019 a 2021 (historico)
