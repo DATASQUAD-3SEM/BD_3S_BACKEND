@@ -42,7 +42,7 @@ class PreGuiaControllerTest {
 
     @Test
     void criar_quandoRequisicaoValida_devolve201ComNumero() throws Exception {
-        when(preGuiaService.criar(eq(10L), any())).thenReturn(
+        when(preGuiaService.criar(eq(10L), any(), any())).thenReturn(
                 new PreGuiaResponse(7L, "0007", "PENDENTE", LocalDateTime.of(2026, 9, 24, 10, 0), 10L));
 
         mockMvc.perform(multipart("/pre-guias").file(arquivo).param("ocsId", "10")
@@ -55,7 +55,7 @@ class PreGuiaControllerTest {
 
     @Test
     void criar_dadosInvalidos_devolve422ApontandoOCampo() throws Exception {
-        when(preGuiaService.criar(any(), any())).thenThrow(new DadosInvalidosException("ocsId", "Escolha a OCS"));
+        when(preGuiaService.criar(any(), any(), any())).thenThrow(new DadosInvalidosException("ocsId", "Escolha a OCS"));
 
         mockMvc.perform(multipart("/pre-guias").file(arquivo).header("X-Usuario-Login", "52998224725"))
                 .andExpect(status().isUnprocessableEntity())
@@ -64,7 +64,7 @@ class PreGuiaControllerTest {
 
     @Test
     void criar_perfilErrado_devolve403() throws Exception {
-        when(preGuiaService.criar(any(), any())).thenThrow(new AcessoNegadoException("Acesso negado"));
+        when(preGuiaService.criar(any(), any(), any())).thenThrow(new AcessoNegadoException("Acesso negado"));
 
         mockMvc.perform(multipart("/pre-guias").file(arquivo).param("ocsId", "10")
                         .header("X-Usuario-Login", "11144477735"))
