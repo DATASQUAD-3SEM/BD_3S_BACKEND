@@ -48,6 +48,7 @@ class PreGuiaServiceTest {
     @Mock private PreGuiaHistoricoRepository historicoRepository;
     @Mock private ArmazenamentoArquivo armazenamentoArquivo;
     @Mock private UsuarioLogado usuarioLogado;
+    @Mock private fatec.fusex.nexus.dependente.PacientesPreGuiaService pacientesPreGuiaService;
 
     private PreGuiaService preGuiaService;
 
@@ -59,7 +60,7 @@ class PreGuiaServiceTest {
     @BeforeEach
     void preparar() {
         preGuiaService = new PreGuiaService(preGuiaRepository, beneficiarioRepository, ocsRepository,
-                historicoRepository, armazenamentoArquivo, usuarioLogado, new ValidacaoEncaminhamento(10_485_760));
+                historicoRepository, armazenamentoArquivo, usuarioLogado, new ValidacaoEncaminhamento(10_485_760), pacientesPreGuiaService);
         usuario = new Usuario();
         usuario.setIdUsuario(1L);
         usuario.setPerfil(PerfilUsuario.BENEFICIARIO);
@@ -87,7 +88,7 @@ class PreGuiaServiceTest {
     }
 
     private void beneficiarioLogado() {
-        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO)).thenReturn(usuario);
+        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO)).thenReturn(usuario);
         when(beneficiarioRepository.findById(1L)).thenReturn(Optional.of(beneficiarioComId(1L)));
     }
 
@@ -144,7 +145,7 @@ class PreGuiaServiceTest {
             return salva;
         });
 
-        PreGuiaResponse resultado = preGuiaService.criar(10L, pdf);
+        PreGuiaResponse resultado = preGuiaService.criar(10L, null, pdf);
 
         assertThat(resultado.numero()).isEqualTo("0007");
         assertThat(resultado.status()).isEqualTo("PENDENTE");
@@ -159,10 +160,10 @@ class PreGuiaServiceTest {
 
     @Test
     void criar_perfilErrado_lanca403SemGravarNada() {
-        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO))
+        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO))
                 .thenThrow(new AcessoNegadoException("Acesso negado"));
 
-        assertThatThrownBy(() -> preGuiaService.criar(10L, pdf)).isInstanceOf(AcessoNegadoException.class);
+        assertThatThrownBy(() -> preGuiaService.criar(10L, null, pdf)).isInstanceOf(AcessoNegadoException.class);
         verify(armazenamentoArquivo, never()).salvar(any(), anyString());
     }
 
@@ -170,7 +171,7 @@ class PreGuiaServiceTest {
     void criar_semOcs_lanca422NoCampoOcsId() {
         beneficiarioLogado();
 
-        assertThatThrownBy(() -> preGuiaService.criar(null, pdf))
+        assertThatThrownBy(() -> preGuiaService.criar(null, null, pdf))
                 .isInstanceOf(DadosInvalidosException.class)
                 .extracting(e -> ((DadosInvalidosException) e).getCampo())
                 .isEqualTo("ocsId");
@@ -181,7 +182,7 @@ class PreGuiaServiceTest {
         beneficiarioLogado();
         when(ocsRepository.findById(5L)).thenReturn(Optional.of(ocs(5L, false)));
 
-        assertThatThrownBy(() -> preGuiaService.criar(5L, pdf))
+        assertThatThrownBy(() -> preGuiaService.criar(5L, null, pdf))
                 .isInstanceOf(DadosInvalidosException.class)
                 .extracting(e -> ((DadosInvalidosException) e).getCampo())
                 .isEqualTo("ocsId");
@@ -192,7 +193,7 @@ class PreGuiaServiceTest {
         beneficiarioLogado();
         when(ocsRepository.findById(10L)).thenReturn(Optional.of(ocs(10L, true)));
 
-        assertThatThrownBy(() -> preGuiaService.criar(10L, new MockMultipartFile("arquivo", new byte[0])))
+        assertThatThrownBy(() -> preGuiaService.criar(10L, null, new MockMultipartFile("arquivo", new byte[0])))
                 .isInstanceOf(DadosInvalidosException.class)
                 .extracting(e -> ((DadosInvalidosException) e).getCampo())
                 .isEqualTo("arquivo");
@@ -204,7 +205,7 @@ class PreGuiaServiceTest {
         when(ocsRepository.findById(10L)).thenReturn(Optional.of(ocs(10L, true)));
         MockMultipartFile falso = new MockMultipartFile("arquivo", "foto.jpg", "image/jpeg", "nao e imagem".getBytes());
 
-        assertThatThrownBy(() -> preGuiaService.criar(10L, falso)).isInstanceOf(DadosInvalidosException.class);
+        assertThatThrownBy(() -> preGuiaService.criar(10L, null, falso)).isInstanceOf(DadosInvalidosException.class);
         verify(armazenamentoArquivo, never()).salvar(any(), anyString());
     }
 
@@ -215,7 +216,7 @@ class PreGuiaServiceTest {
         when(armazenamentoArquivo.salvar(any(), anyString())).thenReturn("encaminhamentos/orfao.pdf");
         when(preGuiaRepository.save(any())).thenThrow(new RuntimeException("constraint"));
 
-        assertThatThrownBy(() -> preGuiaService.criar(10L, pdf)).isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> preGuiaService.criar(10L, null, pdf)).isInstanceOf(RuntimeException.class);
 
         verify(armazenamentoArquivo).removerSemFalhar("encaminhamentos/orfao.pdf");
     }
