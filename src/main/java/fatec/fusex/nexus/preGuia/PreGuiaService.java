@@ -13,6 +13,9 @@ import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.common.validation.ValidacaoEncaminhamento;
+import fatec.fusex.nexus.dependente.Dependente;
+import fatec.fusex.nexus.dependente.PacienteResponse;
+import fatec.fusex.nexus.dependente.PacientesPreGuiaService;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
 import fatec.fusex.nexus.preGuia.dto.PreGuiaResponse;
@@ -41,6 +44,7 @@ public class PreGuiaService {
     private final ArmazenamentoArquivo armazenamentoArquivo;
     private final UsuarioLogado usuarioLogado;
     private final ValidacaoEncaminhamento validacaoEncaminhamento;
+    private final PacientesPreGuiaService pacientesPreGuiaService;
 
     public PreGuiaService(PreGuiaRepository preGuiaRepository,
                           BeneficiarioRepository beneficiarioRepository,
@@ -48,7 +52,8 @@ public class PreGuiaService {
                           PreGuiaHistoricoRepository historicoRepository,
                           ArmazenamentoArquivo armazenamentoArquivo,
                           UsuarioLogado usuarioLogado,
-                          ValidacaoEncaminhamento validacaoEncaminhamento) {
+                          ValidacaoEncaminhamento validacaoEncaminhamento,
+                          PacientesPreGuiaService pacientesPreGuiaService) {
         this.preGuiaRepository = preGuiaRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.ocsRepository = ocsRepository;
@@ -56,6 +61,13 @@ public class PreGuiaService {
         this.armazenamentoArquivo = armazenamentoArquivo;
         this.usuarioLogado = usuarioLogado;
         this.validacaoEncaminhamento = validacaoEncaminhamento;
+        this.pacientesPreGuiaService = pacientesPreGuiaService;
+    }
+
+    /** GET /pre-guias/pacientes (T30-BE2): pacientes que o usuario logado pode escolher para a pre-guia. */
+    public List<PacienteResponse> listarPacientes() {
+        Usuario usuario = usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
+        return pacientesPreGuiaService.listar(usuario);
     }
 
     public List<PreGuia> listarDoBeneficiario(Long beneficiarioId) {
@@ -75,12 +87,24 @@ public class PreGuiaService {
         return preGuia;
     }
 
-    // Ordem: perfil (403) -> cadastro do beneficiario (404) -> OCS (422) -> arquivo (422)
+    // Ordem: perfil (403) -> paciente (403 ou 422) -> cadastro do beneficiario (404) -> OCS (422) -> arquivo (422)
+    // T30-BE2: com dependenteId, o paciente e o dependente (403 se o usuario nao pode escolhe-lo); sem ele, o titular
     @Transactional
-    public PreGuiaResponse criar(Long ocsId, MultipartFile arquivo) {
-        Usuario usuario = usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO);
-        Beneficiario beneficiario = beneficiarioRepository.findById(usuario.getIdUsuario())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
+    public PreGuiaResponse criar(Long ocsId, Long dependenteId, MultipartFile arquivo) {
+        Usuario usuario = usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
+
+        Dependente dependente = null;
+        Beneficiario beneficiario;
+        if (dependenteId != null) {
+            dependente = pacientesPreGuiaService.dependentePermitido(usuario, dependenteId);
+            beneficiario = dependente.getTitular();
+        } else {
+            if (usuario.getPerfil() == PerfilUsuario.RESPONSAVEL_EXTERNO) {
+                throw new DadosInvalidosException("dependenteId", "Escolha o paciente da pre-guia");
+            }
+            beneficiario = beneficiarioRepository.findById(usuario.getIdUsuario())
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
+        }
 
         Ocs ocs = buscarOcsAtiva(ocsId);
         validacaoEncaminhamento.validarObrigatorio(arquivo);
@@ -92,6 +116,10 @@ public class PreGuiaService {
             preGuia.setOcs(ocs);
             preGuia.setEncaminhamentoUrl(encaminhamentoUrl);
             preGuia.setStatus(PreGuiaStatus.PENDENTE);
+            preGuia.setDependente(dependente);
+            // a idade vale no dia da criacao: depois de 18 anos, a pre-guia continua com o responsavel
+            preGuia.setPacienteMenorNaCriacao(dependente != null && dependente.menorEm(PacientesPreGuiaService.hoje()));
+            preGuia.setCriadaPor(usuario);
             preGuiaRepository.save(preGuia);
 
             // Primeira linha do historico: quem criou foi o proprio beneficiario, com a foto enviada
