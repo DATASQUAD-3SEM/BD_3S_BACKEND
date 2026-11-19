@@ -119,6 +119,7 @@ class ConcluirGuiaRascunhoTransacaoTest {
         rascunho.setArquivoUrl("guias-rascunho/2026007777.pdf");
         rascunho.setNomeArquivo("guia-2026007777.pdf");
         rascunho.setDataAtualizacao(LocalDateTime.now());
+        rascunho.setValidadeAte(LocalDate.of(2099, 1, 1));
         guiaRascunhoRepository.saveAndFlush(rascunho);
 
         guiaRascunhoProcedimentoRepository.saveAllAndFlush(List.of(

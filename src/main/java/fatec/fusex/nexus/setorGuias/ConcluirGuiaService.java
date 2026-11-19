@@ -50,7 +50,8 @@ public class ConcluirGuiaService {
         this.usuarioLogado = usuarioLogado;
     }
 
-    // Ordem: perfil (403) -> existe (404) -> status (409) -> Guia ja criada (409) -> rascunho (409) -> exames (409)
+    // Ordem: perfil (403) -> existe (404) -> status (409) -> Guia ja criada (409) -> rascunho (409)
+    //        -> validade do rascunho (409) -> numero repetido (409) -> exames (409)
     // T22-BE2: os exames do rascunho viram GuiaProcedimento na mesma transacao: tudo ou nada.
     @Transactional
     public GuiaConcluidaResponse concluir(Long id) {
@@ -68,6 +69,10 @@ public class ConcluirGuiaService {
         }
         GuiaRascunho rascunho = repository.buscarRascunho(id)
                 .orElseThrow(() -> new ConflitoException("Guia nao anexada"));
+        // T16-BE3: rascunho gravado antes da T16-BE2 nao tem validade conferida: o setor anexa a Guia de novo
+        if (rascunho.getValidadeAte() == null) {
+            throw new ConflitoException("Guia sem validade conferida");
+        }
         if (repository.numeroUsadoEmGuia(rascunho.getNumero())) {
             throw new ConflitoException("numeroGuia", "Numero de Guia ja usado em outra Guia");
         }
@@ -80,7 +85,9 @@ public class ConcluirGuiaService {
         guia.setPreGuia(preGuia);
         guia.setNumero(rascunho.getNumero());
         guia.setArquivoUrl(rascunho.getArquivoUrl());
-        guia.setDataInsercao(LocalDateTime.now()); // a validade conta a partir do "Concluir"
+        guia.setDataInsercao(LocalDateTime.now());
+        // T16-BE3: a validade e a data impressa em NAO RECEBER APOS (conferida no rascunho), nao a insercao + 2 meses
+        guia.setDataValidadeAte(rascunho.getValidadeAte());
         guia.setUsuario(setor);
 
         try {
@@ -103,6 +110,6 @@ public class ConcluirGuiaService {
                 .toList();
         guiaProcedimentoRepository.saveAllAndFlush(procedimentos);
 
-        return new GuiaConcluidaResponse(guia.getIdGuia(), guia.getNumero(), guia.validadeAte(), ASSINATURAS_PENDENTES);
+        return new GuiaConcluidaResponse(guia.getIdGuia(), guia.getNumero(), guia.getDataValidadeAte(), ASSINATURAS_PENDENTES);
     }
 }

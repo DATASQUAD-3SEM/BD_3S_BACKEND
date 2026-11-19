@@ -44,7 +44,16 @@ final class LeitorGuiaPdf {
     }
 
     static String lerTexto(MultipartFile pdf) {
-        try (PDDocument documento = Loader.loadPDF(pdf.getBytes())) {
+        try {
+            return lerTexto(pdf.getBytes());
+        } catch (IOException e) {
+            throw new DadosInvalidosException("pdf", "Nao foi possivel abrir este PDF. Envie outro arquivo.");
+        }
+    }
+
+    // T16-BE3: o mesmo leitor para o PDF ja guardado (correcao das Guias antigas)
+    static String lerTexto(byte[] conteudo) {
+        try (PDDocument documento = Loader.loadPDF(conteudo)) {
             return new PDFTextStripper().getText(documento);
         } catch (IOException e) {
             throw new DadosInvalidosException("pdf", "Nao foi possivel abrir este PDF. Envie outro arquivo.");

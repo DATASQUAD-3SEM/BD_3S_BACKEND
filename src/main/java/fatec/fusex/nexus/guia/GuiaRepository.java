@@ -56,6 +56,9 @@ public interface GuiaRepository extends JpaRepository<Guia, Long> {
             """)
     List<Guia> buscarSemAssinatura(@Param("papel") AssinaturaGuiaPapel papel);
 
+    /** Guias sem validade gravada (concluidas antes da T16-BE3): alvo da correcao das Guias antigas. */
+    List<Guia> findByDataValidadeAteIsNull();
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select g from Guia g where g.idGuia = :id")
     Optional<Guia> findByIdComLock(@Param("id") Long id);

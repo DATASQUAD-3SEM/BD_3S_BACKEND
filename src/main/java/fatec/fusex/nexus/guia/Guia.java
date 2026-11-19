@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 
 /**
  * Entidade da tabela Guia. A Guia e emitida fora do Nexus (no SIRE); aqui ficam o numero, o PDF e a data de insercao.
- * Cada pre-guia gera no maximo uma Guia (pre_guia_id UNIQUE). A validade e de dois meses a partir da insercao.
+ * Cada pre-guia gera no maximo uma Guia (pre_guia_id UNIQUE). A validade e a data impressa em NAO RECEBER APOS (T16-BE3).
  */
 @Entity
 @Table(name = "Guia")
@@ -48,7 +48,7 @@ public class Guia {
     @JoinColumn(name = "inserida_por", nullable = false)
     private Usuario usuario;
 
-    // Data impressa em NAO RECEBER APOS (coluna validade_ate, V8). Nula em Guias antigas ate a correcao da T16.
+    // Data impressa em NAO RECEBER APOS (coluna validade_ate, V9). Nula em Guias antigas ate a correcao da T16.
     @Column(name = "validade_ate")
     private LocalDate dataValidadeAte;
 
@@ -68,7 +68,4 @@ public class Guia {
     @JoinColumn(name = "espelho_id")
     private Espelho espelho;
 
-    public LocalDate validadeAte() {
-        return dataInsercao.toLocalDate().plusMonths(2);
-    }
 }

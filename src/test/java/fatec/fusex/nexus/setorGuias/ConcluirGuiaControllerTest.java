@@ -52,6 +52,8 @@ class ConcluirGuiaControllerTest {
 
     private static final String SETOR = "setor.teste";
     private static final String BENEFICIARIO = "52998224725";
+    // T16-BE3: validade conferida no rascunho, copiada para a Guia na conclusao
+    private static final LocalDate VALIDADE_CONFERIDA = LocalDate.of(2099, 1, 1);
 
     private final MockMvc mockMvc;
     private final UsuarioRepository usuarioRepository;
@@ -140,12 +142,18 @@ class ConcluirGuiaControllerTest {
     }
 
     private void rascunhoSemExames(PreGuia preGuia, String numero) {
+        criarRascunho(preGuia, numero, VALIDADE_CONFERIDA);
+    }
+
+    // T16-BE3: validade null = rascunho gravado antes da T16-BE2
+    private void criarRascunho(PreGuia preGuia, String numero, LocalDate validade) {
         GuiaRascunho r = new GuiaRascunho();
         r.setPreGuia(preGuia);
         r.setNumero(numero);
         r.setArquivoUrl("guias-rascunho/" + numero + ".pdf");
         r.setNomeArquivo("guia-" + numero + ".pdf");
         r.setDataAtualizacao(LocalDateTime.now());
+        r.setValidadeAte(validade);
         guiaRascunhoRepository.saveAndFlush(r);
     }
 
@@ -163,7 +171,7 @@ class ConcluirGuiaControllerTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.guiaId").isNumber())
                 .andExpect(jsonPath("$.numero").value("2026001234"))
-                .andExpect(jsonPath("$.validadeAte").value(LocalDate.now().plusMonths(2).toString()))
+                .andExpect(jsonPath("$.validadeAte").value(VALIDADE_CONFERIDA.toString()))
                 .andExpect(jsonPath("$.assinaturasPendentes").value(contains("MEDICO", "CHEFE")));
 
         entityManager.flush();
@@ -171,6 +179,8 @@ class ConcluirGuiaControllerTest {
         Guia guia = guiaRepository.findByPreGuiaIdPreGuia(p.getIdPreGuia()).orElseThrow();
         assertThat(guia.getNumero()).isEqualTo("2026001234");
         assertThat(guia.getArquivoUrl()).isEqualTo("guias-rascunho/2026001234.pdf");
+        // T16-BE3: a validade do rascunho (NAO RECEBER APOS) vai para a Guia, sem calculo pela insercao
+        assertThat(guia.getDataValidadeAte()).isEqualTo(VALIDADE_CONFERIDA);
         assertThat(guia.getUsuario().getIdUsuario()).isEqualTo(setor.getIdUsuario());
         // a pre-guia continua Em analise ate as duas assinaturas
         assertThat(preGuiaRepository.findById(p.getIdPreGuia()).orElseThrow().getStatus())
@@ -198,6 +208,20 @@ class ConcluirGuiaControllerTest {
                         gp -> gp.getQuantidadeAutorizada(), gp -> gp.getValorUnitario())
                 .containsExactly(tuple("41001109", "TC - Abdome superior", 1, null),
                         tuple("50011015", "Consulta pediatra", 2, null));
+    }
+
+    // T16-BE3: rascunho gravado antes da T16-BE2 nao tem validade: 409 e nenhuma Guia criada
+    @Test
+    void rascunhoSemValidade_retorna409SemCriarGuia() throws Exception {
+        PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
+        criarRascunho(p, "2026001234", null);
+
+        concluir(SETOR, p.getIdPreGuia())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value("Guia sem validade conferida"));
+
+        assertThat(guiaRepository.findByPreGuiaIdPreGuia(p.getIdPreGuia())).isEmpty();
+        assertThat(guiaProcedimentoRepository.count()).isZero();
     }
 
     @Test
