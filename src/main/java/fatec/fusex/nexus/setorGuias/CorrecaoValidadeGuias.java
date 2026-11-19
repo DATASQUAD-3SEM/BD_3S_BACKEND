@@ -75,11 +75,16 @@ public class CorrecaoValidadeGuias {
         return Optional.of(new Resultado(corrigidas, semDataNoPdf));
     }
 
+    /** Data de NAO RECEBER APOS do PDF, ou vazio se o PDF nao traz a data. Usado pela correcao e pela migration V13. */
+    public static Optional<LocalDate> validadeDoPdf(byte[] conteudo) {
+        return LeitorGuiaPdf.extrairValidade(LeitorGuiaPdf.lerTexto(conteudo)).map(LocalDate::parse);
+    }
+
     // Um PDF ilegivel ou um arquivo ausente nao derruba a correcao das outras Guias: vira "sem data" no log
     private Optional<LocalDate> lerValidade(Guia guia) {
         try {
             byte[] conteudo = armazenamentoArquivo.carregar(guia.getArquivoUrl()).getInputStream().readAllBytes();
-            return LeitorGuiaPdf.extrairValidade(LeitorGuiaPdf.lerTexto(conteudo)).map(LocalDate::parse);
+            return validadeDoPdf(conteudo);
         } catch (IOException | RuntimeException e) {
             LOG.warn("Nao foi possivel ler o PDF da Guia (id={}, numero={}): {}",
                     guia.getIdGuia(), guia.getNumero(), e.getMessage());
