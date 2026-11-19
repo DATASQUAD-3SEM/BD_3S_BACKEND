@@ -23,10 +23,8 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
 /**
- * T11-BE1 estendido pela T21-BE1: POST /setor-guias/extrair-numero-guia. Le o numero, o Prec CP do paciente
- * e os exames da Guia no PDF anexado, sem gravar nada. A gravacao acontece depois, no PUT do "Concluir" (T4-BE5).
- *
- * Le so o PDF com texto selecionavel. Um PDF escaneado cai no 422, e a leitura de escaneados fica fora desta versao.
+ * T11-BE1 estendido pela T21-BE1 e T16-BE1: POST /setor-guias/extrair-numero-guia. Le o numero, o Prec CP do paciente,
+ * os exames, a UG, a UG Origem e a validade da Guia no PDF anexado, sem gravar nada.
  */
 @Service
 public class ExtrairNumeroGuiaService {
@@ -50,7 +48,6 @@ public class ExtrairNumeroGuiaService {
         this.tamanhoMaximoBytes = tamanhoMaximoBytes;
     }
 
-    // Ordem: perfil (403) -> limite de leituras (429) -> arquivo (400) -> numero no PDF (422) -> pre-guia (404)
     public ExtracaoNumeroGuiaResponse extrair(MultipartFile pdf, Long preGuiaId) {
         Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_GUIAS);
         limiteLeituraGuia.registrar(usuario.getLogin());
@@ -67,13 +64,22 @@ public class ExtrairNumeroGuiaService {
                 ? null
                 : LeitorGuiaPdf.precCpConfere(precCpLido, precCpCadastrado);
 
-        return new ExtracaoNumeroGuiaResponse(numero, precCpLido, precCpConfere, LeitorGuiaPdf.examesDaGuia(texto));
+        // T16-BE1: Leitura de UG, UG Origem e Validade
+        String ug = LeitorGuiaPdf.extrairUg(texto).orElse(null);
+        String ugOrigem = LeitorGuiaPdf.extrairUgOrigem(texto).orElse(null);
+        String validadeAte = LeitorGuiaPdf.extrairValidade(texto).orElse(null);
+
+        return new ExtracaoNumeroGuiaResponse(
+                numero,
+                precCpLido,
+                precCpConfere,
+                LeitorGuiaPdf.examesDaGuia(texto),
+                ug,
+                ugOrigem,
+                validadeAte
+        );
     }
 
-    /**
-     * Procura "Nr: <digitos>" depois do cabecalho "GUIA DE ENCAMINHAMENTO". Sem o cabecalho ou sem o padrao, devolve vazio.
-     * Espacos e quebras de linha sao unificados antes, porque o extrator do PDF pode quebrar linhas no meio.
-     */
     static Optional<String> extrairNumeroDoTexto(String texto) {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();
@@ -103,7 +109,6 @@ public class ExtrairNumeroGuiaService {
         return precCp == null || precCp.isBlank() ? null : LeitorGuiaPdf.somenteDigitos(precCp);
     }
 
-    // So PDF (extensao e conteudo comecando com %PDF) e ate o limite configurado
     private void validarPdf(MultipartFile pdf) {
         if (pdf == null || pdf.isEmpty()) {
             throw new RegraDeNegocioException("Anexe o PDF da Guia");
