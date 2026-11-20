@@ -134,6 +134,7 @@ class EspelhoEnvioControllerTest {
         Assertions.assertEquals(StatusEspelho.ENVIADO, enviado.getStatus());
         Assertions.assertNotNull(enviado.getDataEnvio());
         Assertions.assertEquals(LOGIN_OCS, enviado.getEnviadoPor().getLogin());
+        Assertions.assertEquals(SituacaoFatura.RECEBIDO, enviado.getSituacaoFatura());
 
         Guia atual = guiaRepository.findById(guia.getIdGuia()).orElseThrow();
         Assertions.assertNotNull(atual.getEspelho());
@@ -202,6 +203,13 @@ class EspelhoEnvioControllerTest {
 
         Assertions.assertEquals(StatusEspelho.EM_CONSTRUCAO,
                 espelhoRepository.findById(espelhoOutra.getIdEspelho()).orElseThrow().getStatus());
+    }
+
+    @Test
+    void espelhoEmConstrucao_naoTemSituacaoDeFatura() {
+        Espelho espelho = novoEspelho(ocs, StatusEspelho.EM_CONSTRUCAO);
+
+        Assertions.assertNull(espelhoRepository.findById(espelho.getIdEspelho()).orElseThrow().getSituacaoFatura());
     }
 
     @Test

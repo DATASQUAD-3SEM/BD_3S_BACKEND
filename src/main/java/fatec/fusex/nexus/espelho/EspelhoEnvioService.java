@@ -54,6 +54,7 @@ public class EspelhoEnvioService {
         espelho.setStatus(StatusEspelho.ENVIADO);
         espelho.setDataEnvio(LocalDateTime.now(Beneficiario.FUSO));
         espelho.setEnviadoPor(usuario);
+        espelho.setSituacaoFatura(SituacaoFatura.RECEBIDO);
 
         return EspelhoResponse.fromEntity(
                 espelho,
