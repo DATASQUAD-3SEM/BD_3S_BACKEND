@@ -69,7 +69,8 @@ public class FaturaConsultaService {
         List<EspelhoItem> itens = espelhoItemRepository.buscarComDadosPorEspelho(id);
         List<FaturaEvento> eventos = eventoRepository.findByEspelhoIdEspelhoOrderByDataEventoAscIdFaturaEventoAsc(id);
         List<EtapaFluxo> etapas = ControleFluxoFatura.calcular(
-                espelho.getDataEnvio(), eventos, ControleFluxoFatura.valorInformado(itens), null);
+                espelho.getDataEnvio(), eventos, ControleFluxoFatura.valorInformado(itens),
+                ControleFluxoFatura.valorFinal(itens));
 
         return FaturaDetalheResponse.fromEntity(espelho, itens, eventos, etapas);
     }

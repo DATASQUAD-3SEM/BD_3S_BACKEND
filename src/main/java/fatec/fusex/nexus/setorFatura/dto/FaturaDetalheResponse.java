@@ -31,6 +31,8 @@ public record FaturaDetalheResponse(
     public static FaturaDetalheResponse fromEntity(Espelho espelho, List<EspelhoItem> itens,
                                                    List<FaturaEvento> eventos, List<EtapaFluxo> etapas) {
         BigDecimal informado = ControleFluxoFatura.valorInformado(itens).setScale(2);
+        BigDecimal valorFinal = ControleFluxoFatura.valorFinal(itens);
+        BigDecimal glosa = valorFinal == null ? null : informado.subtract(valorFinal).setScale(2);
         return new FaturaDetalheResponse(
                 espelho.getIdEspelho(),
                 espelho.getOcs().getNome(),
@@ -41,19 +43,26 @@ public record FaturaDetalheResponse(
                 espelho.getNumeroFatura(),
                 informado,
                 itens.stream().map(LinhaResponse::fromEntity).toList(),
-                new TotaisResponse(informado, null, null),
+                new TotaisResponse(informado, glosa, valorFinal),
                 eventos.stream().map(EventoResponse::fromEntity).toList(),
                 etapas.stream().map(EtapaResponse::fromEntity).toList());
     }
 
     public record LinhaResponse(
+            Long itemId,
+            Long guiaId,
             String guiaNumero,
             String paciente,
             String codigo,
             String procedimento,
             Integer quantidadeSessoes,
             BigDecimal valorSessao,
-            BigDecimal valorTotal) {
+            BigDecimal valorTotal,
+            BigDecimal valorContrato,
+            String origemContrato,
+            String observacao,
+            BigDecimal glosa,
+            String comparacao) {
 
         public static LinhaResponse fromEntity(EspelhoItem item) {
             GuiaProcedimento procedimento = item.getGuiaProcedimento();
@@ -61,14 +70,33 @@ public record FaturaDetalheResponse(
             BigDecimal valorTotal = item.getValorSessao()
                     .multiply(BigDecimal.valueOf(item.getQuantidadeSessoes()))
                     .setScale(2);
+            BigDecimal contrato = item.getValorContratoSessao();
             return new LinhaResponse(
+                    item.getIdEspelhoItem(),
+                    guia.getIdGuia(),
                     guia.getNumero(),
                     guia.getPreGuia().getBeneficiario().getNome(),
                     procedimento.getCodDgp(),
                     procedimento.getDescricaoProcedimento(),
                     item.getQuantidadeSessoes(),
                     item.getValorSessao(),
-                    valorTotal);
+                    valorTotal,
+                    contrato,
+                    item.getOrigemContrato() == null ? null : item.getOrigemContrato().name(),
+                    item.getObservacao(),
+                    ControleFluxoFatura.glosaDaLinha(item),
+                    comparacao(item.getValorSessao(), contrato));
+        }
+
+        private static String comparacao(BigDecimal valorSessao, BigDecimal contrato) {
+            if (contrato == null) {
+                return "SEM_CONTRATO";
+            }
+            int cmp = valorSessao.compareTo(contrato);
+            if (cmp == 0) {
+                return "CONFORME";
+            }
+            return cmp > 0 ? "ACIMA" : "ABAIXO";
         }
     }
 
