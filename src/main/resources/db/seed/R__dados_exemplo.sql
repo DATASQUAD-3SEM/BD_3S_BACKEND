@@ -138,7 +138,7 @@ WHERE senha_hash = 'HASH_BCRYPT_AQUI';
 --   Helena ....... maior, vitalicia, com conta propria; tambem responsavel legal de Lucas (acumulo de papeis)
 --   Pedro ........ maior, vigencia determinada (data de termino futura)
 --   Rafael ........ maior, vigencia determinada ja vencida (situacao ATIVO, sem remocao registrada)
---   Joao ......... ENCERRADO (removido pelo chefe), com historico de responsavel legal de Lucas
+--   Joao ......... ENCERRADO (vigencia vencida em 2021-01-04; removido pelo chefe em 2021-01-05), com historico de responsavel legal de Lucas
 -- Idempotente: cada linha e inserida so se a chave natural ainda nao existir.
 -- =====================================================================
 
@@ -210,10 +210,16 @@ INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, tele
                         tipo_vigencia, vigencia_fim, situacao, data_encerramento)
 SELECT b.usuario_id, (SELECT c.id_usuario FROM Usuario c WHERE c.login = '50000000485'),
        'Joao Ferreira', '2001-01-01', '50000000485', NULL, '45872213305', 'Filho',
-       'VITALICIA', NULL, 'ENCERRADO', '2021-01-05 10:00:00'
+       'DETERMINADA', '2021-01-04', 'ENCERRADO', '2021-01-05 10:00:00'
 FROM Beneficiario b JOIN Usuario u ON u.id_usuario = b.usuario_id
 WHERE u.login = '52998224725'
   AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '45872213305');
+
+-- Joao: vigencia vencida antes da remocao (DETERMINADA, fim em 2021-01-04; removido em 2021-01-05).
+-- Alinha a linha se ela ja existe de uma versao anterior deste seed (VITALICIA).
+UPDATE Dependente SET tipo_vigencia = 'DETERMINADA', vigencia_fim = '2021-01-04'
+WHERE prec_cp = '45872213305' AND situacao = 'ENCERRADO' AND tipo_vigencia = 'VITALICIA';
+
 
 -- Dependente de Marta (titular 70000000663)
 INSERT INTO Dependente (titular_id, usuario_id, nome, data_nascimento, cpf, telefone, prec_cp, vinculo,
