@@ -23,4 +23,8 @@ public interface EspelhoRepository extends JpaRepository<Espelho, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select e from Espelho e where e.idEspelho = :idEspelho")
     Optional<Espelho> buscarComLockPorId(@Param("idEspelho") Long idEspelho);
+
+    @Query("select e from Espelho e where e.situacaoFatura is not null and e.situacaoFatura <> :excluida "
+            + "order by e.dataEnvio desc, e.idEspelho desc")
+    List<Espelho> buscarComSituacaoFaturaExceto(@Param("excluida") SituacaoFatura excluida);
 }
