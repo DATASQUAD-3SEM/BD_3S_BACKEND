@@ -22,7 +22,7 @@ public class FaturaTransicaoService {
 
     private static final int RESPONSAVEL_MINIMO = 3;
     private static final int RESPONSAVEL_MAXIMO = 100;
-    private static final int PRAZO_OCS_DIAS_UTEIS = 3;
+    public static final int PRAZO_OCS_DIAS_UTEIS = 3;
 
     private final EspelhoRepository espelhoRepository;
     private final FaturaEventoRepository eventoRepository;
@@ -94,7 +94,7 @@ public class FaturaTransicaoService {
         return Optional.empty();
     }
 
-    private boolean prazoLiberado(List<FaturaEvento> eventos, LocalDateTime agora) {
+    public static boolean prazoLiberado(List<FaturaEvento> eventos, LocalDateTime agora) {
         int ultimoEnvio = -1;
         for (int i = 0; i < eventos.size(); i++) {
             if (eventos.get(i).getTipo() == TipoFaturaEvento.ENVIADA_OCS) {
@@ -111,7 +111,7 @@ public class FaturaTransicaoService {
         return cienteNaRodada || !agora.isBefore(somarDiasUteis(envio, PRAZO_OCS_DIAS_UTEIS));
     }
 
-    static LocalDateTime somarDiasUteis(LocalDateTime inicio, int dias) {
+    public static LocalDateTime somarDiasUteis(LocalDateTime inicio, int dias) {
         LocalDateTime resultado = inicio;
         int restantes = dias;
         while (restantes > 0) {
