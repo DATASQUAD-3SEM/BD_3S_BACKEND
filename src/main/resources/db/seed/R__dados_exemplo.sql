@@ -119,10 +119,22 @@ WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'ocs.laboratorio');
 INSERT INTO ContaOcs (usuario_id, ocs_id)
 SELECT u.id_usuario, o.id_ocs
 FROM Usuario u
-JOIN Ocs o ON o.contrato_num = 'EXEMPLO-001'
+         JOIN Ocs o ON o.contrato_num = 'EXEMPLO-001'
 WHERE u.login = 'ocs.laboratorio'
   AND NOT EXISTS (SELECT 1 FROM ContaOcs c WHERE c.usuario_id = u.id_usuario)
   AND NOT EXISTS (SELECT 1 FROM ContaOcs c WHERE c.ocs_id = o.id_ocs);
+
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT 'setor.fatura', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'SETOR_FATURA' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'setor.fatura');
+
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT 'rastreabilidade', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RASTREABILIDADE' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'rastreabilidade');
+
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT 'auditoria', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'AUDITORIA' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'auditoria');
 
 -- Contas criadas por versoes antigas deste seed ficaram com o placeholder.
 -- Este UPDATE corrige so essas linhas; senhas ja trocadas pelos usuarios nao sao tocadas.
