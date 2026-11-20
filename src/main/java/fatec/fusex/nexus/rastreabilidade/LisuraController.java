@@ -21,10 +21,14 @@ public class LisuraController {
 
     private final LisuraService service;
     private final LisuraConsultaService consultaService;
+    private final LisuraAuditoriaService auditoriaService;
 
-    public LisuraController(LisuraService service, LisuraConsultaService consultaService) {
+    public LisuraController(LisuraService service,
+                            LisuraConsultaService consultaService,
+                            LisuraAuditoriaService auditoriaService) {
         this.service = service;
         this.consultaService = consultaService;
+        this.auditoriaService = auditoriaService;
     }
 
     @GetMapping
@@ -45,5 +49,10 @@ public class LisuraController {
     @PostMapping("/{id}/enviar-ocs")
     public FaturaDetalheResponse enviarOcs(@PathVariable Long id, @RequestBody EnviarFaturaRequest request) {
         return service.enviarOcs(id, request);
+    }
+
+    @PostMapping("/{id}/enviar-auditoria")
+    public FaturaDetalheResponse enviarAuditoria(@PathVariable Long id, @RequestBody EnviarFaturaRequest request) {
+        return auditoriaService.enviarAuditoria(id, request);
     }
 }
