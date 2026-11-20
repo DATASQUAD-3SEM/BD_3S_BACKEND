@@ -19,4 +19,8 @@ public interface EspelhoRepository extends JpaRepository<Espelho, Long> {
                                                  @Param("status") StatusEspelho status);
 
     List<Espelho> findByOcsIdOcsAndStatusOrderByDataEnvioDescIdEspelhoDesc(Long idOcs, StatusEspelho status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from Espelho e where e.idEspelho = :idEspelho")
+    Optional<Espelho> buscarComLockPorId(@Param("idEspelho") Long idEspelho);
 }
