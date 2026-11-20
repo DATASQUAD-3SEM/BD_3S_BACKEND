@@ -27,4 +27,11 @@ public interface EspelhoRepository extends JpaRepository<Espelho, Long> {
     @Query("select e from Espelho e where e.situacaoFatura is not null and e.situacaoFatura <> :excluida "
             + "order by e.dataEnvio desc, e.idEspelho desc")
     List<Espelho> buscarComSituacaoFaturaExceto(@Param("excluida") SituacaoFatura excluida);
+
+    boolean existsByOcsIdOcsAndNumeroFatura(Long idOcs, String numeroFatura);
+
+    @Query("select e.numeroFatura from Espelho e where e.ocs.idOcs = :idOcs "
+            + "and e.numeroFatura like :padraoAno")
+    List<String> buscarNumerosFaturaDaOcsPorAno(@Param("idOcs") Long idOcs,
+                                                @Param("padraoAno") String padraoAno);
 }
