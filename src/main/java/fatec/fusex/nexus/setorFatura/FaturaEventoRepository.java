@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.setorFatura;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -7,4 +8,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface FaturaEventoRepository extends JpaRepository<FaturaEvento, Long> {
 
     List<FaturaEvento> findByEspelhoIdEspelhoOrderByDataEventoAscIdFaturaEventoAsc(Long idEspelho);
+
+    List<FaturaEvento> findByEspelhoIdEspelhoInOrderByDataEventoAscIdFaturaEventoAsc(Collection<Long> idsEspelho);
 }

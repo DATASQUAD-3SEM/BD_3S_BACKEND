@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.espelho;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,4 +35,6 @@ public interface EspelhoRepository extends JpaRepository<Espelho, Long> {
             + "and e.numeroFatura like :padraoAno")
     List<String> buscarNumerosFaturaDaOcsPorAno(@Param("idOcs") Long idOcs,
                                                 @Param("padraoAno") String padraoAno);
+
+    List<Espelho> findBySituacaoFaturaInOrderByDataEnvioAscIdEspelhoAsc(Collection<SituacaoFatura> situacoes);
 }
