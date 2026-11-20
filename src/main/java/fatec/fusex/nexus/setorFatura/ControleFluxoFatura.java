@@ -29,6 +29,26 @@ public final class ControleFluxoFatura {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
+    public static BigDecimal valorFinal(List<EspelhoItem> itens) {
+        if (itens.stream().anyMatch(item -> item.getValorContratoSessao() == null)) {
+            return null;
+        }
+        return itens.stream()
+                .map(item -> item.getValorContratoSessao().multiply(BigDecimal.valueOf(item.getQuantidadeSessoes())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2);
+    }
+
+    public static BigDecimal glosaDaLinha(EspelhoItem item) {
+        if (item.getValorContratoSessao() == null) {
+            return null;
+        }
+        return item.getValorSessao()
+                .subtract(item.getValorContratoSessao())
+                .multiply(BigDecimal.valueOf(item.getQuantidadeSessoes()))
+                .setScale(2);
+    }
+
     public static List<EtapaFluxo> calcular(LocalDateTime dataEnvio, List<FaturaEvento> eventos,
                                             BigDecimal valorInformado, BigDecimal valorFinalLisura) {
         List<EtapaFluxo> etapas = new ArrayList<>();
