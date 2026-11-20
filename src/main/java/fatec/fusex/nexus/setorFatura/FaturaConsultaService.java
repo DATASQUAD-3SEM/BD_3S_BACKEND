@@ -58,7 +58,10 @@ public class FaturaConsultaService {
     @Transactional(readOnly = true)
     public FaturaDetalheResponse detalhar(Long id) {
         usuarioLogado.exigirPerfil(PerfilUsuario.SETOR_FATURA);
+        return montarDetalhe(id);
+    }
 
+    public FaturaDetalheResponse montarDetalhe(Long id) {
         Espelho espelho = espelhoRepository.findById(id)
                 .filter(e -> e.getSituacaoFatura() != null)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Fatura nao encontrada"));
