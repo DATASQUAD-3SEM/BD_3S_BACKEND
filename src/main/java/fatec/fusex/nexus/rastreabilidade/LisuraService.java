@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.ConflitoException;
+import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.espelho.Espelho;
@@ -24,8 +25,12 @@ import fatec.fusex.nexus.espelho.SituacaoFatura;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocsPreco.OcsPreco;
 import fatec.fusex.nexus.ocsPreco.OcsPrecoRepository;
+import fatec.fusex.nexus.rastreabilidade.dto.EnviarFaturaRequest;
 import fatec.fusex.nexus.rastreabilidade.dto.ItemLisuraRequest;
+import fatec.fusex.nexus.setorFatura.ControleFluxoFatura;
 import fatec.fusex.nexus.setorFatura.FaturaConsultaService;
+import fatec.fusex.nexus.setorFatura.FaturaTransicaoService;
+import fatec.fusex.nexus.setorFatura.TipoFaturaEvento;
 import fatec.fusex.nexus.setorFatura.dto.FaturaDetalheResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
@@ -34,34 +39,34 @@ import fatec.fusex.nexus.usuario.Usuario;
 public class LisuraService {
 
     private static final int OBSERVACAO_MAXIMO = 500;
+    private static final int RESPONSAVEL_MINIMO = 3;
+    private static final int RESPONSAVEL_MAXIMO = 100;
 
     private final UsuarioLogado usuarioLogado;
     private final EspelhoRepository espelhoRepository;
     private final EspelhoItemRepository espelhoItemRepository;
     private final OcsPrecoRepository ocsPrecoRepository;
     private final FaturaConsultaService consultaService;
+    private final FaturaTransicaoService transicaoService;
 
     public LisuraService(UsuarioLogado usuarioLogado,
                          EspelhoRepository espelhoRepository,
                          EspelhoItemRepository espelhoItemRepository,
                          OcsPrecoRepository ocsPrecoRepository,
-                         FaturaConsultaService consultaService) {
+                         FaturaConsultaService consultaService,
+                         FaturaTransicaoService transicaoService) {
         this.usuarioLogado = usuarioLogado;
         this.espelhoRepository = espelhoRepository;
         this.espelhoItemRepository = espelhoItemRepository;
         this.ocsPrecoRepository = ocsPrecoRepository;
         this.consultaService = consultaService;
+        this.transicaoService = transicaoService;
     }
 
     @Transactional
     public FaturaDetalheResponse salvar(Long id, List<ItemLisuraRequest> itens) {
         Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.RASTREABILIDADE);
-        Espelho espelho = espelhoRepository.buscarComLockPorId(id)
-                .filter(e -> e.getSituacaoFatura() != null)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Fatura nao encontrada"));
-        if (espelho.getSituacaoFatura() != SituacaoFatura.EM_LISURA) {
-            throw new ConflitoException("Esta acao nao e permitida na situacao atual da fatura");
-        }
+        Espelho espelho = buscarEmLisura(id);
 
         Map<Long, EspelhoItem> itensDaFatura = espelhoItemRepository.buscarComDadosPorEspelho(id).stream()
                 .collect(Collectors.toMap(EspelhoItem::getIdEspelhoItem, Function.identity()));
@@ -73,6 +78,45 @@ public class LisuraService {
         }
 
         return consultaService.montarDetalhe(id);
+    }
+
+    @Transactional
+    public FaturaDetalheResponse enviarOcs(Long id, EnviarFaturaRequest request) {
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.RASTREABILIDADE);
+        String responsavel = validarResponsavel(request.responsavel());
+        buscarEmLisura(id);
+
+        List<EspelhoItem> itens = espelhoItemRepository.buscarComDadosPorEspelho(id);
+        long semDecisao = itens.stream().filter(item -> item.getValorContratoSessao() == null).count();
+        if (semDecisao > 0) {
+            throw new DadosInvalidosException("linhas", "Há " + semDecisao + " linha(s) sem decisão.");
+        }
+        boolean temGlosa = itens.stream().anyMatch(item -> ControleFluxoFatura.glosaDaLinha(item).signum() != 0);
+        if (!temGlosa) {
+            throw new ConflitoException("Esta fatura não tem glosa; envie direto para a auditoria.");
+        }
+
+        transicaoService.registrar(id, TipoFaturaEvento.ENVIADA_OCS, usuario, responsavel);
+        return consultaService.montarDetalhe(id);
+    }
+
+    private Espelho buscarEmLisura(Long id) {
+        Espelho espelho = espelhoRepository.buscarComLockPorId(id)
+                .filter(e -> e.getSituacaoFatura() != null)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Fatura nao encontrada"));
+        if (espelho.getSituacaoFatura() != SituacaoFatura.EM_LISURA) {
+            throw new ConflitoException("Esta acao nao e permitida na situacao atual da fatura");
+        }
+        return espelho;
+    }
+
+    private String validarResponsavel(String responsavel) {
+        String nome = responsavel == null ? "" : responsavel.trim();
+        if (nome.length() < RESPONSAVEL_MINIMO || nome.length() > RESPONSAVEL_MAXIMO) {
+            throw new DadosInvalidosException("responsavel",
+                    "Informe o nome do responsável (mínimo de 3 caracteres).");
+        }
+        return nome;
     }
 
     private void validar(List<ItemLisuraRequest> itens, Map<Long, EspelhoItem> itensDaFatura) {
