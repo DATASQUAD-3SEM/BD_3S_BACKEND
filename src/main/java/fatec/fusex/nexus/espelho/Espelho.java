@@ -55,4 +55,16 @@ public class Espelho {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "enviado_por")
     private Usuario enviadoPor;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "situacao_fatura", length = 14)
+    private SituacaoFatura situacaoFatura;
+
+    @Column(name = "numero_fatura", length = 8)
+    private String numeroFatura;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "protocolada_por")
+    private Usuario protocoladaPor;
 }

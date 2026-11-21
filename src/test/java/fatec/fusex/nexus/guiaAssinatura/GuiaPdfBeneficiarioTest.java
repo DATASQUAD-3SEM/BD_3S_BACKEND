@@ -152,6 +152,12 @@ class GuiaPdfBeneficiarioTest {
         mockMvc.perform(get(url(guia)).header(SimulacaoLoginFilter.HEADER, LOGIN_JOAO))
                 .andExpect(status().isNotFound());
     }
+    
+    @Test
+    void guiaInexistente_recebe404() throws Exception {
+        mockMvc.perform(get("/guias/999999/pdf").header(SimulacaoLoginFilter.HEADER, LOGIN_JOAO))
+                .andExpect(status().isNotFound());
+    }
 
     @Test
     void perfilOcs_recebe403() throws Exception {

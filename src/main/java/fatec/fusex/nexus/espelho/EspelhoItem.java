@@ -5,6 +5,8 @@ import java.math.BigDecimal;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -15,6 +17,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "EspelhoItem")
@@ -41,4 +45,21 @@ public class EspelhoItem {
 
     @Column(name = "valor_sessao", nullable = false, precision = 10, scale = 2)
     private BigDecimal valorSessao;
+
+    @Column(name = "valor_contrato_sessao", precision = 10, scale = 2)
+    private BigDecimal valorContratoSessao;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "origem_contrato", length = 16)
+    private OrigemContrato origemContrato;
+
+    @Column(name = "observacao", length = 500)
+    private String observacao;
+
+    @Column(name = "decisao_ocs", length = 10)
+    private String decisaoOcs;
+
+    @Column(name = "motivo_contestacao_ocs", length = 500)
+    private String motivoContestacaoOcs;
 }
