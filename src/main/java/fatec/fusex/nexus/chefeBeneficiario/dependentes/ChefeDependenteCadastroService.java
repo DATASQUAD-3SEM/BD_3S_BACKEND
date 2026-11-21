@@ -235,6 +235,64 @@ public class ChefeDependenteCadastroService {
         return usuarioRepository.save(u);
     }
 
+    /** T31-BE3: edita nome, telefone, vinculo, Prec CP e vigencia. Responsavel, CPF e nascimento nao mudam. */
+    @Transactional
+    public DependenteItemResponse editar(Long dependenteId, EditarDependenteRequest req) {
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
+        Dependente d = dependenteRepository.findById(dependenteId)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Dependente nao encontrado"));
+        LocalDate hoje = Beneficiario.hoje();
+
+        if (req.nome() != null) {
+            d.setNome(ValidacaoCadastro.obrigatorio(req.nome(), "nome", ValidacaoCadastro.NOME_MAXIMO));
+        }
+        if (req.telefone() != null) {
+            d.setTelefone(apenasDigitos(req.telefone()));
+        }
+        if (req.vinculo() != null) {
+            d.setVinculo(req.vinculo());
+        }
+        if (req.precCp() != null) {
+            String precCp = ValidacaoCadastro.normalizarPrecCp(req.precCp());
+            boolean ocupado = beneficiarioRepository.existsByPrecCp(precCp) || medicoRepository.existsByPrecCp(precCp)
+                    || dependenteRepository.findByPrecCp(precCp)
+                            .filter(outro -> !outro.getIdDependente().equals(dependenteId)).isPresent();
+            if (!precCp.equals(d.getPrecCp()) && ocupado) {
+                throw new DadosInvalidosException("precCp", "Prec CP ja cadastrado");
+            }
+            d.setPrecCp(precCp);
+        }
+
+        String tipoVigencia = req.tipoVigencia() != null ? req.tipoVigencia()
+                : (d.getVigenciaFim() == null ? "VITALICIA" : "DETERMINADA");
+        LocalDate fim = req.tipoVigencia() == null && req.vigenciaFim() == null ? d.getVigenciaFim() : req.vigenciaFim();
+        boolean determinada = "DETERMINADA".equals(tipoVigencia);
+        boolean menor = d.getTipo() != TipoDependente.MAIOR;
+        if (determinada && fim == null) {
+            throw new DadosInvalidosException("vigenciaFim", "Informe a data final da vigencia");
+        }
+        if (menor && !determinada) {
+            throw new DadosInvalidosException("vigenciaFim", "Menor de idade precisa de vigencia determinada");
+        }
+        d.setVigenciaFim(determinada ? fim : null);
+
+        dependenteRepository.save(d);
+        return DependenteItemResponse.de(d, hoje, responsaveisDe(d));
+    }
+
+    private List<ResponsavelDependenteResponse> responsaveisDe(Dependente d) {
+        Beneficiario titular = d.getTitular();
+        if (d.getTipo() == TipoDependente.MENOR_TITULAR) {
+            return List.of(new ResponsavelDependenteResponse(titular.getUsuarioId(), titular.getNome(), "TITULAR"));
+        }
+        if (d.getTipo() == TipoDependente.MENOR_RESPONSAVEL && d.getResponsavel() != null) {
+            return responsavelExternoRepository.findById(d.getResponsavel().getIdUsuario())
+                    .map(r -> List.of(new ResponsavelDependenteResponse(r.getUsuarioId(), r.getNome(), "EXTERNO")))
+                    .orElse(List.of());
+        }
+        return List.of();
+    }
+
     private static String apenasDigitos(String valor) {
         return valor == null || valor.isBlank() ? null : valor.replaceAll("[^0-9]", "");
     }

@@ -263,6 +263,41 @@ class ChefeDependenteCadastroServiceTest {
         verify(usuarioRepository, org.mockito.Mockito.never()).save(any());
     }
 
+    @Test
+    void editarMaiorTrocaVigenciaESemAlterarResponsavel() {
+        Dependente maior = dependenteExistente(TipoDependente.MAIOR, null);
+        when(dependenteRepository.findById(7L)).thenReturn(Optional.of(maior));
+
+        DependenteItemResponse editado = service.editar(7L,
+                new EditarDependenteRequest(null, null, null, null, "DETERMINADA", LocalDate.now().plusYears(2)));
+
+        assertThat(editado.vigenciaFim()).isEqualTo(LocalDate.now().plusYears(2));
+        assertThat(editado.responsaveis()).isEmpty();
+    }
+
+    @Test
+    void editarMenorParaVitalicioEhRecusado() {
+        Dependente menor = dependenteExistente(TipoDependente.MENOR_TITULAR, LocalDate.now().plusYears(10));
+        when(dependenteRepository.findById(7L)).thenReturn(Optional.of(menor));
+
+        assertThatThrownBy(() -> service.editar(7L,
+                new EditarDependenteRequest(null, null, null, null, "VITALICIA", null)))
+                .isInstanceOf(DadosInvalidosException.class);
+    }
+
+    @Test
+    void editarPrecCpJaOcupadoEhRecusado() {
+        Dependente menor = dependenteExistente(TipoDependente.MENOR_TITULAR, LocalDate.now().plusYears(10));
+        when(dependenteRepository.findById(7L)).thenReturn(Optional.of(menor));
+        Dependente outro = new Dependente();
+        outro.setIdDependente(99L);
+        when(dependenteRepository.findByPrecCp("12345678999")).thenReturn(Optional.of(outro));
+
+        assertThatThrownBy(() -> service.editar(7L,
+                new EditarDependenteRequest(null, null, "12345678999", null, null, null)))
+                .isInstanceOf(DadosInvalidosException.class);
+    }
+
     private Dependente dependenteExistente(TipoDependente tipo, LocalDate fim) {
         Beneficiario titular = new Beneficiario();
         titular.setUsuarioId(TITULAR);
