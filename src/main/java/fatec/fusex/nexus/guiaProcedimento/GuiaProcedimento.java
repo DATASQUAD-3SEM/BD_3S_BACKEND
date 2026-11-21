@@ -7,11 +7,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.math.BigDecimal;
 
 /**
  * Entidade da tabela GuiaProcedimento: exame e quantidade autorizada de uma Guia (modelo logico, secao 2.3).
- * A quantidade autorizada define quantas sessoes a Guia gera. valor_unitario nao e preenchido nesta etapa.
+ * A quantidade autorizada define quantas sessoes a Guia gera. O V.Unit da Guia nao e guardado (T28-BE3, V21).
  */
 @Entity
 @Table(name = "GuiaProcedimento",
@@ -41,7 +40,4 @@ public class GuiaProcedimento {
 
     @Column(name = "quantidade_autorizada", nullable = false)
     private Integer quantidadeAutorizada;
-
-    @Column(name = "valor_unitario", precision = 10, scale = 2)
-    private BigDecimal valorUnitario;
 }
