@@ -108,7 +108,7 @@ public class ChefeDependenteCadastroService {
                 throw new DadosInvalidosException("responsavel", "Maior de idade nao aceita responsavel legal");
             }
             tipo = TipoDependente.MAIOR;
-            contaDoDependente = novaConta(cpf, PerfilUsuario.BENEFICIARIO, req.senha());
+            contaDoDependente = contaDoMaior(cpf, req.senha());
         }
 
         Dependente d = new Dependente();
@@ -138,27 +138,62 @@ public class ChefeDependenteCadastroService {
         return DependenteItemResponse.de(d, hoje, responsaveis);
     }
 
-    /** Pessoa externa como responsavel: conta propria pelo CPF; reaproveita se ja for responsavel externo. */
+    /**
+     * Maior de idade (Jira, T31-BE2): conta nova com perfil BENEFICIARIO; se o CPF já é de um responsável externo,
+     * reaproveita a conta, troca o perfil para BENEFICIARIO e mantém os vínculos de responsável. Outro CPF: 422.
+     * Na reutilização, a senha atual da conta é mantida (a senha informada não é usada).
+     */
+    private Usuario contaDoMaior(String cpf, String senha) {
+        Usuario existente = usuarioRepository.findByLogin(cpf).orElse(null);
+        if (existente == null) {
+            return novaConta(cpf, PerfilUsuario.BENEFICIARIO, senha);
+        }
+        if (existente.getPerfil() != PerfilUsuario.RESPONSAVEL_EXTERNO) {
+            throw new DadosInvalidosException("cpf", "CPF ja possui conta no sistema");
+        }
+        existente.setPerfil(PerfilUsuario.BENEFICIARIO);
+        return usuarioRepository.save(existente);
+    }
+
+    /**
+     * Pessoa externa como responsavel legal (Jira, T31-BE2). CPF novo: conta RESPONSAVEL_EXTERNO com a senha do
+     * cadastro. CPF de conta existente: reaproveita se for responsável externo ou dependente maior vitalício
+     * (o maior ganha o vínculo de ResponsavelExterno e segue como BENEFICIARIO). Dependente com vigência
+     * determinada, titular e demais perfis: 422.
+     */
     private Usuario responsavelExterno(CriarDependenteRequest.ResponsavelRequest r, String cpfDoMenor, String senha) {
         String cpfResp = ValidacaoCadastro.normalizarCpf(r.cpf());
         if (cpfResp.equals(cpfDoMenor)) {
             throw new DadosInvalidosException("responsavel", "O responsavel nao pode ter o mesmo CPF do menor");
         }
         Usuario existente = usuarioRepository.findByLogin(cpfResp).orElse(null);
-        if (existente != null) {
-            if (existente.getPerfil() != PerfilUsuario.RESPONSAVEL_EXTERNO) {
-                throw new DadosInvalidosException("responsavel",
-                        "Este CPF pertence a outra pessoa do sistema e nao pode ser responsavel legal");
-            }
+        if (existente == null) {
+            Usuario novo = novaConta(cpfResp, PerfilUsuario.RESPONSAVEL_EXTERNO, senha);
+            ResponsavelExterno externo = new ResponsavelExterno();
+            externo.setUsuarioId(novo.getIdUsuario());
+            externo.setNome(ValidacaoCadastro.obrigatorio(r.nome(), "responsavel", ValidacaoCadastro.NOME_MAXIMO));
+            externo.setTelefone(apenasDigitos(r.telefone()));
+            responsavelExternoRepository.save(externo);
+            return novo;
+        }
+        if (existente.getPerfil() == PerfilUsuario.RESPONSAVEL_EXTERNO) {
             return existente;
         }
-        Usuario novo = novaConta(cpfResp, PerfilUsuario.RESPONSAVEL_EXTERNO, senha);
-        ResponsavelExterno externo = new ResponsavelExterno();
-        externo.setUsuarioId(novo.getIdUsuario());
-        externo.setNome(ValidacaoCadastro.obrigatorio(r.nome(), "responsavel", ValidacaoCadastro.NOME_MAXIMO));
-        externo.setTelefone(apenasDigitos(r.telefone()));
-        responsavelExternoRepository.save(externo);
-        return novo;
+        boolean ehTitular = beneficiarioRepository.existsById(existente.getIdUsuario());
+        Dependente maior = ehTitular ? null
+                : dependenteRepository.findByUsuarioIdUsuario(existente.getIdUsuario()).orElse(null);
+        if (maior == null || maior.getVigenciaFim() != null) {
+            throw new DadosInvalidosException("responsavel",
+                    "Este CPF pertence a outra pessoa do sistema e nao pode ser responsavel legal");
+        }
+        if (!responsavelExternoRepository.existsById(existente.getIdUsuario())) {
+            ResponsavelExterno externo = new ResponsavelExterno();
+            externo.setUsuarioId(existente.getIdUsuario());
+            externo.setNome(ValidacaoCadastro.obrigatorio(r.nome(), "responsavel", ValidacaoCadastro.NOME_MAXIMO));
+            externo.setTelefone(apenasDigitos(r.telefone()));
+            responsavelExternoRepository.save(externo);
+        }
+        return existente;
     }
 
     private Usuario novaConta(String login, PerfilUsuario perfil, String senha) {

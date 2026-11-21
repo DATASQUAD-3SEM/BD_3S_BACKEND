@@ -21,6 +21,7 @@ import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.dependente.Dependente;
 import fatec.fusex.nexus.dependente.DependenteRepository;
+import fatec.fusex.nexus.dependente.ResponsavelExterno;
 import fatec.fusex.nexus.dependente.ResponsavelExternoRepository;
 import fatec.fusex.nexus.dependente.TipoDependente;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
@@ -146,6 +147,108 @@ class ChefeDependenteCadastroServiceTest {
         assertThat(criado.temConta()).isTrue();
         verify(usuarioRepository).save(org.mockito.ArgumentMatchers.argThat(
                 u -> PerfilUsuario.BENEFICIARIO == u.getPerfil() && CPF_MAIOR.equals(u.getLogin())));
+    }
+
+    @Test
+    void maiorReaproveitaContaDeResponsavelExternoEMudaOPerfil() {
+        Usuario existente = new Usuario();
+        existente.setIdUsuario(77L);
+        existente.setLogin(CPF_MAIOR);
+        existente.setPerfil(PerfilUsuario.RESPONSAVEL_EXTERNO);
+        when(usuarioRepository.findByLogin(CPF_MAIOR)).thenReturn(Optional.of(existente));
+        CriarDependenteRequest req = new CriarDependenteRequest("Maria Adulta", LocalDate.of(1985, 2, 8), CPF_MAIOR,
+                null, "12345678901", "Conjuge", "VITALICIA", null, null, null);
+
+        DependenteItemResponse criado = service.criar(TITULAR, req);
+
+        assertThat(criado.tipo()).isEqualTo(TipoDependente.MAIOR);
+        assertThat(existente.getPerfil()).isEqualTo(PerfilUsuario.BENEFICIARIO);
+        assertThat(existente.getIdUsuario()).isEqualTo(77L);
+        verify(usuarioRepository).save(existente);
+        verify(passwordEncoder, org.mockito.Mockito.never()).encode(any());
+    }
+
+    @Test
+    void maiorComCpfDeOutroPerfilEhRecusado() {
+        Usuario medico = new Usuario();
+        medico.setLogin(CPF_MAIOR);
+        medico.setPerfil(PerfilUsuario.MEDICO);
+        when(usuarioRepository.findByLogin(CPF_MAIOR)).thenReturn(Optional.of(medico));
+        CriarDependenteRequest req = new CriarDependenteRequest("Maria Adulta", LocalDate.of(1985, 2, 8), CPF_MAIOR,
+                null, "12345678901", "Conjuge", "VITALICIA", null, null, SENHA);
+
+        assertThatThrownBy(() -> service.criar(TITULAR, req)).isInstanceOf(DadosInvalidosException.class);
+    }
+
+    @Test
+    void responsavelReaproveitaDependenteMaiorVitalicio() {
+        Usuario maior = new Usuario();
+        maior.setIdUsuario(88L);
+        maior.setLogin(CPF_RESPONSAVEL);
+        maior.setPerfil(PerfilUsuario.BENEFICIARIO);
+        when(usuarioRepository.findByLogin(CPF_RESPONSAVEL)).thenReturn(Optional.of(maior));
+        when(dependenteRepository.findByUsuarioIdUsuario(88L)).thenReturn(Optional.of(dependenteExistente(TipoDependente.MAIOR, null)));
+        ResponsavelExterno externo = new ResponsavelExterno();
+        externo.setUsuarioId(88L);
+        externo.setNome("Pessoa Adulta");
+        when(responsavelExternoRepository.findById(88L)).thenReturn(Optional.of(externo));
+        CriarDependenteRequest req = requisicao(LocalDate.now().minusYears(5), "DETERMINADA", LocalDate.now().plusYears(17),
+                new CriarDependenteRequest.ResponsavelRequest("OUTRA_PESSOA", CPF_RESPONSAVEL, "Pessoa Adulta", "12998765432"),
+                null);
+
+        DependenteItemResponse criado = service.criar(TITULAR, req);
+
+        assertThat(criado.tipo()).isEqualTo(TipoDependente.MENOR_RESPONSAVEL);
+        assertThat(maior.getPerfil()).isEqualTo(PerfilUsuario.BENEFICIARIO);
+        verify(responsavelExternoRepository).save(org.mockito.ArgumentMatchers.argThat(e -> e.getUsuarioId() == 88L));
+    }
+
+    @Test
+    void responsavelComDependenteDeVigenciaDeterminadaEhRecusado() {
+        Usuario maior = new Usuario();
+        maior.setIdUsuario(88L);
+        maior.setLogin(CPF_RESPONSAVEL);
+        maior.setPerfil(PerfilUsuario.BENEFICIARIO);
+        when(usuarioRepository.findByLogin(CPF_RESPONSAVEL)).thenReturn(Optional.of(maior));
+        when(dependenteRepository.findByUsuarioIdUsuario(88L))
+                .thenReturn(Optional.of(dependenteExistente(TipoDependente.MAIOR, LocalDate.now().plusYears(2))));
+        CriarDependenteRequest req = requisicao(LocalDate.now().minusYears(5), "DETERMINADA", LocalDate.now().plusYears(17),
+                new CriarDependenteRequest.ResponsavelRequest("OUTRA_PESSOA", CPF_RESPONSAVEL, "Pessoa", "12998765432"),
+                null);
+
+        assertThatThrownBy(() -> service.criar(TITULAR, req)).isInstanceOf(DadosInvalidosException.class);
+    }
+
+    @Test
+    void responsavelQueEhTitularEhRecusado() {
+        Usuario titular = new Usuario();
+        titular.setIdUsuario(88L);
+        titular.setLogin(CPF_RESPONSAVEL);
+        titular.setPerfil(PerfilUsuario.BENEFICIARIO);
+        when(usuarioRepository.findByLogin(CPF_RESPONSAVEL)).thenReturn(Optional.of(titular));
+        when(beneficiarioRepository.existsById(88L)).thenReturn(true);
+        CriarDependenteRequest req = requisicao(LocalDate.now().minusYears(5), "DETERMINADA", LocalDate.now().plusYears(17),
+                new CriarDependenteRequest.ResponsavelRequest("OUTRA_PESSOA", CPF_RESPONSAVEL, "Titular", "12998765432"),
+                null);
+
+        assertThatThrownBy(() -> service.criar(TITULAR, req)).isInstanceOf(DadosInvalidosException.class);
+    }
+
+    private Dependente dependenteExistente(TipoDependente tipo, LocalDate fim) {
+        Beneficiario titular = new Beneficiario();
+        titular.setUsuarioId(TITULAR);
+        titular.setNome("Antonio Titular");
+        titular.setPrecCp("45872213300");
+        Dependente d = new Dependente();
+        d.setIdDependente(7L);
+        d.setTitular(titular);
+        d.setNome("Dependente Existente");
+        d.setCpf(CPF_MAIOR);
+        d.setPrecCp("12345678901");
+        d.setDataNascimento(LocalDate.of(1985, 2, 8));
+        d.setTipo(tipo);
+        d.setVigenciaFim(fim);
+        return d;
     }
 
     private static CriarDependenteRequest requisicao(LocalDate nascimento, String tipoVigencia, LocalDate vigenciaFim,
