@@ -59,7 +59,7 @@ public record FaturaLisuraResumoResponse(
                 liberada(espelho.getSituacaoFatura(), itens, eventos, agora));
     }
 
-    private static boolean liberada(SituacaoFatura situacao, List<EspelhoItem> itens,
+    public static boolean liberada(SituacaoFatura situacao, List<EspelhoItem> itens,
                                     List<FaturaEvento> eventos, LocalDateTime agora) {
         if (situacao == SituacaoFatura.EM_LISURA) {
             return itens.stream().allMatch(item -> item.getValorContratoSessao() != null)
