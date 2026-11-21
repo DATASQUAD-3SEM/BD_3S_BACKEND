@@ -234,6 +234,35 @@ class ChefeDependenteCadastroServiceTest {
         assertThatThrownBy(() -> service.criar(TITULAR, req)).isInstanceOf(DadosInvalidosException.class);
     }
 
+    @Test
+    void consultaDeContaClassificaOCpfSemGravarNada() {
+        when(usuarioRepository.findByLogin(CPF_RESPONSAVEL)).thenReturn(Optional.empty());
+        assertThat(service.consultarConta(CPF_RESPONSAVEL)).isEqualTo(new ContaPorCpfResponse("NOVA", null));
+
+        Usuario externo = new Usuario();
+        externo.setIdUsuario(41L);
+        externo.setPerfil(PerfilUsuario.RESPONSAVEL_EXTERNO);
+        ResponsavelExterno helena = new ResponsavelExterno();
+        helena.setUsuarioId(41L);
+        helena.setNome("Helena Costa");
+        when(usuarioRepository.findByLogin(CPF_RESPONSAVEL)).thenReturn(Optional.of(externo));
+        when(responsavelExternoRepository.findById(41L)).thenReturn(Optional.of(helena));
+        assertThat(service.consultarConta(CPF_RESPONSAVEL))
+                .isEqualTo(new ContaPorCpfResponse("RESPONSAVEL_EXTERNO", "Helena Costa"));
+
+        Usuario maior = new Usuario();
+        maior.setIdUsuario(88L);
+        maior.setPerfil(PerfilUsuario.BENEFICIARIO);
+        when(usuarioRepository.findByLogin(CPF_RESPONSAVEL)).thenReturn(Optional.of(maior));
+        when(dependenteRepository.findByUsuarioIdUsuario(88L)).thenReturn(Optional.of(dependenteExistente(TipoDependente.MAIOR, null)));
+        assertThat(service.consultarConta(CPF_RESPONSAVEL).situacao()).isEqualTo("DEPENDENTE_MAIOR_VITALICIO");
+
+        when(beneficiarioRepository.existsById(88L)).thenReturn(true);
+        assertThat(service.consultarConta(CPF_RESPONSAVEL)).isEqualTo(new ContaPorCpfResponse("OUTRA", null));
+
+        verify(usuarioRepository, org.mockito.Mockito.never()).save(any());
+    }
+
     private Dependente dependenteExistente(TipoDependente tipo, LocalDate fim) {
         Beneficiario titular = new Beneficiario();
         titular.setUsuarioId(TITULAR);

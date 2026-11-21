@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** T31-BE1 (SCRUM-270): dependentes do titular na visao do chefe. */
@@ -30,6 +31,12 @@ public class ChefeDependenteController {
     @PostMapping
     public ResponseEntity<DependenteItemResponse> criar(@PathVariable Long id, @RequestBody CriarDependenteRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(cadastroService.criar(id, request));
+    }
+
+    /** T31-BE2: conta existente para o CPF digitado no formulario do dependente (so leitura, nada e gravado). */
+    @GetMapping("/conta")
+    public ContaPorCpfResponse consultarConta(@PathVariable Long id, @RequestParam String cpf) {
+        return cadastroService.consultarConta(cpf);
     }
 
     @GetMapping("/proximo-prec-cp")

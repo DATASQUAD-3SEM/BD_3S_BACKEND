@@ -196,6 +196,32 @@ public class ChefeDependenteCadastroService {
         return existente;
     }
 
+    /**
+     * Consulta, sem gravar nada, se o CPF ja tem conta e se ela pode ser reaproveitada (regra 13, comentario de
+     * revisao): mesma classificacao usada em contaDoMaior e responsavelExterno.
+     */
+    @Transactional(readOnly = true)
+    public ContaPorCpfResponse consultarConta(String cpfInformado) {
+        usuarioLogado.exigirPerfilAtivo(PerfilUsuario.CHEFE_FUSEX);
+        String cpf = ValidacaoCadastro.normalizarCpf(cpfInformado);
+        Usuario existente = usuarioRepository.findByLogin(cpf).orElse(null);
+        if (existente == null) {
+            return new ContaPorCpfResponse("NOVA", null);
+        }
+        if (existente.getPerfil() == PerfilUsuario.RESPONSAVEL_EXTERNO) {
+            String nome = responsavelExternoRepository.findById(existente.getIdUsuario())
+                    .map(ResponsavelExterno::getNome).orElse(null);
+            return new ContaPorCpfResponse("RESPONSAVEL_EXTERNO", nome);
+        }
+        if (!beneficiarioRepository.existsById(existente.getIdUsuario())) {
+            Dependente maior = dependenteRepository.findByUsuarioIdUsuario(existente.getIdUsuario()).orElse(null);
+            if (maior != null && maior.getVigenciaFim() == null) {
+                return new ContaPorCpfResponse("DEPENDENTE_MAIOR_VITALICIO", maior.getNome());
+            }
+        }
+        return new ContaPorCpfResponse("OUTRA", null);
+    }
+
     private Usuario novaConta(String login, PerfilUsuario perfil, String senha) {
         if (usuarioRepository.findByLogin(login).isPresent()) {
             throw new DadosInvalidosException("cpf", "CPF ja possui conta no sistema");
