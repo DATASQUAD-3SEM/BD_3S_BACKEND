@@ -1,7 +1,6 @@
 package fatec.fusex.nexus.medicoFusex;
 
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.web.bind.annotation.GetMapping;
@@ -66,19 +65,19 @@ public class MedicoBeneficiarioController {
         LocalDate hoje = Beneficiario.hoje();
         return dependenteRepository.findByPrecCp(digitos)
                 .filter(d -> d.getVigenciaFim() == null || !d.getVigenciaFim().isBefore(hoje))
-                .map(d -> BeneficiarioMedicoResponse.deDependente(d, hoje, responsaveis(d)));
+                .map(d -> BeneficiarioMedicoResponse.deDependente(d, hoje, responsavel(d)));
     }
 
-    /** Nomes dos responsaveis legais: o titular, no menor sob sua guarda; o externo, no menor sob responsavel. */
-    private List<String> responsaveis(Dependente d) {
+    /** Quem age pelo menor: o titular, no menor sob sua guarda; o responsavel externo, no menor sob responsavel. */
+    private String responsavel(Dependente d) {
         if (d.getTipo() == TipoDependente.MENOR_TITULAR) {
-            return List.of(d.getTitular().getNome());
+            return d.getTitular().getNome();
         }
         if (d.getTipo() == TipoDependente.MENOR_RESPONSAVEL && d.getResponsavel() != null) {
             return responsavelExternoRepository.findById(d.getResponsavel().getIdUsuario())
-                    .map(r -> List.of(r.getNome()))
-                    .orElse(List.of());
+                    .map(r -> r.getNome())
+                    .orElse(null);
         }
-        return List.of();
+        return null;
     }
 }

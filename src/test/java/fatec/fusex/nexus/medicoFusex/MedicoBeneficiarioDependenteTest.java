@@ -72,7 +72,7 @@ class MedicoBeneficiarioDependenteTest {
                 .andExpect(jsonPath("$.nome").value("Miguel Ferreira"))
                 .andExpect(jsonPath("$.dependente.menor").value(true))
                 .andExpect(jsonPath("$.dependente.titularNome").value("Antonio Titular"))
-                .andExpect(jsonPath("$.dependente.responsaveis[0]").value("Antonio Titular"));
+                .andExpect(jsonPath("$.dependente.responsavel").value("Antonio Titular"));
     }
 
     @Test
@@ -86,7 +86,7 @@ class MedicoBeneficiarioDependenteTest {
 
         mockMvc.perform(get("/medicos/beneficiarios").param("precCp", PREC_MENOR))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.dependente.responsaveis[0]").value("Helena Costa"));
+                .andExpect(jsonPath("$.dependente.responsavel").value("Helena Costa"));
     }
 
     @Test

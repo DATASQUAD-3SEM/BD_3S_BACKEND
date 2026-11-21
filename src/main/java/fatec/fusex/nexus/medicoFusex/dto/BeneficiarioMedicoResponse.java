@@ -2,7 +2,6 @@ package fatec.fusex.nexus.medicoFusex.dto;
 
 import java.time.LocalDate;
 import java.time.Period;
-import java.util.List;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.FaixaEtaria;
@@ -45,7 +44,7 @@ public record BeneficiarioMedicoResponse(
     }
 
     /** Dependente encontrado pelo Prec CP (T30-BE7). Id e o do titular, como na busca de beneficiario. */
-    public static BeneficiarioMedicoResponse deDependente(Dependente d, LocalDate hoje, List<String> responsaveis) {
+    public static BeneficiarioMedicoResponse deDependente(Dependente d, LocalDate hoje, String responsavel) {
         int idade = Period.between(d.getDataNascimento(), hoje).getYears();
         boolean menor = d.getDataNascimento().plusYears(18).isAfter(hoje);
         Beneficiario titular = d.getTitular();
@@ -64,7 +63,7 @@ public record BeneficiarioMedicoResponse(
                         titular.getPrecCp(),
                         d.getVinculo(),
                         menor,
-                        responsaveis));
+                        responsavel));
     }
 
     @Override
