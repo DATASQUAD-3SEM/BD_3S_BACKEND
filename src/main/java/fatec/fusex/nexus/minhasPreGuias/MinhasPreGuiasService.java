@@ -71,10 +71,8 @@ public class MinhasPreGuiasService {
 
     @Transactional(readOnly = true)
     public List<MinhaPreGuiaResponse> listar() {
-        Beneficiario beneficiario = beneficiarioLogado();
-
-        List<PreGuia> preGuias = preGuiaRepository
-                .findByBeneficiarioUsuarioIdOrderByDataCriacaoDesc(beneficiario.getUsuarioId());
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
+        List<PreGuia> preGuias = preGuiasQuePodeAgir(usuario);
 
         return preGuias.stream().map(preGuia -> {
 
@@ -247,6 +245,29 @@ public class MinhasPreGuiasService {
             case "png" -> MediaType.IMAGE_PNG;
             default -> MediaType.APPLICATION_OCTET_STREAM;
         };
+    }
+
+    /**
+     * T30-BE3: pre-guias que o usuario pode ver (AcessoPaciente). Titular: as suas e as dos menores sob sua
+     * guarda, sem as do maior nem as do menor sob responsavel. Responsavel externo: as dos menores que acompanha.
+     * Dependente maior: as proprias. Mais recente primeiro.
+     */
+    private List<PreGuia> preGuiasQuePodeAgir(Usuario usuario) {
+        java.util.Map<Long, PreGuia> porId = new java.util.LinkedHashMap<>();
+        for (PreGuia p : preGuiaRepository.findByBeneficiarioUsuarioIdOrderByDataCriacaoDesc(usuario.getIdUsuario())) {
+            porId.put(p.getIdPreGuia(), p);
+        }
+        for (PreGuia p : preGuiaRepository.findByDependenteResponsavelIdUsuarioOrderByDataCriacaoDesc(usuario.getIdUsuario())) {
+            porId.put(p.getIdPreGuia(), p);
+        }
+        for (PreGuia p : preGuiaRepository.findByDependenteUsuarioIdUsuarioOrderByDataCriacaoDesc(usuario.getIdUsuario())) {
+            porId.put(p.getIdPreGuia(), p);
+        }
+        return porId.values().stream()
+                .filter(p -> fatec.fusex.nexus.preGuia.AcessoPaciente.podeAgir(usuario, p))
+                .sorted(java.util.Comparator.comparing(PreGuia::getDataCriacao).reversed()
+                        .thenComparing(PreGuia::getIdPreGuia, java.util.Comparator.reverseOrder()))
+                .toList();
     }
 
     private Beneficiario beneficiarioLogado() {

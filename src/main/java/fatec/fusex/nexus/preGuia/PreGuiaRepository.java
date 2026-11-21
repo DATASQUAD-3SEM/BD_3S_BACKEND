@@ -20,6 +20,10 @@ public interface PreGuiaRepository extends JpaRepository<PreGuia, Long> {
 
     List<PreGuia> findByBeneficiarioUsuarioIdOrderByDataCriacaoDesc(Long usuarioId);
 
+    List<PreGuia> findByDependenteResponsavelIdUsuarioOrderByDataCriacaoDesc(Long responsavelId);
+
+    List<PreGuia> findByDependenteUsuarioIdUsuarioOrderByDataCriacaoDesc(Long usuarioId);
+
     // T14-BE1: pre-guias do medico emissor em um status, da mais antiga para a mais recente
     @EntityGraph(attributePaths = {"beneficiario", "ocs"})
     List<PreGuia> findByMedicoFusexUsuarioIdAndStatusOrderByDataCriacaoAscIdPreGuiaAsc(
