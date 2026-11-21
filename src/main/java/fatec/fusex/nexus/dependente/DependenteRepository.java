@@ -12,4 +12,6 @@ public interface DependenteRepository extends JpaRepository<Dependente, Long> {
     List<Dependente> findByResponsavelIdUsuarioAndTipo(Long responsavelId, TipoDependente tipo);
 
     Optional<Dependente> findByUsuarioIdUsuario(Long usuarioId);
+
+    Optional<Dependente> findByPrecCp(String precCp);
 }
