@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import fatec.fusex.nexus.rastreabilidade.dto.EnviarFaturaRequest;
@@ -42,8 +43,10 @@ public class LisuraController {
     }
 
     @PutMapping("/{id}/lisura")
-    public FaturaDetalheResponse salvar(@PathVariable Long id, @RequestBody List<ItemLisuraRequest> itens) {
-        return service.salvar(id, itens);
+    public FaturaDetalheResponse salvar(@PathVariable Long id,
+                                        @RequestParam(value = "responsavel", required = false) String responsavel,
+                                        @RequestBody List<ItemLisuraRequest> itens) {
+        return service.salvar(id, responsavel, itens);
     }
 
     @PostMapping("/{id}/enviar-ocs")

@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import fatec.fusex.nexus.ocs.Ocs;
-import fatec.fusex.nexus.usuario.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -48,7 +47,7 @@ public class OcsPreco {
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "atualizado_por")
-    private Usuario atualizadoPor;
+    /** Nome do responsavel que gravou o preço (regra 12.3). Nao e FK: a conta do setor nao tem pessoa. */
+    @Column(name = "atualizado_por", length = 100)
+    private String atualizadoPor;
 }
