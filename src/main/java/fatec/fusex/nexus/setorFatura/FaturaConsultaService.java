@@ -52,10 +52,14 @@ public class FaturaConsultaService {
         List<Long> ids = espelhos.stream().map(Espelho::getIdEspelho).toList();
         Map<Long, List<EspelhoItem>> itensPorEspelho = espelhoItemRepository.buscarComDadosPorEspelhos(ids).stream()
                 .collect(Collectors.groupingBy(item -> item.getEspelho().getIdEspelho()));
+        Map<Long, List<FaturaEvento>> eventosPorEspelho = eventoRepository
+                .findByEspelhoIdEspelhoInOrderByDataEventoAscIdFaturaEventoAsc(ids).stream()
+                .collect(Collectors.groupingBy(evento -> evento.getEspelho().getIdEspelho()));
 
         return espelhos.stream()
                 .map(espelho -> FaturaResumoResponse.fromEntity(
-                        espelho, itensPorEspelho.getOrDefault(espelho.getIdEspelho(), List.of())))
+                        espelho, itensPorEspelho.getOrDefault(espelho.getIdEspelho(), List.of()),
+                        eventosPorEspelho.getOrDefault(espelho.getIdEspelho(), List.of())))
                 .toList();
     }
 

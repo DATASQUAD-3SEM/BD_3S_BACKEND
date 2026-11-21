@@ -143,6 +143,24 @@ class FaturaConsultaControllerTest {
     }
 
     @Test
+    void listaTrazOPrazoDaOcsEACienciaDoEnvioMaisRecente() throws Exception {
+        Espelho aguardando = novoEspelho(StatusEspelho.ENVIADO, SituacaoFatura.AGUARDANDO_OCS, ENVIO_RECEBIDO,
+                "003/2026");
+        // Envio numa quarta as 09:00: o prazo vai ate segunda as 23:59:59 (sabado e domingo nao contam).
+        registrarEvento(aguardando, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.of(2026, 11, 11, 9, 0), "Ana Silva");
+        registrarEvento(aguardando, TipoFaturaEvento.CIENTE_OCS, LocalDateTime.of(2026, 11, 12, 10, 0), "Bruno Lima");
+        novoEspelho(StatusEspelho.ENVIADO, SituacaoFatura.PROTOCOLADA, ENVIO_PROTOCOLADO, "001/2026");
+
+        mockMvc.perform(get("/setor-fatura/faturas")
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_SETOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.numeroFatura == '003/2026')].dataEnvioOcs").value("2026-11-11T09:00:00"))
+                .andExpect(jsonPath("$[?(@.numeroFatura == '003/2026')].prazoOcs").value("2026-11-16T23:59:59"))
+                .andExpect(jsonPath("$[?(@.numeroFatura == '003/2026')].dataCiencia").value("2026-11-12T10:00:00"))
+                .andExpect(jsonPath("$[?(@.numeroFatura == '001/2026')].prazoOcs").value(org.hamcrest.Matchers.contains(nullValue())));
+    }
+
+    @Test
     void detalheTrazLinhasTotalEventosEControleDeFluxo() throws Exception {
         Espelho protocolado = novoEspelho(StatusEspelho.ENVIADO, SituacaoFatura.PROTOCOLADA,
                 ENVIO_PROTOCOLADO, "001/2026");
