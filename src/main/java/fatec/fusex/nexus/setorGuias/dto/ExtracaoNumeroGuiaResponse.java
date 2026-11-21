@@ -10,5 +10,6 @@ public record ExtracaoNumeroGuiaResponse(
 
         String ug,
         String ugOrigem,
-        String validadeAte) {
+        String validadeAte,
+        String pacienteNome) {
 }

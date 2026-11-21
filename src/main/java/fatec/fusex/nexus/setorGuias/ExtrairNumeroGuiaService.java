@@ -76,7 +76,8 @@ public class ExtrairNumeroGuiaService {
                 LeitorGuiaPdf.examesDaGuia(texto),
                 ug,
                 ugOrigem,
-                validadeAte
+                validadeAte,
+                nomeDoPacienteDaPreGuia(preGuiaId)
         );
     }
 
@@ -96,17 +97,22 @@ public class ExtrairNumeroGuiaService {
         return numero.find() ? Optional.of(numero.group(1)) : Optional.empty();
     }
 
+    private String nomeDoPacienteDaPreGuia(Long preGuiaId) {
+        if (preGuiaId == null) {
+            return null;
+        }
+        return preGuiaRepository.findById(preGuiaId)
+                .map(fatec.fusex.nexus.preGuia.PacienteDaPreGuia::nome)
+                .orElse(null);
+    }
+
     private String precCpDaPreGuia(Long preGuiaId) {
         if (preGuiaId == null) {
             return null;
         }
         PreGuia preGuia = preGuiaRepository.findById(preGuiaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + preGuiaId));
-        if (preGuia.getBeneficiario() == null) {
-            return null;
-        }
-        String precCp = preGuia.getBeneficiario().getPrecCp();
-        return precCp == null || precCp.isBlank() ? null : LeitorGuiaPdf.somenteDigitos(precCp);
+        return fatec.fusex.nexus.preGuia.PacienteDaPreGuia.precCp(preGuia);
     }
 
     private void validarPdf(MultipartFile pdf) {
