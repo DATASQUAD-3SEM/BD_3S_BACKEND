@@ -1,6 +1,7 @@
 package fatec.fusex.nexus.guiaBeneficiario;
 
 import fatec.fusex.nexus.preGuia.AcessoPaciente;
+import fatec.fusex.nexus.preGuia.dto.PacienteDto;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
@@ -74,7 +75,7 @@ public class GuiaBeneficiarioService {
         List<Guia> guias = transacaoLeitura.execute(status -> guiasQuePodeAgir(usuario));
         viradaValidade.virarVencidas(guias, hoje);
 
-        return transacaoLeitura.execute(status -> montar(guiasQuePodeAgir(usuario)));
+        return transacaoLeitura.execute(status -> montar(guiasQuePodeAgir(usuario), usuario));
     }
 
     /**
@@ -100,7 +101,7 @@ public class GuiaBeneficiarioService {
                 .toList();
     }
 
-    private List<GuiaBeneficiarioResponse> montar(List<Guia> guias) {
+    private List<GuiaBeneficiarioResponse> montar(List<Guia> guias, Usuario usuario) {
         if (guias.isEmpty()) {
             return List.of();
         }
@@ -122,7 +123,8 @@ public class GuiaBeneficiarioService {
                 .map(guia -> GuiaBeneficiarioResponse.fromEntity(
                         guia,
                         procedimentos.getOrDefault(guia.getIdGuia(), List.of()),
-                        sessoes.getOrDefault(guia.getIdGuia(), List.of())))
+                        sessoes.getOrDefault(guia.getIdGuia(), List.of()),
+                        PacienteDto.de(guia.getPreGuia(), usuario)))
                 .toList();
     }
 
@@ -180,7 +182,8 @@ public class GuiaBeneficiarioService {
                 .map(SessaoDto::fromEntity)
                 .toList();
 
-        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
+        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto,
+                PacienteDto.de(guia.getPreGuia(), usuario));
     }
 
     // Ordem: perfil (403) -> guia existe (404) -> dono (403) -> sessao da guia (404)
@@ -246,6 +249,7 @@ public class GuiaBeneficiarioService {
                 .map(SessaoDto::fromEntity)
                 .toList();
 
-        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
+        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto,
+                PacienteDto.de(guia.getPreGuia(), usuario));
     }
 }

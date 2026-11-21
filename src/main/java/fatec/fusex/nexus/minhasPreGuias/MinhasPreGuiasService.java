@@ -95,7 +95,8 @@ public class MinhasPreGuiasService {
                         .orElse(null);
             }
 
-            return MinhaPreGuiaResponse.fromEntity(preGuia, obs, guiaDto);
+            return MinhaPreGuiaResponse.fromEntity(preGuia, obs, guiaDto,
+                    fatec.fusex.nexus.preGuia.dto.PacienteDto.de(preGuia, usuario));
         }).toList();
     }
 
