@@ -1,7 +1,9 @@
 package fatec.fusex.nexus.setorFatura;
 
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -108,11 +110,15 @@ public class FaturaTransicaoService {
         boolean cienteNaRodada = eventos.subList(ultimoEnvio + 1, eventos.size()).stream()
                 .anyMatch(e -> e.getTipo() == TipoFaturaEvento.CIENTE_OCS);
         LocalDateTime envio = eventos.get(ultimoEnvio).getDataEvento();
-        return cienteNaRodada || !agora.isBefore(somarDiasUteis(envio, PRAZO_OCS_DIAS_UTEIS));
+        return cienteNaRodada || agora.isAfter(somarDiasUteis(envio, PRAZO_OCS_DIAS_UTEIS));
     }
 
+    /**
+     * Prazo da OCS: fim (23:59:59) do N-esimo dia util depois da data do envio.
+     * Sabado e domingo nao contam; feriados nao sao descontados.
+     */
     public static LocalDateTime somarDiasUteis(LocalDateTime inicio, int dias) {
-        LocalDateTime resultado = inicio;
+        LocalDate resultado = inicio.toLocalDate();
         int restantes = dias;
         while (restantes > 0) {
             resultado = resultado.plusDays(1);
@@ -121,7 +127,7 @@ public class FaturaTransicaoService {
                 restantes--;
             }
         }
-        return resultado;
+        return resultado.atTime(LocalTime.of(23, 59, 59));
     }
 
     private String validarResponsavel(String responsavel) {
