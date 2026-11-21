@@ -140,3 +140,54 @@ WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = 'auditoria');
 -- Este UPDATE corrige so essas linhas; senhas ja trocadas pelos usuarios nao sao tocadas.
 UPDATE Usuario SET senha_hash = '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO'
 WHERE senha_hash = 'HASH_BCRYPT_AQUI';
+-- ---------------------------------------------------------------------
+-- T29-BE2 (SCRUM-251): dependentes de exemplo, conforme modelo 2.7 e regra 13.
+-- Casos: menor sob a guarda do titular, menor sob responsavel externo (sem Prec CP) e maior com conta propria.
+-- Responsavel externo: conta propria pelo CPF, perfil RESPONSAVEL_EXTERNO, sem Prec CP.
+-- ---------------------------------------------------------------------
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '41282945067', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RESPONSAVEL_EXTERNO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '41282945067');
+
+INSERT INTO ResponsavelExterno (usuario_id, nome, telefone)
+SELECT u.id_usuario, 'Helena Costa', '12998765432'
+FROM Usuario u
+WHERE u.login = '41282945067'
+  AND NOT EXISTS (SELECT 1 FROM ResponsavelExterno r WHERE r.usuario_id = u.id_usuario);
+
+-- Maior de idade com conta propria (login pelo CPF, perfil BENEFICIARIO), sem linha em Beneficiario.
+INSERT INTO Usuario (login, senha_hash, perfil)
+SELECT '98765432100', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'BENEFICIARIO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '98765432100');
+
+-- Miguel: menor sob a guarda do titular Antonio (MENOR_TITULAR).
+INSERT INTO Dependente (titular_id, usuario_id, responsavel_id, nome, data_nascimento, cpf, telefone,
+                        prec_cp, vinculo, tipo, vigencia_fim)
+SELECT b.usuario_id, NULL, NULL, 'Miguel Ferreira', '2026-03-21', '39053344705', NULL,
+       '12345678902', 'Filho', 'MENOR_TITULAR', '2048-03-20'
+FROM Beneficiario b
+JOIN Usuario t ON t.id_usuario = b.usuario_id
+WHERE t.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '12345678902');
+
+-- Sofia: menor sob a guarda da responsavel externa Helena (MENOR_RESPONSAVEL), titular Antonio.
+INSERT INTO Dependente (titular_id, usuario_id, responsavel_id, nome, data_nascimento, cpf, telefone,
+                        prec_cp, vinculo, tipo, vigencia_fim)
+SELECT b.usuario_id, NULL, r.id_usuario, 'Sofia Ferreira', '2017-05-15', '39053344806', NULL,
+       '12345678903', 'Filha', 'MENOR_RESPONSAVEL', '2039-05-14'
+FROM Beneficiario b
+JOIN Usuario t ON t.id_usuario = b.usuario_id
+JOIN Usuario r ON r.login = '41282945067'
+WHERE t.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '12345678903');
+
+-- Carla: maior de idade, conta propria, vigencia vitalicia (tipo MAIOR).
+INSERT INTO Dependente (titular_id, usuario_id, responsavel_id, nome, data_nascimento, cpf, telefone,
+                        prec_cp, vinculo, tipo, vigencia_fim)
+SELECT b.usuario_id, u.id_usuario, NULL, 'Carla Ferreira', '1985-02-08', '98765432100', NULL,
+       '12345678901', 'Cônjuge', 'MAIOR', NULL
+FROM Beneficiario b
+JOIN Usuario t ON t.id_usuario = b.usuario_id
+JOIN Usuario u ON u.login = '98765432100'
+WHERE t.login = '52998224725'
+  AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '12345678901');
