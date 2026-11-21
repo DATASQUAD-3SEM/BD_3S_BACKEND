@@ -80,6 +80,9 @@ class ChefeDependenteServiceTest {
         assertThat(resposta.dependentes().get(1).responsaveis())
                 .containsExactly(new ResponsavelDependenteResponse(41L, "Helena Costa", "EXTERNO"));
         assertThat(resposta.dependentes().get(2).vigenciaVencida()).isTrue();
+        // CPF e telefone vao na lista para a edicao do chefe vir preenchida (T31-FE3).
+        assertThat(resposta.dependentes().get(0).cpf()).isEqualTo("39053344705");
+        assertThat(resposta.dependentes().get(0).telefone()).isEqualTo("12999990000");
         assertThat(resposta.dependentes().get(2).responsaveis()).isEmpty();
     }
 
@@ -111,6 +114,7 @@ class ChefeDependenteServiceTest {
         d.setVigenciaFim(vigenciaFim);
         d.setDataNascimento(LocalDate.of(2010, 1, 1));
         d.setCpf("39053344705");
+        d.setTelefone("12999990000");
         d.setPrecCp("1234567890" + id);
         return d;
     }
