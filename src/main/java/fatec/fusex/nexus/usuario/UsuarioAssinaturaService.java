@@ -71,10 +71,12 @@ public class UsuarioAssinaturaService {
 
         PerfilUsuario perfil = usuario.getPerfil();
 
+        // T31-BE5: o responsavel legal externo cadastra a assinatura com que assina as sessoes do menor (V19).
         boolean podeAssinar =
                 perfil == PerfilUsuario.BENEFICIARIO
                         || perfil == PerfilUsuario.MEDICO
-                        || perfil == PerfilUsuario.CHEFE_FUSEX;
+                        || perfil == PerfilUsuario.CHEFE_FUSEX
+                        || perfil == PerfilUsuario.RESPONSAVEL_EXTERNO;
 
         if (!podeAssinar) {
             throw new AcessoNegadoException(

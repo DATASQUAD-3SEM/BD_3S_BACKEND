@@ -10,9 +10,17 @@ import org.springframework.web.bind.annotation.RestController;
 public class DependenteLeituraController {
 
     private final DependenteLeituraService service;
+    private final ResponsavelMeService responsavelMeService;
 
-    public DependenteLeituraController(DependenteLeituraService service) {
+    public DependenteLeituraController(DependenteLeituraService service, ResponsavelMeService responsavelMeService) {
         this.service = service;
+        this.responsavelMeService = responsavelMeService;
+    }
+
+    /** Dados pessoais do responsavel legal externo (nome, CPF e se ja tem assinatura). */
+    @GetMapping("/responsavel/me")
+    public ResponsavelMeService.ResponsavelMeResponse meusDadosDeResponsavel() {
+        return responsavelMeService.meusDados();
     }
 
     @GetMapping("/beneficiario/dependentes")
