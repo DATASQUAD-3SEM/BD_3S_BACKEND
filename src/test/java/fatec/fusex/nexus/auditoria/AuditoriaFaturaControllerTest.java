@@ -189,6 +189,11 @@ class AuditoriaFaturaControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.situacao").value("AUDITADA"));
 
+        mockMvc.perform(get(BASE + "/analisadas").header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].responsavelVisualizacao").value("Ten Moraes"));
+
         mockMvc.perform(get(BASE).header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA))
                 .andExpect(jsonPath("$.length()").value(0));
     }

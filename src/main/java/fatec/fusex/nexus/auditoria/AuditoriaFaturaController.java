@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import fatec.fusex.nexus.auditoria.dto.AuditoriaAnalisadaResponse;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaDetalheResponse;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaResumoResponse;
 import fatec.fusex.nexus.rastreabilidade.dto.EnviarFaturaRequest;
@@ -27,6 +28,11 @@ public class AuditoriaFaturaController {
     @GetMapping
     public List<AuditoriaResumoResponse> listar() {
         return service.listar();
+    }
+
+    @GetMapping("/analisadas")
+    public List<AuditoriaAnalisadaResponse> analisadas() {
+        return service.analisadas();
     }
 
     @GetMapping("/{id}")
