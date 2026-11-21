@@ -23,6 +23,10 @@ public interface GuiaRepository extends JpaRepository<Guia, Long> {
     /** Guias do beneficiario (dono da pre-guia), da mais recente para a mais antiga (T18-BE1). */
     List<Guia> findByPreGuiaBeneficiarioUsuarioIdOrderByDataInsercaoDescIdGuiaDesc(Long usuarioId);
 
+    List<Guia> findByPreGuiaDependenteResponsavelIdUsuarioOrderByDataInsercaoDescIdGuiaDesc(Long responsavelId);
+
+    List<Guia> findByPreGuiaDependenteUsuarioIdUsuarioOrderByDataInsercaoDescIdGuiaDesc(Long usuarioId);
+
     /** Guias enviadas a uma OCS (com data de envio), da envio mais recente para a mais antiga (T19-BE1). */
     List<Guia> findByPreGuiaOcsIdOcsAndDataEnvioIsNotNullOrderByDataEnvioDescIdGuiaDesc(Long idOcs);
 
