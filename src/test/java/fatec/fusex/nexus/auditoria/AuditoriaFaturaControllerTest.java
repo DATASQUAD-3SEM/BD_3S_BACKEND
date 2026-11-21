@@ -164,6 +164,46 @@ class AuditoriaFaturaControllerTest {
         return eventoRepository.save(evento);
     }
 
+    @Test
+    void visualizarSemResponsavelRecebe422SemMudarNada() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.EM_AUDITORIA);
+
+        mockMvc.perform(post(BASE + "/{id}/visualizar", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"responsavel\":\"\"}"))
+                .andExpect(status().isUnprocessableEntity());
+
+        assertThat(espelhoRepository.findById(espelho.getIdEspelho()).orElseThrow().getSituacaoFatura())
+                .isEqualTo(SituacaoFatura.EM_AUDITORIA);
+    }
+
+    @Test
+    void visualizarMarcaAuditadaEAparecePeloHistorico() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.EM_AUDITORIA);
+
+        mockMvc.perform(post(BASE + "/{id}/visualizar", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"responsavel\":\"Ten Moraes\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.situacao").value("AUDITADA"));
+
+        mockMvc.perform(get(BASE).header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA))
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void visualizarFaturaNaoEmAuditoriaRecebe409() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.EM_LISURA);
+
+        mockMvc.perform(post(BASE + "/{id}/visualizar", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"responsavel\":\"Ten Moraes\"}"))
+                .andExpect(status().isConflict());
+    }
+
     private Espelho novoEspelho(SituacaoFatura situacao) {
         Espelho espelho = new Espelho();
         espelho.setOcs(ocs);

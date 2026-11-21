@@ -14,18 +14,24 @@ import fatec.fusex.nexus.andamentoGlosa.AndamentoGlosaService;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaDetalheResponse;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaResumoResponse;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
+import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.EspelhoItem;
 import fatec.fusex.nexus.espelho.EspelhoItemRepository;
 import fatec.fusex.nexus.espelho.EspelhoRepository;
 import fatec.fusex.nexus.espelho.SituacaoFatura;
+import fatec.fusex.nexus.rastreabilidade.dto.EnviarFaturaRequest;
 import fatec.fusex.nexus.setorFatura.FaturaConsultaService;
 import fatec.fusex.nexus.setorFatura.FaturaEvento;
 import fatec.fusex.nexus.setorFatura.FaturaEventoRepository;
+import fatec.fusex.nexus.setorFatura.FaturaTransicaoService;
+import fatec.fusex.nexus.setorFatura.TipoFaturaEvento;
+import fatec.fusex.nexus.setorFatura.dto.FaturaDetalheResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
+import fatec.fusex.nexus.usuario.Usuario;
 
-/** Auditoria, T26-BE1: lista e detalhe das faturas EM_AUDITORIA. Nao altera valores. */
+/** Auditoria (T26-BE1..BE3): so visualiza a fatura e conclui o fluxo; nao altera valores. */
 @Service
 public class AuditoriaFaturaService {
 
@@ -36,6 +42,7 @@ public class AuditoriaFaturaService {
     private final EspelhoRepository espelhoRepository;
     private final EspelhoItemRepository espelhoItemRepository;
     private final FaturaEventoRepository eventoRepository;
+    private final FaturaTransicaoService transicaoService;
     private final FaturaConsultaService consultaService;
     private final AndamentoGlosaService andamentoGlosaService;
 
@@ -43,17 +50,19 @@ public class AuditoriaFaturaService {
                                   EspelhoRepository espelhoRepository,
                                   EspelhoItemRepository espelhoItemRepository,
                                   FaturaEventoRepository eventoRepository,
+                                  FaturaTransicaoService transicaoService,
                                   FaturaConsultaService consultaService,
                                   AndamentoGlosaService andamentoGlosaService) {
         this.usuarioLogado = usuarioLogado;
         this.espelhoRepository = espelhoRepository;
         this.espelhoItemRepository = espelhoItemRepository;
         this.eventoRepository = eventoRepository;
+        this.transicaoService = transicaoService;
         this.consultaService = consultaService;
         this.andamentoGlosaService = andamentoGlosaService;
     }
 
-    /** Faturas EM_AUDITORIA, da mais antiga para a mais recente pelo envio a auditoria. */
+    /** T26-BE1: faturas EM_AUDITORIA, da mais antiga para a mais recente pelo envio a auditoria. */
     @Transactional(readOnly = true)
     public List<AuditoriaResumoResponse> listar() {
         usuarioLogado.exigirPerfil(PerfilUsuario.AUDITORIA);
@@ -77,7 +86,7 @@ public class AuditoriaFaturaService {
                 .toList();
     }
 
-    /** Detalhe a partir de EM_AUDITORIA (inclusive AUDITADA, para o historico). */
+    /** T26-BE1: detalhe de fatura a partir de EM_AUDITORIA (inclusive AUDITADA, para o historico). */
     @Transactional(readOnly = true)
     public AuditoriaDetalheResponse detalhar(Long id) {
         usuarioLogado.exigirPerfil(PerfilUsuario.AUDITORIA);
@@ -85,6 +94,21 @@ public class AuditoriaFaturaService {
                 .filter(e -> e.getSituacaoFatura() != null && VISIVEIS_NO_DETALHE.contains(e.getSituacaoFatura()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Fatura nao encontrada"));
         return new AuditoriaDetalheResponse(consultaService.montarDetalhe(id), andamentoGlosaService.daFatura(id));
+    }
+
+    /** T26-BE2: marca a fatura como visualizada (EM_AUDITORIA -> AUDITADA). Responsavel obrigatorio. */
+    @Transactional
+    public FaturaDetalheResponse visualizar(Long id, EnviarFaturaRequest request) {
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.AUDITORIA);
+        Espelho espelho = espelhoRepository.buscarComLockPorId(id)
+                .filter(e -> e.getSituacaoFatura() != null)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Fatura nao encontrada"));
+        if (espelho.getSituacaoFatura() != SituacaoFatura.EM_AUDITORIA) {
+            throw new ConflitoException("Esta acao nao e permitida na situacao atual da fatura");
+        }
+        transicaoService.registrar(id, TipoFaturaEvento.VISUALIZADA, usuario,
+                request == null ? null : request.responsavel());
+        return consultaService.montarDetalhe(id);
     }
 
     private Map<Long, List<EspelhoItem>> itensPorEspelho(List<Long> ids) {
