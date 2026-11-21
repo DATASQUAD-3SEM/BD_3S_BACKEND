@@ -23,6 +23,8 @@ import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
 import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.EspelhoItem;
 import fatec.fusex.nexus.espelho.EspelhoItemRepository;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcs;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcsRepository;
 import fatec.fusex.nexus.espelho.EspelhoRepository;
 import fatec.fusex.nexus.espelho.OrigemContrato;
 import fatec.fusex.nexus.espelho.SituacaoFatura;
@@ -70,6 +72,7 @@ class GlosaOcsControllerTest {
     @Autowired private EspelhoRepository espelhoRepository;
     @Autowired private EspelhoItemRepository espelhoItemRepository;
     @Autowired private FaturaEventoRepository eventoRepository;
+    @Autowired private EspelhoItemRodadaOcsRepository rodadaRepository;
 
     private Ocs ocsA;
     private Usuario setor;
@@ -101,6 +104,7 @@ class GlosaOcsControllerTest {
         mockMvc.perform(get(BASE).header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].ocs").value("Laboratorio A"))
                 .andExpect(jsonPath("$[0].valorGlosa").value(20.00));
 
         mockMvc.perform(get(BASE).header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_B))
@@ -142,6 +146,32 @@ class GlosaOcsControllerTest {
         mockMvc.perform(get(BASE + "/{id}", espelho.getIdEspelho())
                         .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void segundaRodadaMostraSoAsLinhasDaRodadaAtualSemAsJaAceitas() throws Exception {
+        Espelho espelho = novoEspelho(ocsA, SituacaoFatura.AGUARDANDO_OCS);
+        EspelhoItem aceita = novoItem(espelho, new BigDecimal("90.00"), new BigDecimal("100.00"));
+        aceita.setDecisaoOcs("OK");
+        espelhoItemRepository.save(aceita);
+        EspelhoItem pendente = novoItem(espelho, new BigDecimal("70.00"), new BigDecimal("100.00"));
+        FaturaEvento envio = eventoRepository.save(
+                evento(espelho, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.of(2026, 11, 10, 9, 0)));
+        EspelhoItemRodadaOcs rodada = new EspelhoItemRodadaOcs();
+        rodada.setEspelhoItem(pendente);
+        rodada.setEnvioEvento(envio);
+        rodada.setValorContratoSessao(pendente.getValorContratoSessao());
+        rodada.setOrigemContrato(pendente.getOrigemContrato());
+        rodadaRepository.save(rodada);
+
+        mockMvc.perform(get(BASE + "/{id}", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.guiasGlosadas.length()").value(1))
+                .andExpect(jsonPath("$.valorGlosa").value(60.00));
+
+        mockMvc.perform(get(BASE).header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A))
+                .andExpect(jsonPath("$[0].valorGlosa").value(60.00));
     }
 
     private Espelho novaFaturaComGlosa(Ocs ocs, boolean decidida) {

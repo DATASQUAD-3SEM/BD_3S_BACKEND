@@ -19,6 +19,7 @@ import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.EspelhoItem;
 import fatec.fusex.nexus.espelho.EspelhoItemRepository;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcsRepository;
 import fatec.fusex.nexus.espelho.EspelhoRepository;
 import fatec.fusex.nexus.espelho.SituacaoFatura;
 import fatec.fusex.nexus.glosaOcs.dto.GlosaDetalheResponse;
@@ -44,6 +45,7 @@ public class GlosaOcsService {
     private final ContaOcsService contaOcsService;
     private final EspelhoRepository espelhoRepository;
     private final EspelhoItemRepository espelhoItemRepository;
+    private final EspelhoItemRodadaOcsRepository rodadaRepository;
     private final FaturaEventoRepository eventoRepository;
     private final FaturaConsultaService consultaService;
 
@@ -51,12 +53,14 @@ public class GlosaOcsService {
                            ContaOcsService contaOcsService,
                            EspelhoRepository espelhoRepository,
                            EspelhoItemRepository espelhoItemRepository,
+                           EspelhoItemRodadaOcsRepository rodadaRepository,
                            FaturaEventoRepository eventoRepository,
                            FaturaConsultaService consultaService) {
         this.usuarioLogado = usuarioLogado;
         this.contaOcsService = contaOcsService;
         this.espelhoRepository = espelhoRepository;
         this.espelhoItemRepository = espelhoItemRepository;
+        this.rodadaRepository = rodadaRepository;
         this.eventoRepository = eventoRepository;
         this.consultaService = consultaService;
     }
@@ -86,11 +90,15 @@ public class GlosaOcsService {
                     List<EspelhoItem> itensDaFatura = itens.getOrDefault(e.getIdEspelho(), List.of());
                     List<FaturaEvento> evs = eventos.getOrDefault(e.getIdEspelho(), List.of());
                     FaturaEvento envio = ultimoEnvio(evs);
-                    if (envio == null || rodadaDecidida(evs, envio) || semGlosa(itensDaFatura)) {
+                    if (envio == null || rodadaDecidida(evs, envio)) {
+                        return null;
+                    }
+                    List<EspelhoItem> daRodada = linhasDaRodada(itensDaFatura, envio);
+                    if (daRodada.isEmpty()) {
                         return null;
                     }
                     LocalDateTime prazo = prazoDoEnvio(envio);
-                    return GlosaResumoResponse.fromEntity(e, itensDaFatura,
+                    return GlosaResumoResponse.fromEntity(e, daRodada,
                             envio.getDataEvento(), prazo, agora.isAfter(prazo));
                 })
                 .filter(r -> r != null)
@@ -115,10 +123,11 @@ public class GlosaOcsService {
         List<EspelhoItem> itens = espelhoItemRepository.buscarComDadosPorEspelho(id);
         List<FaturaEvento> eventos = eventoRepository.findByEspelhoIdEspelhoOrderByDataEventoAscIdFaturaEventoAsc(id);
         FaturaEvento envio = ultimoEnvio(eventos);
-        List<EspelhoItem> comGlosa = itens.stream()
-                .filter(item -> ControleFluxoFatura.glosaDaLinha(item).signum() != 0)
-                .toList();
-        if (envio == null || comGlosa.isEmpty()) {
+        if (envio == null) {
+            throw new RecursoNaoEncontradoException("Fatura sem glosa para esta OCS");
+        }
+        List<EspelhoItem> comGlosa = linhasDaRodada(itens, envio);
+        if (comGlosa.isEmpty()) {
             throw new RecursoNaoEncontradoException("Fatura sem glosa para esta OCS");
         }
 
@@ -159,8 +168,21 @@ public class GlosaOcsService {
                 || eventoApos(eventos, envio, TipoFaturaEvento.CONTESTADA_OCS) != null;
     }
 
-    private static boolean semGlosa(List<EspelhoItem> itens) {
-        return itens.stream().noneMatch(item -> ControleFluxoFatura.glosaDaLinha(item).signum() != 0);
+    /**
+     * Linhas glosadas da rodada atual (as gravadas em EspelhoItemRodadaOcs no envio mais recente). Sem rodada gravada
+     * (dados anteriores as rodadas), as linhas com glosa pendente: glosa diferente de zero e sem "Ok" da OCS.
+     */
+    private List<EspelhoItem> linhasDaRodada(List<EspelhoItem> itens, FaturaEvento envio) {
+        Set<Long> daRodada = rodadaRepository.findByEnvioEventoIdFaturaEvento(envio.getIdFaturaEvento()).stream()
+                .map(rodada -> rodada.getEspelhoItem().getIdEspelhoItem())
+                .collect(Collectors.toSet());
+        if (daRodada.isEmpty()) {
+            return itens.stream()
+                    .filter(item -> ControleFluxoFatura.glosaDaLinha(item).signum() != 0
+                            && !"OK".equals(item.getDecisaoOcs()))
+                    .toList();
+        }
+        return itens.stream().filter(item -> daRodada.contains(item.getIdEspelhoItem())).toList();
     }
 
     private static LocalDateTime prazoDoEnvio(FaturaEvento envio) {

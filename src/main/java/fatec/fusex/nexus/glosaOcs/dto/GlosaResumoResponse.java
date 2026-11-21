@@ -8,9 +8,10 @@ import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.EspelhoItem;
 import fatec.fusex.nexus.setorFatura.ControleFluxoFatura;
 
-/** Fatura com glosa pendente de decisao da OCS (T27-BE1). Valores so das linhas com glosa. */
+/** Fatura com glosa pendente de decisao da OCS (T27-BE1). Valores so das linhas glosadas da rodada atual. */
 public record GlosaResumoResponse(
         Long id,
+        String ocs,
         String numeroFatura,
         LocalDateTime dataEnvioOcs,
         LocalDateTime prazoOcs,
@@ -27,7 +28,7 @@ public record GlosaResumoResponse(
         BigDecimal informado = ControleFluxoFatura.valorInformado(comGlosa).setScale(2);
         BigDecimal valorFinal = ControleFluxoFatura.valorFinal(comGlosa);
         BigDecimal glosa = valorFinal == null ? null : informado.subtract(valorFinal).setScale(2);
-        return new GlosaResumoResponse(espelho.getIdEspelho(), espelho.getNumeroFatura(), dataEnvioOcs, prazo,
+        return new GlosaResumoResponse(espelho.getIdEspelho(), espelho.getOcs().getNome(), espelho.getNumeroFatura(), dataEnvioOcs, prazo,
                 prazoVencido, informado, glosa, valorFinal);
     }
 }
