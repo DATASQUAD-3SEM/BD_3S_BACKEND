@@ -1,6 +1,10 @@
 package fatec.fusex.nexus.chefeBeneficiario.dependentes;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -11,14 +15,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class ChefeDependenteController {
 
     private final ChefeDependenteService service;
+    private final ChefeDependenteCadastroService cadastroService;
 
-    public ChefeDependenteController(ChefeDependenteService service) {
+    public ChefeDependenteController(ChefeDependenteService service, ChefeDependenteCadastroService cadastroService) {
+        this.cadastroService = cadastroService;
         this.service = service;
     }
 
     @GetMapping
     public DependentesDoTitularResponse listar(@PathVariable Long id) {
         return service.listarDoTitular(id);
+    }
+
+    @PostMapping
+    public ResponseEntity<DependenteItemResponse> criar(@PathVariable Long id, @RequestBody CriarDependenteRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(cadastroService.criar(id, request));
     }
 
     @GetMapping("/proximo-prec-cp")
