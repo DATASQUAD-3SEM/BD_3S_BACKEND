@@ -7,8 +7,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import fatec.fusex.nexus.auditoria.dto.AuditoriaDetalheResponse;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaResumoResponse;
-import fatec.fusex.nexus.setorFatura.dto.FaturaDetalheResponse;
 
 @RestController
 @RequestMapping("/auditoria/faturas")
@@ -26,7 +26,7 @@ public class AuditoriaFaturaController {
     }
 
     @GetMapping("/{id}")
-    public FaturaDetalheResponse detalhar(@PathVariable Long id) {
+    public AuditoriaDetalheResponse detalhar(@PathVariable Long id) {
         return service.detalhar(id);
     }
 }

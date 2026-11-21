@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import fatec.fusex.nexus.andamentoGlosa.AndamentoGlosaService;
+import fatec.fusex.nexus.auditoria.dto.AuditoriaDetalheResponse;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaResumoResponse;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
@@ -21,7 +23,6 @@ import fatec.fusex.nexus.espelho.SituacaoFatura;
 import fatec.fusex.nexus.setorFatura.FaturaConsultaService;
 import fatec.fusex.nexus.setorFatura.FaturaEvento;
 import fatec.fusex.nexus.setorFatura.FaturaEventoRepository;
-import fatec.fusex.nexus.setorFatura.dto.FaturaDetalheResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 
 /** Auditoria, T26-BE1: lista e detalhe das faturas EM_AUDITORIA. Nao altera valores. */
@@ -36,17 +37,20 @@ public class AuditoriaFaturaService {
     private final EspelhoItemRepository espelhoItemRepository;
     private final FaturaEventoRepository eventoRepository;
     private final FaturaConsultaService consultaService;
+    private final AndamentoGlosaService andamentoGlosaService;
 
     public AuditoriaFaturaService(UsuarioLogado usuarioLogado,
                                   EspelhoRepository espelhoRepository,
                                   EspelhoItemRepository espelhoItemRepository,
                                   FaturaEventoRepository eventoRepository,
-                                  FaturaConsultaService consultaService) {
+                                  FaturaConsultaService consultaService,
+                                  AndamentoGlosaService andamentoGlosaService) {
         this.usuarioLogado = usuarioLogado;
         this.espelhoRepository = espelhoRepository;
         this.espelhoItemRepository = espelhoItemRepository;
         this.eventoRepository = eventoRepository;
         this.consultaService = consultaService;
+        this.andamentoGlosaService = andamentoGlosaService;
     }
 
     /** Faturas EM_AUDITORIA, da mais antiga para a mais recente pelo envio a auditoria. */
@@ -75,12 +79,12 @@ public class AuditoriaFaturaService {
 
     /** Detalhe a partir de EM_AUDITORIA (inclusive AUDITADA, para o historico). */
     @Transactional(readOnly = true)
-    public FaturaDetalheResponse detalhar(Long id) {
+    public AuditoriaDetalheResponse detalhar(Long id) {
         usuarioLogado.exigirPerfil(PerfilUsuario.AUDITORIA);
         espelhoRepository.findById(id)
                 .filter(e -> e.getSituacaoFatura() != null && VISIVEIS_NO_DETALHE.contains(e.getSituacaoFatura()))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Fatura nao encontrada"));
-        return consultaService.montarDetalhe(id);
+        return new AuditoriaDetalheResponse(consultaService.montarDetalhe(id), andamentoGlosaService.daFatura(id));
     }
 
     private Map<Long, List<EspelhoItem>> itensPorEspelho(List<Long> ids) {

@@ -26,6 +26,11 @@ import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
 import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.EspelhoItem;
 import fatec.fusex.nexus.espelho.EspelhoItemRepository;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcs;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcsRepository;
+import fatec.fusex.nexus.setorFatura.FaturaEvento;
+import fatec.fusex.nexus.setorFatura.FaturaEventoRepository;
+import fatec.fusex.nexus.setorFatura.TipoFaturaEvento;
 import fatec.fusex.nexus.espelho.EspelhoRepository;
 import fatec.fusex.nexus.espelho.OrigemContrato;
 import fatec.fusex.nexus.espelho.SituacaoFatura;
@@ -67,6 +72,8 @@ class AuditoriaFaturaControllerTest {
     @Autowired private GuiaProcedimentoRepository procedimentoRepository;
     @Autowired private EspelhoRepository espelhoRepository;
     @Autowired private EspelhoItemRepository espelhoItemRepository;
+    @Autowired private EspelhoItemRodadaOcsRepository rodadaRepository;
+    @Autowired private FaturaEventoRepository eventoRepository;
 
     private Ocs ocs;
     private Usuario setor;
@@ -112,6 +119,49 @@ class AuditoriaFaturaControllerTest {
 
         mockMvc.perform(get(BASE).header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void detalheSemGlosaTrazOsCamposDaFaturaEAndamentoVazio() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.EM_AUDITORIA);
+
+        mockMvc.perform(get(BASE + "/{id}", espelho.getIdEspelho()).header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.numeroFatura").value(espelho.getNumeroFatura()))
+                .andExpect(jsonPath("$.linhas.length()").value(1))
+                .andExpect(jsonPath("$.andamentoGlosa.length()").value(0));
+    }
+
+    @Test
+    void detalheTrazOAndamentoDaGuiaQueFoiAOcs() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.EM_AUDITORIA);
+        EspelhoItem item = espelhoItemRepository.buscarComDadosPorEspelho(espelho.getIdEspelho()).get(0);
+        FaturaEvento envio = evento(espelho, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.of(2026, 11, 11, 9, 0));
+        FaturaEvento ok = evento(espelho, TipoFaturaEvento.CIENTE_OCS, LocalDateTime.of(2026, 11, 12, 9, 0));
+        EspelhoItemRodadaOcs rodada = new EspelhoItemRodadaOcs();
+        rodada.setEspelhoItem(item);
+        rodada.setEnvioEvento(envio);
+        rodada.setValorContratoSessao(new BigDecimal("80.00"));
+        rodada.setOrigemContrato(OrigemContrato.MANUAL);
+        rodada.setDecisaoOcs("OK");
+        rodada.setDecisaoEvento(ok);
+        rodadaRepository.save(rodada);
+
+        mockMvc.perform(get(BASE + "/{id}", espelho.getIdEspelho()).header(SimulacaoLoginFilter.HEADER, LOGIN_AUDITORIA))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.andamentoGlosa.length()").value(1))
+                .andExpect(jsonPath("$.andamentoGlosa[0].seloFinal").value("Aceita pela OCS"))
+                .andExpect(jsonPath("$.andamentoGlosa[0].itens.length()").value(2));
+    }
+
+    private FaturaEvento evento(Espelho espelho, TipoFaturaEvento tipo, LocalDateTime data) {
+        FaturaEvento evento = new FaturaEvento();
+        evento.setEspelho(espelho);
+        evento.setTipo(tipo);
+        evento.setUsuario(setor);
+        evento.setResponsavel("Ana Silva");
+        evento.setDataEvento(data);
+        return eventoRepository.save(evento);
     }
 
     private Espelho novoEspelho(SituacaoFatura situacao) {
