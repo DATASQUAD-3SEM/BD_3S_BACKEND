@@ -27,6 +27,7 @@ import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
 import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.EspelhoItem;
 import fatec.fusex.nexus.espelho.EspelhoItemRepository;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcsRepository;
 import fatec.fusex.nexus.espelho.EspelhoRepository;
 import fatec.fusex.nexus.espelho.OrigemContrato;
 import fatec.fusex.nexus.espelho.SituacaoFatura;
@@ -85,6 +86,9 @@ class LisuraEnvioOcsControllerTest {
 
     @Autowired
     private EspelhoRepository espelhoRepository;
+
+    @Autowired
+    private EspelhoItemRodadaOcsRepository rodadaRepository;
 
     @Autowired
     private EspelhoItemRepository espelhoItemRepository;
@@ -234,6 +238,47 @@ class LisuraEnvioOcsControllerTest {
                 .andExpect(jsonPath("$.eventos[1].tipo").value("CONTESTADA_OCS"))
                 .andExpect(jsonPath("$.eventos[2].tipo").value("ENVIADA_OCS"))
                 .andExpect(jsonPath("$.eventos[2].responsavel").value("Carla Souza"));
+    }
+
+    @Test
+    void rodadaGravaSoAsLinhasComGlosaPendente() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.EM_LISURA, "001/2026");
+        EspelhoItem comGlosa = novoItem(espelho, "41001101", new BigDecimal("100.00"), 1, new BigDecimal("80.00"),
+                OrigemContrato.MANUAL);
+        novoItem(espelho, "41001102", new BigDecimal("100.00"), 1, new BigDecimal("100.00"),
+                OrigemContrato.CONFERIDO);
+        EspelhoItem aceita = novoItem(espelho, "41001103", new BigDecimal("100.00"), 1, new BigDecimal("70.00"),
+                OrigemContrato.MANUAL);
+        aceita.setDecisaoOcs("OK");
+        espelhoItemRepository.save(aceita);
+
+        mockMvc.perform(post(URL_ENVIO, espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"responsavel\":\"Ana Silva\"}"))
+                .andExpect(status().isOk());
+
+        assertThat(rodadaRepository.findAll()).extracting(r -> r.getEspelhoItem().getIdEspelhoItem())
+                .containsExactly(comGlosa.getIdEspelhoItem());
+        assertThat(espelhoItemRepository.findById(aceita.getIdEspelhoItem()).orElseThrow().getDecisaoOcs())
+                .isEqualTo("OK");
+    }
+
+    @Test
+    void faturaQueSoTemGlosasAceitasPelaOcsRecebe409() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.EM_LISURA, "001/2026");
+        EspelhoItem aceita = novoItem(espelho, "41001101", new BigDecimal("100.00"), 1, new BigDecimal("80.00"),
+                OrigemContrato.MANUAL);
+        aceita.setDecisaoOcs("OK");
+        espelhoItemRepository.save(aceita);
+
+        mockMvc.perform(post(URL_ENVIO, espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"responsavel\":\"Ana Silva\"}"))
+                .andExpect(status().isConflict());
+
+        assertThat(rodadaRepository.findAll()).isEmpty();
     }
 
     private Espelho novoEspelho(SituacaoFatura situacao, String numero) {
