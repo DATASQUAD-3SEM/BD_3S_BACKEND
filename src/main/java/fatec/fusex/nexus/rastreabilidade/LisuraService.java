@@ -85,7 +85,7 @@ public class LisuraService {
 
         // Gravar preco na tabela da OCS exige o nome do responsavel (regra 12.3).
         boolean gravaPreco = itens.stream()
-                .anyMatch(pedido -> digitaValor(itensDaFatura.get(pedido.itemId()), pedido));
+                .anyMatch(pedido -> gravaPreco(itensDaFatura.get(pedido.itemId()), pedido));
         String responsavelPreco = gravaPreco ? validarResponsavel(responsavelInformado) : null;
 
         LocalDateTime agora = LocalDateTime.now(Beneficiario.FUSO);
@@ -171,6 +171,10 @@ public class LisuraService {
 
     private void aplicar(Ocs ocs, EspelhoItem item, ItemLisuraRequest pedido, String responsavelPreco, LocalDateTime agora) {
         item.setObservacao(normalizar(pedido.observacao()));
+        if (aceitaPelaOcs(item)) {
+            // Linha com "Ok" da OCS numa rodada anterior: o contrato fica travado, so a observacao muda.
+            return;
+        }
         if (digitaValor(item, pedido)) {
             BigDecimal valor = pedido.valorContrato();
             item.setValorContratoSessao(valor);
@@ -184,11 +188,32 @@ public class LisuraService {
             if (Boolean.TRUE.equals(pedido.conforme())) {
                 item.setValorContratoSessao(item.getValorSessao());
                 item.setOrigemContrato(OrigemContrato.CONFERIDO);
+                if (contestadaPelaOcs(item)) {
+                    // Regra 12.8: a nova decisao de uma linha contestada tambem atualiza a tabela de precos.
+                    salvarPreco(ocs, item.getGuiaProcedimento().getCodDgp(), item.getValorSessao(), responsavelPreco, agora);
+                }
             } else {
                 item.setValorContratoSessao(null);
                 item.setOrigemContrato(null);
             }
         }
+    }
+
+    /** O pedido grava preco na tabela da OCS: valor digitado ou "Sim" numa linha contestada pela OCS. */
+    private boolean gravaPreco(EspelhoItem item, ItemLisuraRequest pedido) {
+        if (aceitaPelaOcs(item)) {
+            return false;
+        }
+        return digitaValor(item, pedido)
+                || (!daTabela(item) && contestadaPelaOcs(item) && Boolean.TRUE.equals(pedido.conforme()));
+    }
+
+    private boolean aceitaPelaOcs(EspelhoItem item) {
+        return "OK".equals(item.getDecisaoOcs());
+    }
+
+    private boolean contestadaPelaOcs(EspelhoItem item) {
+        return "CONTESTADA".equals(item.getDecisaoOcs());
     }
 
     private boolean digitaValor(EspelhoItem item, ItemLisuraRequest pedido) {
