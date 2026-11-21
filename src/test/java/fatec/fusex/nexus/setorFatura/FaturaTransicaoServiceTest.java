@@ -125,13 +125,17 @@ class FaturaTransicaoServiceTest {
     }
 
     @Test
-    void envioParaAuditoriaLiberadoAposTresDiasUteis() {
+    void envioParaAuditoriaLiberadoSomenteAposFimDoTerceiroDiaUtil() {
         registrar(PROTOCOLADA, SEXTA);
         registrar(ENVIADA_LISURA, SEXTA.plusHours(1));
         registrar(ENVIADA_OCS, SEXTA.plusHours(2));
-        LocalDateTime quarta = LocalDateTime.of(2026, 11, 25, 14, 0);
+        // Envio na sexta: 3o dia util = quarta 25/11, prazo ate 23:59:59.
+        LocalDateTime quartaAntesDoFim = LocalDateTime.of(2026, 11, 25, 14, 0);
 
-        registrar(ENVIADA_AUDITORIA, quarta);
+        assertThatThrownBy(() -> service.registrar(idEspelho, ENVIADA_AUDITORIA, setor, RESPONSAVEL,
+                quartaAntesDoFim)).isInstanceOf(ConflitoException.class);
+
+        registrar(ENVIADA_AUDITORIA, LocalDateTime.of(2026, 11, 26, 0, 0));
 
         assertThat(situacao()).isEqualTo(SituacaoFatura.EM_AUDITORIA);
     }

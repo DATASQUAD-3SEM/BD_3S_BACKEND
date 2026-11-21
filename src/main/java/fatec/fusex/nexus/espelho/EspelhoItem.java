@@ -56,4 +56,10 @@ public class EspelhoItem {
 
     @Column(name = "observacao", length = 500)
     private String observacao;
+
+    @Column(name = "decisao_ocs", length = 10)
+    private String decisaoOcs;
+
+    @Column(name = "motivo_contestacao_ocs", length = 500)
+    private String motivoContestacaoOcs;
 }

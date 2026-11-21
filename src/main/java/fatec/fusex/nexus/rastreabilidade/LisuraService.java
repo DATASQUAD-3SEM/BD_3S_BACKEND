@@ -19,6 +19,8 @@ import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.espelho.EspelhoItem;
 import fatec.fusex.nexus.espelho.EspelhoItemRepository;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcs;
+import fatec.fusex.nexus.espelho.EspelhoItemRodadaOcsRepository;
 import fatec.fusex.nexus.espelho.EspelhoRepository;
 import fatec.fusex.nexus.espelho.OrigemContrato;
 import fatec.fusex.nexus.espelho.SituacaoFatura;
@@ -28,6 +30,7 @@ import fatec.fusex.nexus.ocsPreco.OcsPrecoRepository;
 import fatec.fusex.nexus.rastreabilidade.dto.EnviarFaturaRequest;
 import fatec.fusex.nexus.rastreabilidade.dto.ItemLisuraRequest;
 import fatec.fusex.nexus.setorFatura.ControleFluxoFatura;
+import fatec.fusex.nexus.setorFatura.FaturaEvento;
 import fatec.fusex.nexus.setorFatura.FaturaConsultaService;
 import fatec.fusex.nexus.setorFatura.FaturaTransicaoService;
 import fatec.fusex.nexus.setorFatura.TipoFaturaEvento;
@@ -46,6 +49,7 @@ public class LisuraService {
     private final EspelhoRepository espelhoRepository;
     private final EspelhoItemRepository espelhoItemRepository;
     private final OcsPrecoRepository ocsPrecoRepository;
+    private final EspelhoItemRodadaOcsRepository espelhoItemRodadaOcsRepository;
     private final FaturaConsultaService consultaService;
     private final FaturaTransicaoService transicaoService;
 
@@ -53,14 +57,21 @@ public class LisuraService {
                          EspelhoRepository espelhoRepository,
                          EspelhoItemRepository espelhoItemRepository,
                          OcsPrecoRepository ocsPrecoRepository,
+                         EspelhoItemRodadaOcsRepository espelhoItemRodadaOcsRepository,
                          FaturaConsultaService consultaService,
                          FaturaTransicaoService transicaoService) {
         this.usuarioLogado = usuarioLogado;
         this.espelhoRepository = espelhoRepository;
         this.espelhoItemRepository = espelhoItemRepository;
         this.ocsPrecoRepository = ocsPrecoRepository;
+        this.espelhoItemRodadaOcsRepository = espelhoItemRodadaOcsRepository;
         this.consultaService = consultaService;
         this.transicaoService = transicaoService;
+    }
+
+    /** Glosa pendente: glosa diferente de zero e a OCS ainda nao deu "Ok" na linha. */
+    private boolean glosaPendente(EspelhoItem item) {
+        return ControleFluxoFatura.glosaDaLinha(item).signum() != 0 && !"OK".equals(item.getDecisaoOcs());
     }
 
     @Transactional
@@ -91,12 +102,25 @@ public class LisuraService {
         if (semDecisao > 0) {
             throw new DadosInvalidosException("linhas", "Há " + semDecisao + " linha(s) sem decisão.");
         }
-        boolean temGlosa = itens.stream().anyMatch(item -> ControleFluxoFatura.glosaDaLinha(item).signum() != 0);
-        if (!temGlosa) {
+        boolean temGlosaPendente = itens.stream().anyMatch(this::glosaPendente);
+        if (!temGlosaPendente) {
             throw new ConflitoException("Esta fatura não tem glosa; envie direto para a auditoria.");
         }
 
-        transicaoService.registrar(id, TipoFaturaEvento.ENVIADA_OCS, usuario, responsavel);
+        FaturaEvento envio = transicaoService.registrar(id, TipoFaturaEvento.ENVIADA_OCS, usuario, responsavel);
+        for (EspelhoItem item : itens) {
+            if (!"OK".equals(item.getDecisaoOcs())) {
+                // Linha que entra na nova rodada: a decisao anterior (contestacao) e apagada.
+                item.setDecisaoOcs(null);
+                item.setMotivoContestacaoOcs(null);
+            }
+            EspelhoItemRodadaOcs rodada = new EspelhoItemRodadaOcs();
+            rodada.setEspelhoItem(item);
+            rodada.setEnvioEvento(envio);
+            rodada.setValorContratoSessao(item.getValorContratoSessao());
+            rodada.setOrigemContrato(item.getOrigemContrato());
+            espelhoItemRodadaOcsRepository.save(rodada);
+        }
         return consultaService.montarDetalhe(id);
     }
 

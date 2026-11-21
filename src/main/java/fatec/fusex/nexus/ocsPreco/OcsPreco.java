@@ -42,6 +42,9 @@ public class OcsPreco {
     @Column(name = "valor_sessao", nullable = false, precision = 10, scale = 2)
     private BigDecimal valorSessao;
 
+    @Column(name = "descricao", length = 300)
+    private String descricao;
+
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
 
