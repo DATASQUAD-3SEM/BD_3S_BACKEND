@@ -58,7 +58,8 @@ public class ExtrairNumeroGuiaService {
         String numero = extrairNumeroDoTexto(texto).orElseThrow(() -> new DadosInvalidosException(
                 "pdf", "Nao foi possivel ler o numero da Guia neste PDF. Digite o numero manualmente."));
 
-        String precCpCadastrado = precCpDaPreGuia(preGuiaId);
+        PreGuia preGuia = preGuiaDaLeitura(preGuiaId);
+        String precCpCadastrado = preGuia == null ? null : fatec.fusex.nexus.preGuia.PacienteDaPreGuia.precCp(preGuia);
         String precCpLido = LeitorGuiaPdf.precCpDoPaciente(texto).orElse(null);
         Boolean precCpConfere = precCpLido == null || precCpCadastrado == null
                 ? null
@@ -77,7 +78,9 @@ public class ExtrairNumeroGuiaService {
                 ug,
                 ugOrigem,
                 validadeAte,
-                nomeDoPacienteDaPreGuia(preGuiaId)
+                preGuia == null ? null : fatec.fusex.nexus.preGuia.PacienteDaPreGuia.nome(preGuia),
+                precCpCadastrado,
+                preGuia == null ? null : preGuia.getDependente() != null
         );
     }
 
@@ -97,22 +100,13 @@ public class ExtrairNumeroGuiaService {
         return numero.find() ? Optional.of(numero.group(1)) : Optional.empty();
     }
 
-    private String nomeDoPacienteDaPreGuia(Long preGuiaId) {
+    /** Pre-guia da leitura (opcional): da o paciente e o Prec CP esperado. Id informado e inexistente: 404. */
+    private PreGuia preGuiaDaLeitura(Long preGuiaId) {
         if (preGuiaId == null) {
             return null;
         }
         return preGuiaRepository.findById(preGuiaId)
-                .map(fatec.fusex.nexus.preGuia.PacienteDaPreGuia::nome)
-                .orElse(null);
-    }
-
-    private String precCpDaPreGuia(Long preGuiaId) {
-        if (preGuiaId == null) {
-            return null;
-        }
-        PreGuia preGuia = preGuiaRepository.findById(preGuiaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + preGuiaId));
-        return fatec.fusex.nexus.preGuia.PacienteDaPreGuia.precCp(preGuia);
     }
 
     private void validarPdf(MultipartFile pdf) {

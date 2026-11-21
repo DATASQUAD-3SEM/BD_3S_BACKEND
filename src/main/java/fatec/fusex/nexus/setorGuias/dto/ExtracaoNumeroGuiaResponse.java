@@ -11,5 +11,8 @@ public record ExtracaoNumeroGuiaResponse(
         String ug,
         String ugOrigem,
         String validadeAte,
-        String pacienteNome) {
+        String pacienteNome,
+        // T30-BE4: Prec CP esperado (o do dependente quando a pre-guia tem dependente) e se o paciente e dependente.
+        String precCpPaciente,
+        Boolean pacienteDependente) {
 }
