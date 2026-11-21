@@ -36,12 +36,13 @@ public class DependenteLeituraService {
         LocalDate hoje = Beneficiario.hoje();
         return dependenteRepository.findByTitularUsuarioIdOrderByIdDependenteAsc(usuario.getIdUsuario()).stream()
                 .filter(d -> vigente(d, hoje))
-                .map(d -> new DependenteDoTitularResponse(d.getNome(), d.getVinculo(), idade(d, hoje),
-                        d.getVigenciaFim(), d.getTipo() == TipoDependente.MENOR_TITULAR))
+                .map(d -> new DependenteDoTitularResponse(d.getIdDependente(), d.getNome(), d.getVinculo(),
+                        d.getPrecCp(), idade(d, hoje), d.getTipo(), d.getVigenciaFim(),
+                        d.getTipo() == TipoDependente.MENOR_TITULAR))
                 .toList();
     }
 
-    /** Menores vigentes que o responsavel externo acompanha, com o titular e os outros responsaveis. */
+    /** Menores vigentes que o responsavel externo acompanha, com o titular (um so responsavel por menor, regra 13). */
     @Transactional(readOnly = true)
     public List<MenorAcompanhadoResponse> menoresDoResponsavel() {
         Usuario usuario = usuarioLogado.exigirPerfilAtivo(PerfilUsuario.RESPONSAVEL_EXTERNO);
@@ -49,8 +50,8 @@ public class DependenteLeituraService {
         return dependenteRepository.findByResponsavelIdUsuarioAndTipo(usuario.getIdUsuario(), TipoDependente.MENOR_RESPONSAVEL)
                 .stream()
                 .filter(d -> vigente(d, hoje) && menor(d, hoje))
-                .map(d -> new MenorAcompanhadoResponse(d.getNome(), idade(d, hoje), d.getVigenciaFim(),
-                        d.getTitular().getNome(), List.of(d.getTitular().getNome())))
+                .map(d -> new MenorAcompanhadoResponse(d.getIdDependente(), d.getNome(), d.getVinculo(),
+                        d.getPrecCp(), idade(d, hoje), d.getVigenciaFim(), d.getTitular().getNome()))
                 .toList();
     }
 
@@ -78,12 +79,13 @@ public class DependenteLeituraService {
         return Period.between(d.getDataNascimento(), hoje).getYears();
     }
 
-    public record DependenteDoTitularResponse(String nome, String vinculo, int idade, LocalDate vigenciaFim,
-                                              boolean podeCriarPreGuia) {
+    /** dependenteId leva o "Criar pre-guia" ao passo Paciente com o menor ja escolhido (T31-FE4). */
+    public record DependenteDoTitularResponse(Long dependenteId, String nome, String vinculo, String precCp, int idade,
+                                              TipoDependente tipo, LocalDate vigenciaFim, boolean podeCriarPreGuia) {
     }
 
-    public record MenorAcompanhadoResponse(String nome, int idade, LocalDate vigenciaFim, String titularNome,
-                                           List<String> outrosResponsaveis) {
+    public record MenorAcompanhadoResponse(Long dependenteId, String nome, String vinculo, String precCp, int idade,
+                                           LocalDate vigenciaFim, String titularNome) {
     }
 
     public record DependenteMeResponse(String nome, String precCp, String vinculo, LocalDate vigenciaFim,

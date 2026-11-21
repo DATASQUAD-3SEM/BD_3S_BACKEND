@@ -60,7 +60,8 @@ class DependenteLeituraServiceTest {
                 new DependenteLeituraService(logado, repo).menoresDoResponsavel();
 
         assertThat(lista).extracting(DependenteLeituraService.MenorAcompanhadoResponse::nome).containsExactly("Sofia");
-        assertThat(lista.get(0).outrosResponsaveis()).containsExactly("Titular");
+        assertThat(lista.get(0).titularNome()).isEqualTo("Titular");
+        assertThat(lista.get(0).precCp()).isEqualTo(sofia.getPrecCp());
     }
 
     private static Usuario usuario(long id, PerfilUsuario perfil) {
