@@ -5,6 +5,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,9 +20,20 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
+import fatec.fusex.nexus.beneficiario.Beneficiario;
+import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
+import fatec.fusex.nexus.dependente.Dependente;
+import fatec.fusex.nexus.dependente.DependenteRepository;
+import fatec.fusex.nexus.dependente.TipoDependente;
 import fatec.fusex.nexus.guiaAssinatura.PdfsDeTeste;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoRepository;
+import fatec.fusex.nexus.ocs.Ocs;
+import fatec.fusex.nexus.ocs.OcsRepository;
+import fatec.fusex.nexus.ocs.OcsTipo;
+import fatec.fusex.nexus.preGuia.PreGuia;
+import fatec.fusex.nexus.preGuia.PreGuiaRepository;
+import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
@@ -38,13 +52,25 @@ class ExtrairNumeroGuiaControllerTest {
     private final MockMvc mockMvc;
     private final UsuarioRepository usuarioRepository;
     private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final BeneficiarioRepository beneficiarioRepository;
+    private final DependenteRepository dependenteRepository;
+    private final OcsRepository ocsRepository;
+    private final PreGuiaRepository preGuiaRepository;
 
     ExtrairNumeroGuiaControllerTest(MockMvc mockMvc,
                                     UsuarioRepository usuarioRepository,
-                                    GuiaRascunhoRepository guiaRascunhoRepository) {
+                                    GuiaRascunhoRepository guiaRascunhoRepository,
+                                    BeneficiarioRepository beneficiarioRepository,
+                                    DependenteRepository dependenteRepository,
+                                    OcsRepository ocsRepository,
+                                    PreGuiaRepository preGuiaRepository) {
         this.mockMvc = mockMvc;
         this.usuarioRepository = usuarioRepository;
         this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.beneficiarioRepository = beneficiarioRepository;
+        this.dependenteRepository = dependenteRepository;
+        this.ocsRepository = ocsRepository;
+        this.preGuiaRepository = preGuiaRepository;
     }
 
     @BeforeEach
@@ -53,13 +79,13 @@ class ExtrairNumeroGuiaControllerTest {
         usuario(BENEFICIARIO, PerfilUsuario.BENEFICIARIO);
     }
 
-    private void usuario(String login, PerfilUsuario perfil) {
+    private Usuario usuario(String login, PerfilUsuario perfil) {
         Usuario usuario = new Usuario();
         usuario.setLogin(login);
         usuario.setSenhaHash("hash");
         usuario.setPerfil(perfil);
         usuario.setAtivo(true);
-        usuarioRepository.saveAndFlush(usuario);
+        return usuarioRepository.saveAndFlush(usuario);
     }
 
     private ResultActions ler(String login, MockMultipartFile arquivo) throws Exception {
@@ -84,6 +110,69 @@ class ExtrairNumeroGuiaControllerTest {
                 .andExpect(jsonPath("$.numeroGuia").value("202610678"));
 
         assertThat(guiaRascunhoRepository.count()).isEqualTo(rascunhosAntes);
+    }
+
+    @Test
+    void preGuiaDeDependente_devolveOPrecCpENomeDoDependente() throws Exception {
+        PreGuia preGuia = preGuia(true);
+        byte[] conteudo = PdfsDeTeste.pdfComTexto("GUIA DE ENCAMINHAMENTO", "Nr: 202610678");
+
+        mockMvc.perform(multipart(HttpMethod.POST, ROTA).file(pdf("guia.pdf", conteudo))
+                        .param("preGuiaId", String.valueOf(preGuia.getIdPreGuia()))
+                        .header(SimulacaoLoginFilter.HEADER, SETOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pacienteNome").value("Miguel Leitura"))
+                .andExpect(jsonPath("$.precCpPaciente").value("45872213371"))
+                .andExpect(jsonPath("$.pacienteDependente").value(true));
+    }
+
+    @Test
+    void preGuiaDoTitular_devolveOPrecCpDoTitularESemDependente() throws Exception {
+        PreGuia preGuia = preGuia(false);
+        byte[] conteudo = PdfsDeTeste.pdfComTexto("GUIA DE ENCAMINHAMENTO", "Nr: 202610678");
+
+        mockMvc.perform(multipart(HttpMethod.POST, ROTA).file(pdf("guia.pdf", conteudo))
+                        .param("preGuiaId", String.valueOf(preGuia.getIdPreGuia()))
+                        .header(SimulacaoLoginFilter.HEADER, SETOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pacienteNome").value("Antonio Leitura"))
+                .andExpect(jsonPath("$.precCpPaciente").value("45872213370"))
+                .andExpect(jsonPath("$.pacienteDependente").value(false));
+    }
+
+    private PreGuia preGuia(boolean doDependente) {
+        Ocs ocs = new Ocs();
+        ocs.setNome("Laboratorio Leitura");
+        ocs.setTipo(OcsTipo.OCS);
+        ocs.setContratoNum("CTR-LEITURA-1");
+        ocs = ocsRepository.save(ocs);
+
+        Beneficiario titular = new Beneficiario();
+        titular.setUsuario(usuarioRepository.findByLogin(BENEFICIARIO).orElseThrow());
+        titular.setNome("Antonio Leitura");
+        titular.setPrecCp("45872213370");
+        titular.setDataNascimento(LocalDate.of(1968, 3, 15));
+        titular.setTelefone("12987654321");
+        titular = beneficiarioRepository.save(titular);
+
+        PreGuia preGuia = new PreGuia();
+        preGuia.setStatus(PreGuiaStatus.PENDENTE);
+        preGuia.setBeneficiario(titular);
+        preGuia.setOcs(ocs);
+        preGuia.setEncaminhamentoUrl("encaminhamento.pdf");
+        preGuia.setDataCriacao(LocalDateTime.of(2026, 10, 1, 9, 0));
+        if (doDependente) {
+            Dependente miguel = new Dependente();
+            miguel.setTitular(titular);
+            miguel.setNome("Miguel Leitura");
+            miguel.setDataNascimento(LocalDate.of(2020, 3, 21));
+            miguel.setCpf("39053344771");
+            miguel.setPrecCp("45872213371");
+            miguel.setTipo(TipoDependente.MENOR_TITULAR);
+            miguel.setVigenciaFim(LocalDate.of(2042, 3, 20));
+            preGuia.setDependente(dependenteRepository.save(miguel));
+        }
+        return preGuiaRepository.save(preGuia);
     }
 
     @Test

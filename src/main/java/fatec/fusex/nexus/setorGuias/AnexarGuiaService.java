@@ -213,7 +213,7 @@ public class AnexarGuiaService {
     }
 
     private static void conferirPrecCp(PreGuia preGuia, MultipartFile pdf) {
-        String cadastrado = preGuia.getBeneficiario() == null ? null : preGuia.getBeneficiario().getPrecCp();
+        String cadastrado = fatec.fusex.nexus.preGuia.PacienteDaPreGuia.precCp(preGuia);
         if (cadastrado == null || cadastrado.isBlank()) {
             return;
         }
