@@ -10,12 +10,15 @@ import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
+import fatec.fusex.nexus.preGuia.PacienteDaPreGuia;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaRepository;
 import fatec.fusex.nexus.setorGuias.dto.ExtracaoNumeroGuiaResponse;
@@ -37,15 +40,21 @@ public class ExtrairNumeroGuiaService {
     private final LimiteLeituraGuia limiteLeituraGuia;
     private final PreGuiaRepository preGuiaRepository;
     private final long tamanhoMaximoBytes;
+    private final TransactionTemplate transacaoLeitura;
 
     public ExtrairNumeroGuiaService(UsuarioLogado usuarioLogado,
                                     LimiteLeituraGuia limiteLeituraGuia,
                                     PreGuiaRepository preGuiaRepository,
-                                    @Value("${nexus.guia.pdf-tamanho-maximo-bytes:10485760}") long tamanhoMaximoBytes) {
+                                    @Value("${nexus.guia.pdf-tamanho-maximo-bytes:10485760}") long tamanhoMaximoBytes,
+                                    PlatformTransactionManager transactionManager) {
         this.usuarioLogado = usuarioLogado;
         this.limiteLeituraGuia = limiteLeituraGuia;
         this.preGuiaRepository = preGuiaRepository;
         this.tamanhoMaximoBytes = tamanhoMaximoBytes;
+        // open-in-view esta desligado: o titular e o dependente da pre-guia (LAZY) so podem ser lidos dentro de uma
+        // transacao. A leitura do PDF fica fora dela; so a consulta da pre-guia roda aqui.
+        this.transacaoLeitura = new TransactionTemplate(transactionManager);
+        this.transacaoLeitura.setReadOnly(true);
     }
 
     public ExtracaoNumeroGuiaResponse extrair(MultipartFile pdf, Long preGuiaId) {
@@ -58,8 +67,8 @@ public class ExtrairNumeroGuiaService {
         String numero = extrairNumeroDoTexto(texto).orElseThrow(() -> new DadosInvalidosException(
                 "pdf", "Nao foi possivel ler o numero da Guia neste PDF. Digite o numero manualmente."));
 
-        PreGuia preGuia = preGuiaDaLeitura(preGuiaId);
-        String precCpCadastrado = preGuia == null ? null : fatec.fusex.nexus.preGuia.PacienteDaPreGuia.precCp(preGuia);
+        PacienteLeitura paciente = pacienteDaLeitura(preGuiaId);
+        String precCpCadastrado = paciente == null ? null : paciente.precCp();
         String precCpLido = LeitorGuiaPdf.precCpDoPaciente(texto).orElse(null);
         Boolean precCpConfere = precCpLido == null || precCpCadastrado == null
                 ? null
@@ -78,9 +87,9 @@ public class ExtrairNumeroGuiaService {
                 ug,
                 ugOrigem,
                 validadeAte,
-                preGuia == null ? null : fatec.fusex.nexus.preGuia.PacienteDaPreGuia.nome(preGuia),
+                paciente == null ? null : paciente.nome(),
                 precCpCadastrado,
-                preGuia == null ? null : preGuia.getDependente() != null
+                paciente == null ? null : paciente.dependente()
         );
     }
 
@@ -100,13 +109,24 @@ public class ExtrairNumeroGuiaService {
         return numero.find() ? Optional.of(numero.group(1)) : Optional.empty();
     }
 
-    /** Pre-guia da leitura (opcional): da o paciente e o Prec CP esperado. Id informado e inexistente: 404. */
-    private PreGuia preGuiaDaLeitura(Long preGuiaId) {
+    /**
+     * Paciente da pre-guia da leitura (opcional): nome, Prec CP esperado e se e dependente. Id informado e inexistente:
+     * 404. Lido numa transacao somente leitura, porque o titular e o dependente sao carregados sob demanda.
+     */
+    private PacienteLeitura pacienteDaLeitura(Long preGuiaId) {
         if (preGuiaId == null) {
             return null;
         }
-        return preGuiaRepository.findById(preGuiaId)
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + preGuiaId));
+        return transacaoLeitura.execute(status -> {
+            PreGuia preGuia = preGuiaRepository.findById(preGuiaId)
+                    .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada: id " + preGuiaId));
+            return new PacienteLeitura(PacienteDaPreGuia.nome(preGuia), PacienteDaPreGuia.precCp(preGuia),
+                    preGuia.getDependente() != null);
+        });
+    }
+
+    /** Dados do paciente da pre-guia usados na conferencia do Prec CP (lidos dentro da transacao). */
+    private record PacienteLeitura(String nome, String precCp, boolean dependente) {
     }
 
     private void validarPdf(MultipartFile pdf) {
