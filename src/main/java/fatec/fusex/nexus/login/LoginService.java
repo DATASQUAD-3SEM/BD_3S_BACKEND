@@ -84,6 +84,8 @@ public class LoginService {
             case SETOR_GUIAS -> "Setor de Guias";
             case RECEPCAO -> "Recepcao";
             case OCS -> contaOcsRepository.findById(id).map(c -> c.getOcs().getNome()).orElse(usuario.getLogin());
+            // Responsavel externo nao tem pessoa cadastrada ainda (T31): exibe o login, que e o CPF
+            case RESPONSAVEL_EXTERNO -> usuario.getLogin();
             case SETOR_FATURA -> "Setor de Faturas";
             case RASTREABILIDADE -> "Rastreabilidade";
             case AUDITORIA -> "Auditoria";
