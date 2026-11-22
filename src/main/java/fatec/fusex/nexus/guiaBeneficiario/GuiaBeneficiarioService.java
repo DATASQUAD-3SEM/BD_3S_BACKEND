@@ -131,7 +131,8 @@ public class GuiaBeneficiarioService {
                 .toList();
     }
 
-    // Ordem: perfil (403) -> existe (404) -> dono (403) -> situacao (409) -> validade (409) -> exames (409).
+    // Ordem: perfil (403) -> existe (404) -> dono (403) -> pre-guia CONCLUIDA (409) -> situacao (409)
+    //     -> validade (409) -> exames (409).
     // Trava a Guia (findByIdComLock) para que dois envios simultaneos nao criem sessao em dobro.
 
     @Transactional(rollbackFor = Exception.class)
@@ -143,6 +144,11 @@ public class GuiaBeneficiarioService {
 
         if (!AcessoPaciente.podeAgir(usuario, guia.getPreGuia())) {
             throw new AcessoNegadoException("A Guia nao pertence ao usuario logado");
+        }
+
+        // T18-BE2: so a Guia assinada pelo medico e pelo chefe (pre-guia CONCLUIDA) pode ser usada (regra 6.2).
+        if (guia.getPreGuia().getStatus() != PreGuiaStatus.CONCLUIDA) {
+            throw new ConflitoException("A Guia ainda não foi assinada pelo médico e pelo chefe do FUSEX");
         }
 
         if (guia.getSituacaoExecucao() != SituacaoExecucao.NAO_ENVIADA) {
