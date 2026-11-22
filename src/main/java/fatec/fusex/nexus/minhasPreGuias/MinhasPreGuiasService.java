@@ -84,9 +84,10 @@ public class MinhasPreGuiasService {
             MinhaPreGuiaResponse.GuiaDto guiaDto = null;
             if (preGuia.getStatus() == PreGuiaStatus.CONCLUIDA) {
                 guiaDto = guiaRepository.findByPreGuiaIdPreGuia(preGuia.getIdPreGuia())
+                        // T16-BE3: a validade e a data NAO RECEBER APOS gravada na Guia, e nao a insercao + 2 meses.
                         .map(guia -> new MinhaPreGuiaResponse.GuiaDto(
                                 guia.getNumero(),
-                                guia.getDataInsercao().toLocalDate().plusMonths(2)
+                                guia.getDataValidadeAte()
                         ))
                         .orElse(null);
             }
