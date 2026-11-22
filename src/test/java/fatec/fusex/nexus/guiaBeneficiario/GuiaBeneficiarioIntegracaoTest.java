@@ -32,13 +32,15 @@ import fatec.fusex.nexus.ocs.OcsTipo;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaRepository;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
+import fatec.fusex.nexus.sessao.Sessao;
 import fatec.fusex.nexus.sessao.SessaoRepository;
+import fatec.fusex.nexus.sessao.SituacaoSessao;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
- * T18 (SCRUM-167 e SCRUM-168): Minhas guias e envio a OCS sem transacao de teste envolvendo a requisicao, como na aplicacao real (open-in-view
+ * T18 (SCRUM-167, SCRUM-168 e SCRUM-169): Minhas guias, envio a OCS e assinatura de sessao sem transacao de teste envolvendo a requisicao, como na aplicacao real (open-in-view
  * desligado). Grava no H2 de verdade; o @AfterEach apaga tudo o que o teste criou.
  */
 @SpringBootTest
@@ -143,6 +145,35 @@ class GuiaBeneficiarioIntegracaoTest {
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.mensagem")
                         .value("A Guia ainda não foi assinada pelo médico e pelo chefe do FUSEX"));
+    }
+
+    @Test
+    void assinatura_deSessaoSolicitadaEmGuiaVencida_retorna409EViraAGuia() throws Exception {
+        LocalDate ontem = fatec.fusex.nexus.beneficiario.Beneficiario.hoje().minusDays(1);
+        guiaConcluida.setDataValidadeAte(ontem);
+        guiaConcluida.setSituacaoExecucao(SituacaoExecucao.EM_EXECUCAO);
+        guiaConcluida.setDataEnvio(LocalDateTime.of(2026, 10, 2, 9, 0));
+        guiaRepository.saveAndFlush(guiaConcluida);
+        GuiaProcedimento procedimento = procedimentoRepository
+                .findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(java.util.List.of(guiaConcluida.getIdGuia())).get(0);
+        Sessao solicitada = new Sessao();
+        solicitada.setGuiaProcedimento(procedimento);
+        solicitada.setNumero(1);
+        solicitada.setStatus(SituacaoSessao.SOLICITADA);
+        solicitada.setDataSolicitacao(LocalDateTime.of(2026, 10, 3, 9, 0));
+        solicitada = sessaoRepository.saveAndFlush(solicitada);
+
+        mockMvc.perform(post("/guias/" + guiaConcluida.getIdGuia() + "/sessoes/" + solicitada.getIdSessao()
+                        + "/assinatura").header(SimulacaoLoginFilter.HEADER, LOGIN_TITULAR))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem").value("Esta Guia venceu em "
+                        + ontem.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                        + ". A sessão não pode mais ser assinada."));
+
+        org.assertj.core.api.Assertions.assertThat(sessaoRepository.findById(solicitada.getIdSessao()).orElseThrow()
+                .getStatus()).isEqualTo(SituacaoSessao.EXPIRADA);
+        org.assertj.core.api.Assertions.assertThat(guiaRepository.findById(guiaConcluida.getIdGuia()).orElseThrow()
+                .getSituacaoExecucao()).isEqualTo(SituacaoExecucao.VENCIDA);
     }
 
     private Guia guia(String numero, PreGuiaStatus statusPreGuia, LocalDateTime insercao) {
