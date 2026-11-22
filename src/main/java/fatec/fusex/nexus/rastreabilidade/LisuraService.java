@@ -113,12 +113,12 @@ public class LisuraService {
         }
 
         FaturaEvento envio = transicaoService.registrar(id, TipoFaturaEvento.ENVIADA_OCS, usuario, responsavel);
-        for (EspelhoItem item : itens) {
-            if (!"OK".equals(item.getDecisaoOcs())) {
-                // Linha que entra na nova rodada: a decisao anterior (contestacao) e apagada.
-                item.setDecisaoOcs(null);
-                item.setMotivoContestacaoOcs(null);
-            }
+        // So as linhas com glosa pendente entram na rodada (regra 12.7); as aceitas pela OCS (Ok) e as sem glosa nao.
+        List<EspelhoItem> pendentes = itens.stream().filter(this::glosaPendente).toList();
+        for (EspelhoItem item : pendentes) {
+            // Linha que entra na nova rodada: a decisao anterior (contestacao) e apagada.
+            item.setDecisaoOcs(null);
+            item.setMotivoContestacaoOcs(null);
             EspelhoItemRodadaOcs rodada = new EspelhoItemRodadaOcs();
             rodada.setEspelhoItem(item);
             rodada.setEnvioEvento(envio);
