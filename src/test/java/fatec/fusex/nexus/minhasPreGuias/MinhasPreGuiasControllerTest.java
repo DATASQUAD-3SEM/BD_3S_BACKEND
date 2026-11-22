@@ -173,6 +173,7 @@ class MinhasPreGuiasControllerTest {
         guia.setNumero("00042");
         guia.setArquivoUrl(salvarPdfFake("guia.pdf"));
         guia.setDataInsercao(D1);
+        guia.setDataValidadeAte(java.time.LocalDate.of(2027, 3, 31));
         guia.setUsuario(usuarioJoao);
         guiaRepository.save(guia);
         idPreGuiaConcluidaJoao = concluida.getIdPreGuia();
@@ -356,13 +357,13 @@ class MinhasPreGuiasControllerTest {
     }
 
     @Test
-    @DisplayName("guia só é preenchida quando status = CONCLUIDA e validade = insercao + 2 meses")
+    @DisplayName("guia só é preenchida quando status = CONCLUIDA e a validade é a NAO RECEBER APOS da Guia")
     void guiaApenasEmConcluida() throws Exception {
         mockMvc.perform(get("/beneficiarios/me/pre-guias")
                         .header(SimulacaoLoginFilter.HEADER, "11111111111"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].guia.numero").value("00042"))
-                .andExpect(jsonPath("$[0].guia.validadeAte").value("2026-12-22"))
+                .andExpect(jsonPath("$[0].guia.validadeAte").value("2027-03-31"))
                 .andExpect(jsonPath("$[1].guia").doesNotExist())
                 .andExpect(jsonPath("$[2].guia").doesNotExist())
                 .andExpect(jsonPath("$[3].guia").doesNotExist())
