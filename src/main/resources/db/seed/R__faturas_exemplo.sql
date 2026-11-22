@@ -335,3 +335,50 @@ FROM EspelhoItem ei JOIN GuiaProcedimento gp ON gp.id_guia_procedimento = ei.gui
 JOIN FaturaEvento ev ON ev.espelho_id = @esp AND ev.tipo = 'ENVIADA_OCS'
 WHERE g.numero = '900000111'
   AND NOT EXISTS (SELECT 1 FROM EspelhoItemRodadaOcs x WHERE x.espelho_item_id = ei.id_espelho_item AND x.envio_evento_id = ev.id_fatura_evento);
+
+-- ---------------------------------------------------------------------
+-- T28-BE2 (SCRUM-249): as Guias de exemplo ficam completas, iguais as que o fluxo real produz.
+-- (1) Assinaturas do medico e do chefe em AssinaturaGuia (com linhas de Assinatura de exemplo), para nao aparecerem
+--     em "Guias para assinar": a pre-guia ja esta Concluida. Usuario.assinatura_id nao muda (o medico, o chefe e o
+--     beneficiario continuam sem assinatura cadastrada, como no seed de contas).
+-- (2) Sessoes assinadas pelo beneficiario (uma por unidade da quantidade autorizada), coerentes com as linhas do
+--     espelho: as Guias de exemplo estao Realizadas.
+-- (3) O PDF de cada Guia (Guia.arquivo_url) e as imagens das assinaturas de exemplo sao gravados no armazenamento
+--     local pelo ArquivosExemploSeedRunner, so no perfil dev, ao subir o ambiente.
+-- ---------------------------------------------------------------------
+SET @medico = (SELECT id_usuario FROM Usuario WHERE login = '11144477735');
+SET @chefe = (SELECT id_usuario FROM Usuario WHERE login = 'chefe.fusex');
+
+INSERT INTO Assinatura (usuario_id, assinatura_url)
+SELECT @medico, 'seed/assinaturas/medico-exemplo.png' FROM DUAL
+WHERE @medico IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Assinatura WHERE usuario_id = @medico AND assinatura_url = 'seed/assinaturas/medico-exemplo.png');
+INSERT INTO Assinatura (usuario_id, assinatura_url)
+SELECT @chefe, 'seed/assinaturas/chefe-exemplo.png' FROM DUAL
+WHERE @chefe IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Assinatura WHERE usuario_id = @chefe AND assinatura_url = 'seed/assinaturas/chefe-exemplo.png');
+INSERT INTO Assinatura (usuario_id, assinatura_url)
+SELECT @benef, 'seed/assinaturas/beneficiario-exemplo.png' FROM DUAL
+WHERE @benef IS NOT NULL AND NOT EXISTS (SELECT 1 FROM Assinatura WHERE usuario_id = @benef AND assinatura_url = 'seed/assinaturas/beneficiario-exemplo.png');
+
+SET @assMedico = (SELECT id_assinatura FROM Assinatura WHERE usuario_id = @medico AND assinatura_url = 'seed/assinaturas/medico-exemplo.png');
+SET @assChefe = (SELECT id_assinatura FROM Assinatura WHERE usuario_id = @chefe AND assinatura_url = 'seed/assinaturas/chefe-exemplo.png');
+SET @assBenef = (SELECT id_assinatura FROM Assinatura WHERE usuario_id = @benef AND assinatura_url = 'seed/assinaturas/beneficiario-exemplo.png');
+
+INSERT INTO AssinaturaGuia (guia_id, papel, usuario_id, data_assinatura, assinatura_id)
+SELECT g.id_guia, 'MEDICO', @medico, g.data_insercao, @assMedico
+FROM Guia g
+WHERE g.arquivo_url LIKE 'seed/faturas/%' AND @assMedico IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM AssinaturaGuia ag WHERE ag.guia_id = g.id_guia AND ag.papel = 'MEDICO');
+INSERT INTO AssinaturaGuia (guia_id, papel, usuario_id, data_assinatura, assinatura_id)
+SELECT g.id_guia, 'CHEFE', @chefe, g.data_insercao, @assChefe
+FROM Guia g
+WHERE g.arquivo_url LIKE 'seed/faturas/%' AND @assChefe IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM AssinaturaGuia ag WHERE ag.guia_id = g.id_guia AND ag.papel = 'CHEFE');
+
+INSERT INTO Sessao (guia_procedimento_id, numero, status, data_solicitacao, solicitada_por, data_assinatura, assinado_por, assinatura_id)
+SELECT gp.id_guia_procedimento, n.numero, 'ASSINADA', g.data_envio, @ocsu, g.data_envio, @benef, @assBenef
+FROM GuiaProcedimento gp
+JOIN Guia g ON g.id_guia = gp.guia_id
+JOIN (SELECT 1 AS numero UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5) n
+  ON n.numero <= gp.quantidade_autorizada
+WHERE g.arquivo_url LIKE 'seed/faturas/%' AND g.situacao_execucao = 'REALIZADA' AND @assBenef IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM Sessao s WHERE s.guia_procedimento_id = gp.id_guia_procedimento AND s.numero = n.numero);
