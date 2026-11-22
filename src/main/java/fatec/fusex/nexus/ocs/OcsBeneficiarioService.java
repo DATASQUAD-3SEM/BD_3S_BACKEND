@@ -13,6 +13,7 @@ import fatec.fusex.nexus.usuario.PerfilUsuario;
 
 /**
  * Busca de OCS ativas para o beneficiario (T9-BE3), por nome, contrato ou tipo, em ordem alfabetica.
+ * T30-BE2: o responsavel legal (RESPONSAVEL_EXTERNO) tambem cria pre-guia dos menores que acompanha e escolhe a OCS.
  */
 @Service
 public class OcsBeneficiarioService {
@@ -30,7 +31,7 @@ public class OcsBeneficiarioService {
 
     @Transactional(readOnly = true)
     public List<OcsResponse> buscarAtivas(String busca) {
-        usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
+        usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
 
         String termo = normalizar(busca);
 
