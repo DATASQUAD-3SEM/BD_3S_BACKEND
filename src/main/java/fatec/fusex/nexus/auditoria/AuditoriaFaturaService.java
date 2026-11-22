@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import fatec.fusex.nexus.andamentoGlosa.AndamentoGlosaService;
+import fatec.fusex.nexus.auditoria.dto.AuditoriaAnalisadaResponse;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaDetalheResponse;
 import fatec.fusex.nexus.auditoria.dto.AuditoriaResumoResponse;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
@@ -109,6 +110,33 @@ public class AuditoriaFaturaService {
         transicaoService.registrar(id, TipoFaturaEvento.VISUALIZADA, usuario,
                 request == null ? null : request.responsavel());
         return consultaService.montarDetalhe(id);
+    }
+
+    /** T26-BE3: faturas ja visualizadas, da visualizacao mais recente para a mais antiga. */
+    @Transactional(readOnly = true)
+    public List<AuditoriaAnalisadaResponse> analisadas() {
+        usuarioLogado.exigirPerfil(PerfilUsuario.AUDITORIA);
+        List<Espelho> espelhos = espelhoRepository
+                .findBySituacaoFaturaInOrderByDataEnvioAscIdEspelhoAsc(EnumSet.of(SituacaoFatura.AUDITADA));
+        if (espelhos.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> ids = espelhos.stream().map(Espelho::getIdEspelho).toList();
+        Map<Long, List<EspelhoItem>> itens = itensPorEspelho(ids);
+        Map<Long, List<FaturaEvento>> eventos = eventosPorEspelho(ids);
+
+        return espelhos.stream()
+                .map(e -> {
+                    List<FaturaEvento> evs = eventos.getOrDefault(e.getIdEspelho(), List.of());
+                    return AuditoriaAnalisadaResponse.fromEntity(e,
+                            itens.getOrDefault(e.getIdEspelho(), List.of()),
+                            AuditoriaAnalisadaResponse.ultimaVisualizacao(evs));
+                })
+                .sorted(Comparator.comparing(AuditoriaAnalisadaResponse::dataVisualizacao,
+                                Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(AuditoriaAnalisadaResponse::id, Comparator.reverseOrder()))
+                .toList();
     }
 
     private Map<Long, List<EspelhoItem>> itensPorEspelho(List<Long> ids) {
