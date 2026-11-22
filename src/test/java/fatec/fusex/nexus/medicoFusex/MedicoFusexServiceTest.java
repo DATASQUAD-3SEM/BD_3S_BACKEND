@@ -72,6 +72,9 @@ class MedicoFusexServiceTest {
         assertThat(resposta.nome()).isEqualTo("Carlos Eduardo Lima");
         assertThat(resposta.patente()).isEqualTo("Capitao");
         assertThat(resposta.crm()).isEqualTo("123456-SP");
+        assertThat(resposta.cpf()).isEqualTo(LOGIN);
+        assertThat(resposta.precCp()).isEqualTo("11122233344");
+        assertThat(resposta.toString()).doesNotContain(LOGIN).doesNotContain("11122233344");
     }
 
     @Test

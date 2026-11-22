@@ -51,6 +51,6 @@ public class MedicoFusexService {
         validarPerfilMedico(login);
         MedicoFusex medico = medicoRepository.findByUsuarioLogin(login)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Cadastro de medico nao encontrado"));
-        return MedicoMeResponse.de(medico);
+        return MedicoMeResponse.de(medico, login);
     }
 }
