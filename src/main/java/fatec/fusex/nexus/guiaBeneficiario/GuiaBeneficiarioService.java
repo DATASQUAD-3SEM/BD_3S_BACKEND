@@ -31,6 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +54,7 @@ public class GuiaBeneficiarioService {
     private final SessaoRepository sessaoRepository;
     private final ViradaValidadeGuia viradaValidade;
     private final TransactionTemplate transacaoLeitura;
+    private final TransactionTemplate transacaoEscrita;
 
     public GuiaBeneficiarioService(UsuarioLogado usuarioLogado,
                                    GuiaRepository guiaRepository,
@@ -67,6 +69,7 @@ public class GuiaBeneficiarioService {
         this.viradaValidade = viradaValidade;
         this.transacaoLeitura = new TransactionTemplate(transactionManager);
         this.transacaoLeitura.setReadOnly(true);
+        this.transacaoEscrita = new TransactionTemplate(transactionManager);
     }
 
     public List<GuiaBeneficiarioResponse> listar() {
@@ -195,17 +198,32 @@ public class GuiaBeneficiarioService {
                 PacienteDto.de(guia.getPreGuia(), usuario));
     }
 
-    // Ordem: perfil (403) -> guia existe (404) -> dono (403) -> sessao da guia (404)
+    // Ordem: perfil (403) -> guia existe (404) -> dono (403) -> validade (409) -> sessao da guia (404)
     //     -> status SOLICITADA (409) -> assinatura cadastrada (422) -> regra 25 (409).
-    @Transactional(rollbackFor = Exception.class)
+    // T18-BE3 (regra 8.2.1): antes de assinar, aplica a virada de validade numa transacao propria, para que a Guia
+    // vencida vire Encerrada ou Vencida e as sessoes solicitadas virem Expiradas mesmo quando a assinatura e recusada.
     public GuiaBeneficiarioResponse assinar(Long idGuia, Long idSessao) {
         Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
+        LocalDate hoje = Beneficiario.hoje();
 
+        transacaoLeitura.execute(status -> guiaRepository.findById(idGuia))
+                .ifPresent(guia -> viradaValidade.virarVencidas(List.of(guia), hoje));
+
+        return transacaoEscrita.execute(status -> assinarComLock(usuario, idGuia, idSessao, hoje));
+    }
+
+    private GuiaBeneficiarioResponse assinarComLock(Usuario usuario, Long idGuia, Long idSessao, LocalDate hoje) {
         Guia guia = guiaRepository.findByIdComLock(idGuia)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Guia nao encontrada: id " + idGuia));
 
         if (!AcessoPaciente.podeAgir(usuario, guia.getPreGuia())) {
             throw new AcessoNegadoException("A Guia nao pertence ao usuario logado");
+        }
+
+        if (guia.getDataValidadeAte() != null && hoje.isAfter(guia.getDataValidadeAte())) {
+            throw new ConflitoException("Esta Guia venceu em "
+                    + guia.getDataValidadeAte().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"))
+                    + ". A sessão não pode mais ser assinada.");
         }
 
         // Trava todas as sessoes da guia e le a versao corrente (nao o snapshot do REPEATABLE READ).
