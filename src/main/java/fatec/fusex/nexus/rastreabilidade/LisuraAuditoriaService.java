@@ -87,7 +87,10 @@ public class LisuraAuditoriaService {
         if (semDecisao > 0) {
             throw new ConflitoException("Há " + semDecisao + " linha(s) sem decisão.");
         }
-        if (itens.stream().anyMatch(item -> ControleFluxoFatura.glosaDaLinha(item).signum() != 0)) {
+        // So glosa pendente bloqueia (regra 12.7): glosa ja aceita pela OCS ("OK") nao volta a OCS.
+        boolean glosaPendente = itens.stream().anyMatch(item -> ControleFluxoFatura.glosaDaLinha(item).signum() != 0
+                && !"OK".equals(item.getDecisaoOcs()));
+        if (glosaPendente) {
             throw new ConflitoException("Esta fatura tem glosa; envie para a OCS antes da auditoria.");
         }
     }
