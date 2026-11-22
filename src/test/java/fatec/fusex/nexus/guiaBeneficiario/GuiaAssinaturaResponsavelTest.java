@@ -100,6 +100,20 @@ class GuiaAssinaturaResponsavelTest {
         assertThat(sessao.getStatus()).isEqualTo(SituacaoSessao.SOLICITADA);
     }
 
+    @Test
+    void vigenciaVencidaDoDependenteNaoImpedeAssinarAGuiaDentroDaSuaValidade() {
+        Usuario responsavel = responsavel(2L, cadastrada(2L));
+        Guia guia = guiaDoMenor(responsavel);
+        guia.getPreGuia().getDependente().setVigenciaFim(java.time.LocalDate.now().minusDays(1));
+        Sessao sessao = sessaoSolicitada(guia);
+        preparar(responsavel, guia, sessao);
+
+        service.assinar(ID_GUIA, ID_SESSAO);
+
+        assertThat(sessao.getStatus()).isEqualTo(SituacaoSessao.ASSINADA);
+        assertThat(guia.getSituacaoExecucao()).isEqualTo(SituacaoExecucao.REALIZADA);
+    }
+
     private void preparar(Usuario usuario, Guia guia, Sessao sessao) {
         when(usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO))
                 .thenReturn(usuario);
