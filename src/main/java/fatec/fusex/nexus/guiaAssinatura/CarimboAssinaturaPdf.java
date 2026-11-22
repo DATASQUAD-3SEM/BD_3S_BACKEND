@@ -1,5 +1,7 @@
 package fatec.fusex.nexus.guiaAssinatura;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -9,10 +11,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.imageio.ImageIO;
+
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
 import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.text.PDFTextStripper;
 import org.apache.pdfbox.text.TextPosition;
@@ -20,27 +25,35 @@ import org.springframework.stereotype.Component;
 
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
+import fatec.fusex.nexus.usuario.AssinaturaImagemService;
 
 /**
  * Aplica as imagens das assinaturas (medico e chefe) sobre as linhas de assinatura do PDF da Guia.
  * Linhas sem assinatura ficam em branco. O PDF original armazenado nao e alterado.
+ *
+ * T37-BE2: as tres assinaturas (medico, chefe e responsavel) saem do mesmo tamanho e sem deformacao. Cada imagem e
+ * recortada em memoria na caixa do traco (vale tambem para as assinaturas gravadas antes da T37-BE1) e encaixada,
+ * mantendo a proporcao, numa caixa de 140 x 45 pontos, centralizada sobre o rotulo, com a base 2 pontos acima dele.
+ * Se o texto impresso acima do rotulo deixar menos de 45 pontos livres, so a altura da caixa diminui.
  */
 @Component
 public class CarimboAssinaturaPdf {
 
     static final float LARGURA_ASSINATURA = 140f;
     static final float ALTURA_ASSINATURA = 45f;
-    static final float DISTANCIA_ACIMA_DO_ROTULO = 12f;
+    /** Distancia entre a base da assinatura e o topo do rotulo. */
+    static final float ACIMA_DO_ROTULO = 2f;
+    /** Folga minima entre o topo da assinatura e o texto impresso acima dela. */
+    static final float FOLGA_TEXTO_ACIMA = 2f;
+    /** Mesmo com pouco espaco, a assinatura nao fica menor que isto. */
+    static final float ALTURA_MINIMA = 16f;
 
     static final Map<AssinaturaGuiaPapel, String> ROTULOS = Map.of(
             AssinaturaGuiaPapel.MEDICO, "Assinatura Auditoria Pr\u00e9via Med/Dent",
             AssinaturaGuiaPapel.CHEFE, "Chefe do FuSEx");
 
-    // T23-BE1: campo do beneficiario (celula pequena). Caixa de 50 x 16 pontos, topo 4 pontos acima da base do rotulo.
+    // T23-BE1: campo do beneficiario (ou do responsavel legal pelo menor).
     static final String ROTULO_RESPONSAVEL = "Assinatura do Respons\u00e1vel";
-    static final float LARGURA_RESPONSAVEL = 50f;
-    static final float ALTURA_RESPONSAVEL = 16f;
-    static final float ACIMA_DA_BASE_RESPONSAVEL = 4f;
 
     public byte[] aplicar(byte[] pdfOriginal, Map<AssinaturaGuiaPapel, byte[]> assinaturas) {
         return aplicar(pdfOriginal, assinaturas, null);
@@ -61,14 +74,14 @@ public class CarimboAssinaturaPdf {
                         .orElseThrow(() -> new RegraDeNegocioException(
                                 "PDF da guia sem a linha de assinatura: " + rotuloEsperado));
 
-                carimbar(documento, rotulo, assinatura.getKey(), assinatura.getValue());
+                carimbar(documento, paginas.get(rotulo.pagina()), rotulo, assinatura.getValue());
             }
 
             if (assinaturaResponsavel != null) {
                 Rotulo rotulo = localizar(paginas, ROTULO_RESPONSAVEL)
                         .orElseThrow(() -> new RegraDeNegocioException(
                                 "PDF da guia sem a linha de assinatura: " + ROTULO_RESPONSAVEL));
-                carimbarResponsavel(documento, rotulo, assinaturaResponsavel);
+                carimbar(documento, paginas.get(rotulo.pagina()), rotulo, assinaturaResponsavel);
             }
 
             try (ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
@@ -114,44 +127,67 @@ public class CarimboAssinaturaPdf {
         return Optional.empty();
     }
 
-    private static void carimbar(PDDocument documento, Rotulo rotulo,
-                                 AssinaturaGuiaPapel papel, byte[] imagem) throws IOException {
+    /** Assinatura de qualquer papel: recortada no traco e encaixada na caixa padrao sobre o rotulo. */
+    private static void carimbar(PDDocument documento, List<TextPosition> glifosDaPagina, Rotulo rotulo,
+                                 byte[] imagem) throws IOException {
         PDPage pagina = documento.getPage(rotulo.pagina());
         float alturaDaPagina = pagina.getMediaBox().getHeight();
 
-        float x = (rotulo.x0() + rotulo.x1()) / 2f - LARGURA_ASSINATURA / 2f;
-        float y = alturaDaPagina - rotulo.topo() + DISTANCIA_ACIMA_DO_ROTULO;
+        BufferedImage traco = recortarNoTraco(imagem);
+        float centro = (rotulo.x0() + rotulo.x1()) / 2f;
+        // Coordenadas de cima para baixo (as do texto extraido): a base da assinatura fica 2 pontos acima do rotulo.
+        float baseDaCaixa = rotulo.topo() - ACIMA_DO_ROTULO;
+        float livre = espacoLivreAcima(glifosDaPagina, rotulo, centro - LARGURA_ASSINATURA / 2f,
+                centro + LARGURA_ASSINATURA / 2f, baseDaCaixa);
+        float alturaDaCaixa = Math.max(ALTURA_MINIMA, Math.min(ALTURA_ASSINATURA, livre));
 
-        PDImageXObject figura = PDImageXObject.createFromByteArray(
-                documento, imagem, "assinatura-" + papel.name().toLowerCase());
+        float escala = Math.min(LARGURA_ASSINATURA / traco.getWidth(), alturaDaCaixa / traco.getHeight());
+        float largura = traco.getWidth() * escala;
+        float altura = traco.getHeight() * escala;
 
+        PDImageXObject figura = LosslessFactory.createFromImage(documento, traco);
         try (PDPageContentStream conteudo = new PDPageContentStream(
                 documento, pagina, PDPageContentStream.AppendMode.APPEND, true, true)) {
-            conteudo.drawImage(figura, x, y, LARGURA_ASSINATURA, ALTURA_ASSINATURA);
+            conteudo.drawImage(figura, centro - largura / 2f, alturaDaPagina - baseDaCaixa, largura, altura);
         }
     }
 
     /**
-     * Imagem do beneficiario: mantem a proporcao, cabe na caixa de 50 x 16 e fica centralizada sobre o rotulo,
-     * com o topo 4 pontos acima da base do rotulo.
+     * Altura livre entre a base da caixa e o texto impresso mais baixo que fica acima do rotulo e cruza a faixa
+     * horizontal da caixa. Sem texto acima, a altura livre e a distancia ate o topo da pagina.
      */
-    private static void carimbarResponsavel(PDDocument documento, Rotulo rotulo, byte[] imagem) throws IOException {
-        PDPage pagina = documento.getPage(rotulo.pagina());
-        float alturaDaPagina = pagina.getMediaBox().getHeight();
-
-        PDImageXObject figura = PDImageXObject.createFromByteArray(documento, imagem, "assinatura-responsavel");
-        float escala = Math.min(LARGURA_RESPONSAVEL / figura.getWidth(), ALTURA_RESPONSAVEL / figura.getHeight());
-        float largura = figura.getWidth() * escala;
-        float altura = figura.getHeight() * escala;
-
-        float x = (rotulo.x0() + rotulo.x1()) / 2f - largura / 2f;
-        float baseDoRotulo = alturaDaPagina - rotulo.base();
-        float y = baseDoRotulo + ACIMA_DA_BASE_RESPONSAVEL - altura;
-
-        try (PDPageContentStream conteudo = new PDPageContentStream(
-                documento, pagina, PDPageContentStream.AppendMode.APPEND, true, true)) {
-            conteudo.drawImage(figura, x, y, largura, altura);
+    static float espacoLivreAcima(List<TextPosition> glifos, Rotulo rotulo, float x0, float x1, float baseDaCaixa) {
+        float limite = 0f;
+        for (TextPosition glifo : glifos) {
+            float linhaDeBase = glifo.getYDirAdj();
+            boolean acimaDoRotulo = linhaDeBase < rotulo.topo();
+            boolean cruzaAFaixa = glifo.getXDirAdj() < x1 && glifo.getXDirAdj() + glifo.getWidthDirAdj() > x0;
+            if (acimaDoRotulo && cruzaAFaixa) {
+                // parte de baixo das letras (descendentes): cerca de 1/4 do tamanho da fonte abaixo da linha de base
+                limite = Math.max(limite, linhaDeBase + glifo.getFontSizeInPt() * 0.25f);
+            }
         }
+        return baseDaCaixa - limite - FOLGA_TEXTO_ACIMA;
+    }
+
+    /** Le a imagem e devolve so o retangulo do traco; sem traco reconhecivel, a imagem inteira. */
+    static BufferedImage recortarNoTraco(byte[] imagem) throws IOException {
+        BufferedImage lida = ImageIO.read(new ByteArrayInputStream(imagem));
+        if (lida == null) {
+            throw new IOException("Imagem da assinatura ilegivel");
+        }
+        BufferedImage argb = new BufferedImage(lida.getWidth(), lida.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        var g = argb.createGraphics();
+        try {
+            g.drawImage(lida, 0, 0, null);
+        } finally {
+            g.dispose();
+        }
+        int[] caixa = AssinaturaImagemService.caixaDoTraco(argb);
+        if (caixa == null) {
+            return argb;
+        }
+        return argb.getSubimage(caixa[0], caixa[1], caixa[2] - caixa[0] + 1, caixa[3] - caixa[1] + 1);
     }
 
     private static String normalizar(String texto) {
@@ -168,7 +204,7 @@ public class CarimboAssinaturaPdf {
         return limpo.toString();
     }
 
-    private record Rotulo(int pagina, float x0, float x1, float topo, float base) {
+    record Rotulo(int pagina, float x0, float x1, float topo, float base) {
 
         static Rotulo de(int pagina, List<TextPosition> glifos) {
             float x0 = Float.MAX_VALUE;

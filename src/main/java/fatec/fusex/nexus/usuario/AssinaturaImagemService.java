@@ -260,7 +260,7 @@ public class AssinaturaImagemService {
     }
 
     /** Menor retangulo {x0, y0, x1, y1} que contem os pixels do traco, ou null se nao houver traco. */
-    static int[] caixaDoTraco(BufferedImage imagem) {
+    public static int[] caixaDoTraco(BufferedImage imagem) {
         int x0 = Integer.MAX_VALUE;
         int y0 = Integer.MAX_VALUE;
         int x1 = -1;
