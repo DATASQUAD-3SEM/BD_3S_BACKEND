@@ -32,6 +32,7 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 public class ChefeDependenteCadastroService {
 
     private static final int MAIORIDADE = 18;
+    static final String CPF_DE_OUTRA_PESSOA = "Este CPF já pertence a outra pessoa cadastrada no Nexus.";
 
     private final UsuarioLogado usuarioLogado;
     private final BeneficiarioRepository beneficiarioRepository;
@@ -85,8 +86,15 @@ public class ChefeDependenteCadastroService {
                 || dependenteRepository.findByPrecCp(precCp).isPresent()) {
             throw new DadosInvalidosException("precCp", "Prec CP ja cadastrado");
         }
+        // T31-BE2 (regra 13): CPF unico entre todas as pessoas do sistema. Alem dos dependentes, nenhuma conta pode
+        // ter este CPF como login (titular, medico, responsavel externo ou dependente maior); a unica excecao e o
+        // maior de idade cujo CPF e de responsavel externo, que reaproveita a conta (contaDoMaior).
         if (dependenteRepository.existsByCpf(cpf)) {
-            throw new DadosInvalidosException("cpf", "CPF ja cadastrado");
+            throw new DadosInvalidosException("cpf", CPF_DE_OUTRA_PESSOA);
+        }
+        Usuario contaComOCpf = usuarioRepository.findByLogin(cpf).orElse(null);
+        if (contaComOCpf != null && (menor || contaComOCpf.getPerfil() != PerfilUsuario.RESPONSAVEL_EXTERNO)) {
+            throw new DadosInvalidosException("cpf", CPF_DE_OUTRA_PESSOA);
         }
 
         Usuario contaDoDependente = null;
@@ -149,7 +157,7 @@ public class ChefeDependenteCadastroService {
             return novaConta(cpf, PerfilUsuario.BENEFICIARIO, senha);
         }
         if (existente.getPerfil() != PerfilUsuario.RESPONSAVEL_EXTERNO) {
-            throw new DadosInvalidosException("cpf", "CPF ja possui conta no sistema");
+            throw new DadosInvalidosException("cpf", CPF_DE_OUTRA_PESSOA);
         }
         existente.setPerfil(PerfilUsuario.BENEFICIARIO);
         return usuarioRepository.save(existente);
