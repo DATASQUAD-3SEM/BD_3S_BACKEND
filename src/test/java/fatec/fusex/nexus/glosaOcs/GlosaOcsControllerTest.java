@@ -1,6 +1,7 @@
 package fatec.fusex.nexus.glosaOcs;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
@@ -174,13 +176,91 @@ class GlosaOcsControllerTest {
                 .andExpect(jsonPath("$[0].valorGlosa").value(60.00));
     }
 
+    @Test
+    void decisaoOkGravaCienteEMantemFaturaAguardando() throws Exception {
+        Espelho espelho = novaFaturaComGlosa(ocsA, false);
+        long guia = guiaDaFatura(espelho);
+
+        mockMvc.perform(post(BASE + "/{id}/decisao", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisoes\":[{\"guiaId\":" + guia + ",\"decisao\":\"OK\"}],"
+                                + "\"responsavel\":\"Fabio Nunes\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.situacao").value("AGUARDANDO_OCS"));
+
+        mockMvc.perform(get(BASE).header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A))
+                .andExpect(jsonPath("$.length()").value(0));
+    }
+
+    @Test
+    void contestacaoVoltaParaLisuraELimpaContrato() throws Exception {
+        Espelho espelho = novaFaturaComGlosa(ocsA, false);
+        long guia = guiaDaFatura(espelho);
+
+        mockMvc.perform(post(BASE + "/{id}/decisao", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisoes\":[{\"guiaId\":" + guia + ",\"decisao\":\"CONTESTADA\","
+                                + "\"motivo\":\"O aditivo do contrato prevê o valor informado\"}],"
+                                + "\"responsavel\":\"Fabio Nunes\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.situacao").value("EM_LISURA"));
+
+        EspelhoItem item = espelhoItemRepository.buscarComDadosPorEspelho(espelho.getIdEspelho()).get(0);
+        org.assertj.core.api.Assertions.assertThat(item.getValorContratoSessao()).isNull();
+        org.assertj.core.api.Assertions.assertThat(item.getDecisaoOcs()).isEqualTo("CONTESTADA");
+    }
+
+    @Test
+    void decisaoIncompletaRecebe422() throws Exception {
+        Espelho espelho = novaFaturaComGlosa(ocsA, false);
+
+        mockMvc.perform(post(BASE + "/{id}/decisao", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisoes\":[],\"responsavel\":\"Fabio Nunes\"}"))
+                .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    void contestacaoSemMotivoValidoRecebe400() throws Exception {
+        Espelho espelho = novaFaturaComGlosa(ocsA, false);
+        long guia = guiaDaFatura(espelho);
+
+        mockMvc.perform(post(BASE + "/{id}/decisao", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_A)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisoes\":[{\"guiaId\":" + guia + ",\"decisao\":\"CONTESTADA\","
+                                + "\"motivo\":\"curto\"}],\"responsavel\":\"Fabio Nunes\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void decisaoDeOutraOcsRecebe403() throws Exception {
+        Espelho espelho = novaFaturaComGlosa(ocsA, false);
+        long guia = guiaDaFatura(espelho);
+
+        mockMvc.perform(post(BASE + "/{id}/decisao", espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_OCS_B)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"decisoes\":[{\"guiaId\":" + guia + ",\"decisao\":\"OK\"}],"
+                                + "\"responsavel\":\"Fabio Nunes\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    private long guiaDaFatura(Espelho espelho) {
+        return espelhoItemRepository.buscarComDadosPorEspelho(espelho.getIdEspelho()).get(0)
+                .getGuiaProcedimento().getGuia().getIdGuia();
+    }
+
     private Espelho novaFaturaComGlosa(Ocs ocs, boolean decidida) {
         Espelho espelho = novoEspelho(ocs, SituacaoFatura.AGUARDANDO_OCS);
         // Contrato 90 contra informado 100: glosa de 10 por sessao x 2 sessoes = 20.
         novoItem(espelho, new BigDecimal("90.00"), new BigDecimal("100.00"));
-        eventoRepository.save(evento(espelho, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.of(2026, 11, 10, 9, 0)));
+        eventoRepository.save(evento(espelho, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.now().minusHours(1)));
         if (decidida) {
-            eventoRepository.save(evento(espelho, TipoFaturaEvento.CIENTE_OCS, LocalDateTime.of(2026, 11, 11, 9, 0)));
+            eventoRepository.save(evento(espelho, TipoFaturaEvento.CIENTE_OCS, LocalDateTime.now()));
         }
         return espelho;
     }
@@ -188,7 +268,7 @@ class GlosaOcsControllerTest {
     private Espelho novaFaturaSemGlosa(Ocs ocs) {
         Espelho espelho = novoEspelho(ocs, SituacaoFatura.AGUARDANDO_OCS);
         novoItem(espelho, new BigDecimal("100.00"), new BigDecimal("100.00"));
-        eventoRepository.save(evento(espelho, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.of(2026, 11, 10, 9, 0)));
+        eventoRepository.save(evento(espelho, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.now().minusHours(1)));
         return espelho;
     }
 
