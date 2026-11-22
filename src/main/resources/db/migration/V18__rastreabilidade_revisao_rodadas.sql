@@ -5,6 +5,12 @@
 ALTER TABLE OcsPreco
     ADD COLUMN descricao VARCHAR(300) NULL;
 
+-- OcsPreco.atualizado_por passa a guardar o NOME do responsavel que gravou o preço (regra 12.3),
+-- nao mais uma FK para Usuario. A tabela so tem dados da carga (T28), sem valor de atualizado_por.
+ALTER TABLE OcsPreco DROP FOREIGN KEY fk_ocspreco_atualizado_por;
+ALTER TABLE OcsPreco
+    MODIFY atualizado_por VARCHAR(100) NULL;
+
 -- EspelhoItem: decisao da OCS por linha (preenchida pela T27 e refletida na rodada).
 ALTER TABLE EspelhoItem
     ADD COLUMN decisao_ocs VARCHAR(10) NULL,

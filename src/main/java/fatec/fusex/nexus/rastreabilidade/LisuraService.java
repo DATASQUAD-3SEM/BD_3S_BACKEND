@@ -75,17 +75,22 @@ public class LisuraService {
     }
 
     @Transactional
-    public FaturaDetalheResponse salvar(Long id, List<ItemLisuraRequest> itens) {
-        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.RASTREABILIDADE);
+    public FaturaDetalheResponse salvar(Long id, String responsavelInformado, List<ItemLisuraRequest> itens) {
+        usuarioLogado.exigirPerfil(PerfilUsuario.RASTREABILIDADE);
         Espelho espelho = buscarEmLisura(id);
 
         Map<Long, EspelhoItem> itensDaFatura = espelhoItemRepository.buscarComDadosPorEspelho(id).stream()
                 .collect(Collectors.toMap(EspelhoItem::getIdEspelhoItem, Function.identity()));
         validar(itens, itensDaFatura);
 
+        // Gravar preco na tabela da OCS exige o nome do responsavel (regra 12.3).
+        boolean gravaPreco = itens.stream()
+                .anyMatch(pedido -> gravaPreco(itensDaFatura.get(pedido.itemId()), pedido));
+        String responsavelPreco = gravaPreco ? validarResponsavel(responsavelInformado) : null;
+
         LocalDateTime agora = LocalDateTime.now(Beneficiario.FUSO);
         for (ItemLisuraRequest pedido : itens) {
-            aplicar(espelho.getOcs(), itensDaFatura.get(pedido.itemId()), pedido, usuario, agora);
+            aplicar(espelho.getOcs(), itensDaFatura.get(pedido.itemId()), pedido, responsavelPreco, agora);
         }
 
         return consultaService.montarDetalhe(id);
@@ -164,8 +169,12 @@ public class LisuraService {
         }
     }
 
-    private void aplicar(Ocs ocs, EspelhoItem item, ItemLisuraRequest pedido, Usuario usuario, LocalDateTime agora) {
+    private void aplicar(Ocs ocs, EspelhoItem item, ItemLisuraRequest pedido, String responsavelPreco, LocalDateTime agora) {
         item.setObservacao(normalizar(pedido.observacao()));
+        if (aceitaPelaOcs(item)) {
+            // Linha com "Ok" da OCS numa rodada anterior: o contrato fica travado, so a observacao muda.
+            return;
+        }
         if (digitaValor(item, pedido)) {
             BigDecimal valor = pedido.valorContrato();
             item.setValorContratoSessao(valor);
@@ -174,16 +183,37 @@ public class LisuraService {
             } else {
                 item.setOrigemContrato(OrigemContrato.MANUAL);
             }
-            salvarPreco(ocs, item.getGuiaProcedimento().getCodDgp(), valor, usuario, agora);
+            salvarPreco(ocs, item.getGuiaProcedimento().getCodDgp(), valor, responsavelPreco, agora);
         } else if (!daTabela(item)) {
             if (Boolean.TRUE.equals(pedido.conforme())) {
                 item.setValorContratoSessao(item.getValorSessao());
                 item.setOrigemContrato(OrigemContrato.CONFERIDO);
+                if (contestadaPelaOcs(item)) {
+                    // Regra 12.8: a nova decisao de uma linha contestada tambem atualiza a tabela de precos.
+                    salvarPreco(ocs, item.getGuiaProcedimento().getCodDgp(), item.getValorSessao(), responsavelPreco, agora);
+                }
             } else {
                 item.setValorContratoSessao(null);
                 item.setOrigemContrato(null);
             }
         }
+    }
+
+    /** O pedido grava preco na tabela da OCS: valor digitado ou "Sim" numa linha contestada pela OCS. */
+    private boolean gravaPreco(EspelhoItem item, ItemLisuraRequest pedido) {
+        if (aceitaPelaOcs(item)) {
+            return false;
+        }
+        return digitaValor(item, pedido)
+                || (!daTabela(item) && contestadaPelaOcs(item) && Boolean.TRUE.equals(pedido.conforme()));
+    }
+
+    private boolean aceitaPelaOcs(EspelhoItem item) {
+        return "OK".equals(item.getDecisaoOcs());
+    }
+
+    private boolean contestadaPelaOcs(EspelhoItem item) {
+        return "CONTESTADA".equals(item.getDecisaoOcs());
     }
 
     private boolean digitaValor(EspelhoItem item, ItemLisuraRequest pedido) {
@@ -198,14 +228,14 @@ public class LisuraService {
                 || item.getOrigemContrato() == OrigemContrato.TABELA_CORRIGIDA;
     }
 
-    private void salvarPreco(Ocs ocs, String codDgp, BigDecimal valor, Usuario usuario, LocalDateTime agora) {
+    private void salvarPreco(Ocs ocs, String codDgp, BigDecimal valor, String responsavelPreco, LocalDateTime agora) {
         OcsPreco preco = ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), codDgp)
                 .orElseGet(OcsPreco::new);
         preco.setOcs(ocs);
         preco.setCodDgp(codDgp);
         preco.setValorSessao(valor);
         preco.setAtualizadoEm(agora);
-        preco.setAtualizadoPor(usuario);
+        preco.setAtualizadoPor(responsavelPreco);
         ocsPrecoRepository.save(preco);
     }
 

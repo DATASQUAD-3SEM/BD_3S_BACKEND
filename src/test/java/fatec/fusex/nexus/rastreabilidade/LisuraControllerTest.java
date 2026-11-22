@@ -52,6 +52,7 @@ import fatec.fusex.nexus.usuario.UsuarioRepository;
 class LisuraControllerTest {
 
     private static final String LOGIN_RASTREABILIDADE = "rastreabilidade.lisura";
+    private static final String RESPONSAVEL_LISURA = "Sgt Ribeiro";
     private static final String LOGIN_SETOR = "setor.lisura";
     private static final String LOGIN_BENEFICIARIO = "33344455566";
     private static final LocalDate FUTURA = LocalDate.of(2099, 1, 1);
@@ -137,6 +138,7 @@ class LisuraControllerTest {
 
         mockMvc.perform(put(URL_LISURA, item.getEspelho().getIdEspelho())
                         .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .param("responsavel", RESPONSAVEL_LISURA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[{\"itemId\":" + item.getIdEspelhoItem()
                                 + ",\"conforme\":false,\"valorContrato\":80.00}]"))
@@ -147,7 +149,23 @@ class LisuraControllerTest {
         assertThat(gravado.getValorContratoSessao()).isEqualByComparingTo("80.00");
         OcsPreco preco = ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), COD_SEM_PRECO).orElseThrow();
         assertThat(preco.getValorSessao()).isEqualByComparingTo("80.00");
-        assertThat(preco.getAtualizadoPor().getLogin()).isEqualTo(LOGIN_RASTREABILIDADE);
+        assertThat(preco.getAtualizadoPor()).isEqualTo(RESPONSAVEL_LISURA);
+    }
+
+    @Test
+    void gravarPrecoSemResponsavelEhRecusadoSemMudarNada() throws Exception {
+        EspelhoItem item = novoItem(emLisura(), COD_SEM_PRECO, null, null);
+
+        mockMvc.perform(put(URL_LISURA, item.getEspelho().getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"itemId\":" + item.getIdEspelhoItem()
+                                + ",\"conforme\":false,\"valorContrato\":80.00}]"))
+                .andExpect(status().isUnprocessableEntity());
+
+        assertThat(ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), COD_SEM_PRECO)).isEmpty();
+        assertThat(espelhoItemRepository.findById(item.getIdEspelhoItem()).orElseThrow().getOrigemContrato())
+                .isNull();
     }
 
     @Test
@@ -157,6 +175,7 @@ class LisuraControllerTest {
 
         mockMvc.perform(put(URL_LISURA, item.getEspelho().getIdEspelho())
                         .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .param("responsavel", RESPONSAVEL_LISURA)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("[{\"itemId\":" + item.getIdEspelhoItem()
                                 + ",\"corrigirTabela\":true,\"valorContrato\":90.00}]"))
@@ -168,7 +187,7 @@ class LisuraControllerTest {
         OcsPreco preco = ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), COD_TABELA).orElseThrow();
         assertThat(preco.getValorSessao()).isEqualByComparingTo("90.00");
         assertThat(preco.getAtualizadoEm()).isNotNull();
-        assertThat(preco.getAtualizadoPor().getLogin()).isEqualTo(LOGIN_RASTREABILIDADE);
+        assertThat(preco.getAtualizadoPor()).isEqualTo(RESPONSAVEL_LISURA);
     }
 
     @Test
@@ -202,6 +221,69 @@ class LisuraControllerTest {
         assertThat(gravado.getOrigemContrato()).isNull();
         assertThat(gravado.getValorContratoSessao()).isNull();
         assertThat(ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), COD_SEM_PRECO)).isEmpty();
+    }
+
+    @Test
+    void simNumaLinhaContestadaGravaConferidoEAtualizaATabelaDePrecos() throws Exception {
+        ocsPrecoRepository.save(preco(COD_SEM_PRECO, "80.00"));
+        EspelhoItem item = contestada(novoItem(emLisura(), COD_SEM_PRECO, null, null));
+
+        mockMvc.perform(put(URL_LISURA, item.getEspelho().getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .param("responsavel", RESPONSAVEL_LISURA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"itemId\":" + item.getIdEspelhoItem() + ",\"conforme\":true}]"))
+                .andExpect(status().isOk());
+
+        EspelhoItem gravado = espelhoItemRepository.findById(item.getIdEspelhoItem()).orElseThrow();
+        assertThat(gravado.getOrigemContrato()).isEqualTo(OrigemContrato.CONFERIDO);
+        assertThat(gravado.getValorContratoSessao()).isEqualByComparingTo("100.00");
+        OcsPreco preco = ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), COD_SEM_PRECO).orElseThrow();
+        assertThat(preco.getValorSessao()).isEqualByComparingTo("100.00");
+        assertThat(preco.getAtualizadoPor()).isEqualTo(RESPONSAVEL_LISURA);
+    }
+
+    @Test
+    void simNumaLinhaContestadaSemResponsavelEhRecusado() throws Exception {
+        EspelhoItem item = contestada(novoItem(emLisura(), COD_SEM_PRECO, null, null));
+
+        mockMvc.perform(put(URL_LISURA, item.getEspelho().getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"itemId\":" + item.getIdEspelhoItem() + ",\"conforme\":true}]"))
+                .andExpect(status().isUnprocessableEntity());
+
+        assertThat(ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), COD_SEM_PRECO)).isEmpty();
+        assertThat(espelhoItemRepository.findById(item.getIdEspelhoItem()).orElseThrow().getOrigemContrato())
+                .isNull();
+    }
+
+    @Test
+    void linhaAceitaPelaOcsNaoMudaOContratoSoAObservacao() throws Exception {
+        EspelhoItem item = novoItem(emLisura(), COD_SEM_PRECO, OrigemContrato.MANUAL, new BigDecimal("80.00"));
+        item.setDecisaoOcs("OK");
+        espelhoItemRepository.save(item);
+
+        mockMvc.perform(put(URL_LISURA, item.getEspelho().getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE)
+                        .param("responsavel", RESPONSAVEL_LISURA)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("[{\"itemId\":" + item.getIdEspelhoItem()
+                                + ",\"conforme\":false,\"valorContrato\":50.00,\"observacao\":\"Aceita pela OCS\"}]"))
+                .andExpect(status().isOk());
+
+        EspelhoItem gravado = espelhoItemRepository.findById(item.getIdEspelhoItem()).orElseThrow();
+        assertThat(gravado.getOrigemContrato()).isEqualTo(OrigemContrato.MANUAL);
+        assertThat(gravado.getValorContratoSessao()).isEqualByComparingTo("80.00");
+        assertThat(gravado.getObservacao()).isEqualTo("Aceita pela OCS");
+        assertThat(ocsPrecoRepository.findByOcsIdOcsAndCodDgp(ocs.getIdOcs(), COD_SEM_PRECO)).isEmpty();
+    }
+
+    /** Linha que a OCS contestou: a T27-BE2 apaga o contrato e grava a decisao CONTESTADA com o motivo. */
+    private EspelhoItem contestada(EspelhoItem item) {
+        item.setDecisaoOcs("CONTESTADA");
+        item.setMotivoContestacaoOcs("Valor diferente do contrato vigente");
+        return espelhoItemRepository.save(item);
     }
 
     @Test
