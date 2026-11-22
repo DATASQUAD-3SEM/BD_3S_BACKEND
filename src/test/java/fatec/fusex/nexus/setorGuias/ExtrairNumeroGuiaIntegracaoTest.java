@@ -21,6 +21,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
+import fatec.fusex.nexus.dependente.Dependente;
+import fatec.fusex.nexus.dependente.DependenteRepository;
+import fatec.fusex.nexus.dependente.TipoDependente;
 import fatec.fusex.nexus.guiaAssinatura.PdfsDeTeste;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
@@ -33,9 +36,10 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
- * T21-BE1 (SCRUM-191): POST /setor-guias/extrair-numero-guia com preGuiaId, sem transacao de teste envolvendo a
- * requisicao (como na aplicacao real, com open-in-view desligado). O titular da pre-guia e carregado sob demanda e
- * precisa ser lido dentro da transacao do servico. O @AfterEach apaga tudo o que o teste criou.
+ * T21-BE1 (SCRUM-191) e T30-BE4 (SCRUM-261): POST /setor-guias/extrair-numero-guia com preGuiaId, sem transacao de
+ * teste envolvendo a requisicao (como na aplicacao real, com open-in-view desligado). O titular da pre-guia e carregado sob demanda e
+ * precisa ser lido dentro da transacao do
+ * servico; com dependente, o Prec CP esperado e o do dependente. O @AfterEach apaga tudo o que o teste criou.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -46,6 +50,7 @@ class ExtrairNumeroGuiaIntegracaoTest {
     private static final String LOGIN_SETOR = "setor.leitura.integracao";
     private static final String LOGIN_TITULAR = "72100000001";
     private static final String PREC_CP_TITULAR = "72100000022";
+    private static final String PREC_CP_DEPENDENTE = "72100000033";
 
     @Autowired
     private MockMvc mockMvc;
@@ -54,6 +59,8 @@ class ExtrairNumeroGuiaIntegracaoTest {
     @Autowired
     private BeneficiarioRepository beneficiarioRepository;
     @Autowired
+    private DependenteRepository dependenteRepository;
+    @Autowired
     private OcsRepository ocsRepository;
     @Autowired
     private PreGuiaRepository preGuiaRepository;
@@ -61,6 +68,8 @@ class ExtrairNumeroGuiaIntegracaoTest {
     private Long ocsId;
     private Long titularId;
     private Long preGuiaTitularId;
+    private Long dependenteId;
+    private Long preGuiaDependenteId;
 
     @BeforeEach
     void dados() {
@@ -82,12 +91,27 @@ class ExtrairNumeroGuiaIntegracaoTest {
         ocs = ocsRepository.saveAndFlush(ocs);
         ocsId = ocs.getIdOcs();
 
-        preGuiaTitularId = preGuia(titular, ocs).getIdPreGuia();
+        preGuiaTitularId = preGuia(titular, ocs, null).getIdPreGuia();
+
+        Dependente miguel = new Dependente();
+        miguel.setTitular(titular);
+        miguel.setNome("Miguel Integracao");
+        miguel.setDataNascimento(LocalDate.of(2020, 3, 21));
+        miguel.setCpf("72100000044");
+        miguel.setPrecCp(PREC_CP_DEPENDENTE);
+        miguel.setVinculo("Filho");
+        miguel.setTipo(TipoDependente.MENOR_TITULAR);
+        miguel.setVigenciaFim(LocalDate.of(2042, 3, 20));
+        miguel = dependenteRepository.saveAndFlush(miguel);
+        dependenteId = miguel.getIdDependente();
+        preGuiaDependenteId = preGuia(titular, ocs, miguel).getIdPreGuia();
     }
 
     @AfterEach
     void limpar() {
         preGuiaRepository.findById(preGuiaTitularId).ifPresent(preGuiaRepository::delete);
+        preGuiaRepository.findById(preGuiaDependenteId).ifPresent(preGuiaRepository::delete);
+        dependenteRepository.findById(dependenteId).ifPresent(dependenteRepository::delete);
         ocsRepository.deleteById(ocsId);
         beneficiarioRepository.findById(titularId).ifPresent(beneficiarioRepository::delete);
         usuarioRepository.findByLogin(LOGIN_TITULAR).ifPresent(usuarioRepository::delete);
@@ -121,6 +145,32 @@ class ExtrairNumeroGuiaIntegracaoTest {
     }
 
     @Test
+    void preGuiaDoDependente_comOPrecCpDele_confereEDevolveODependente() throws Exception {
+        byte[] conteudo = PdfsDeTeste.pdfComTexto("GUIA DE ENCAMINHAMENTO", "Nr: 202610679",
+                "Titular:", "Prec CP: " + PREC_CP_TITULAR, "Dependente: (PACIENTE)", "Prec CP: " + PREC_CP_DEPENDENTE);
+
+        ler(preGuiaDependenteId, conteudo)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.precCpLido").value(PREC_CP_DEPENDENTE))
+                .andExpect(jsonPath("$.precCpConfere").value(true))
+                .andExpect(jsonPath("$.pacienteNome").value("Miguel Integracao"))
+                .andExpect(jsonPath("$.precCpPaciente").value(PREC_CP_DEPENDENTE))
+                .andExpect(jsonPath("$.pacienteDependente").value(true));
+    }
+
+    @Test
+    void preGuiaDoDependente_comOPrecCpDoTitular_naoConfere() throws Exception {
+        byte[] conteudo = PdfsDeTeste.pdfComTexto("GUIA DE ENCAMINHAMENTO", "Nr: 202610679",
+                "Titular: (PACIENTE)", "Prec CP: " + PREC_CP_TITULAR);
+
+        ler(preGuiaDependenteId, conteudo)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.precCpConfere").value(false))
+                .andExpect(jsonPath("$.precCpPaciente").value(PREC_CP_DEPENDENTE))
+                .andExpect(jsonPath("$.pacienteDependente").value(true));
+    }
+
+    @Test
     void preGuiaInexistente_retorna404() throws Exception {
         byte[] conteudo = PdfsDeTeste.pdfComTexto("GUIA DE ENCAMINHAMENTO", "Nr: 202610678");
 
@@ -134,13 +184,14 @@ class ExtrairNumeroGuiaIntegracaoTest {
                 .header(SimulacaoLoginFilter.HEADER, LOGIN_SETOR));
     }
 
-    private PreGuia preGuia(Beneficiario titular, Ocs ocs) {
+    private PreGuia preGuia(Beneficiario titular, Ocs ocs, Dependente dependente) {
         PreGuia preGuia = new PreGuia();
         preGuia.setStatus(PreGuiaStatus.PENDENTE);
         preGuia.setBeneficiario(titular);
         preGuia.setOcs(ocs);
         preGuia.setEncaminhamentoUrl("encaminhamento-integracao.pdf");
         preGuia.setDataCriacao(LocalDateTime.of(2026, 10, 1, 9, 0));
+        preGuia.setDependente(dependente);
         return preGuiaRepository.saveAndFlush(preGuia);
     }
 
