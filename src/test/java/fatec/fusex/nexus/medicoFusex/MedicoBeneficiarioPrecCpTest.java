@@ -24,7 +24,6 @@ import fatec.fusex.nexus.beneficiario.BeneficiarioService;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
-import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
@@ -78,7 +77,7 @@ class MedicoBeneficiarioPrecCpTest {
         mockMvc.perform(get(ENDPOINT).param("precCp", PREC_CP))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.nome").value("Antonio Carlos Ferreira"))
-                .andExpect(jsonPath("$.grupo").value(BeneficiarioMedicoResponse.GRUPO))
+                .andExpect(jsonPath("$.grupo").doesNotExist())
                 .andExpect(jsonPath("$.cpf").value("52998224725"))
                 .andExpect(jsonPath("$.telefone").value("12987654321"))
                 .andExpect(jsonPath("$.idade").exists())

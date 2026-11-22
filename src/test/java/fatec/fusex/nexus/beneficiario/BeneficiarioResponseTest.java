@@ -8,7 +8,6 @@ import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.beneficiario.dto.BeneficiarioResponse;
-import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
@@ -34,11 +33,11 @@ class BeneficiarioResponseTest {
     }
 
     @Test
-    void de_grupoESempreOTextoFixoDoFusex_eNaoOPerfil() {
-        BeneficiarioResponse resposta = BeneficiarioResponse.de(beneficiario(LocalDate.of(1978, 5, 10)));
-
-        assertThat(resposta.grupo()).isEqualTo(BeneficiarioMedicoResponse.GRUPO);
-        assertThat(resposta.grupo()).isEqualTo("Ex\u00e9rcito Brasileiro \u00b7 FUSEX");
+    void de_naoTemOCampoGrupo() {
+        // T33-BE1: o campo grupo (texto fixo sem origem nas regras) foi removido.
+        assertThat(BeneficiarioResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .doesNotContain("grupo");
     }
 
     @Test

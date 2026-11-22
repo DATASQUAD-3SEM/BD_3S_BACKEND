@@ -16,14 +16,11 @@ import fatec.fusex.nexus.dependente.Dependente;
 public record BeneficiarioMedicoResponse(
         Long id,
         String nome,
-        String grupo,
         String faixaEtaria,
         int idade,
         String cpf,
         String telefone,
         DependenteMedicoBloco dependente) {
-
-    public static final String GRUPO = "Exército Brasileiro · FUSEX";
 
     public static BeneficiarioMedicoResponse de(Beneficiario b) {
         return de(b, Beneficiario.hoje());
@@ -35,7 +32,6 @@ public record BeneficiarioMedicoResponse(
         return new BeneficiarioMedicoResponse(
                 b.getUsuarioId(),
                 b.getNome(),
-                GRUPO,
                 FaixaEtaria.de(idade).getRotulo(),
                 idade,
                 b.getUsuario().getLogin(),
@@ -52,7 +48,6 @@ public record BeneficiarioMedicoResponse(
         return new BeneficiarioMedicoResponse(
                 titular.getUsuarioId(),
                 d.getNome(),
-                GRUPO,
                 FaixaEtaria.de(idade).getRotulo(),
                 idade,
                 d.getCpf(),

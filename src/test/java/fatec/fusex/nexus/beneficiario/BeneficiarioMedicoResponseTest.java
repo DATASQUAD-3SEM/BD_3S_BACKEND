@@ -38,7 +38,6 @@ class BeneficiarioMedicoResponseTest {
 
         assertThat(r.id()).isEqualTo(7L);
         assertThat(r.nome()).isEqualTo("Antonio Carlos Ferreira");
-        assertThat(r.grupo()).isEqualTo(BeneficiarioMedicoResponse.GRUPO);
         assertThat(r.idade()).isEqualTo(58);
         assertThat(r.faixaEtaria()).isEqualTo("51 a 60");
         assertThat(r.cpf()).isEqualTo("52998224725");
