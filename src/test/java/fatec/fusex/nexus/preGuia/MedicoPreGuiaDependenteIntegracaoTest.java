@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.preGuia;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -39,7 +40,9 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
- * T30-BE7 (SCRUM-264): POST /medicos/pre-guias com dependenteId grava no H2 de verdade, como o endpoint real.
+ * T30-BE7 (SCRUM-264): GET /medicos/beneficiarios?precCp= de dependente e POST /medicos/pre-guias com dependenteId,
+ * sem transacao de teste envolvendo a requisicao (como na aplicacao real, com open-in-view desligado); grava no H2 de
+ * verdade, como o endpoint real.
  * O @AfterEach apaga tudo o que o teste criou.
  */
 @SpringBootTest
@@ -131,6 +134,25 @@ class MedicoPreGuiaDependenteIntegracaoTest {
         medicoRepository.findByUsuarioLogin(LOGIN_MEDICO).ifPresent(medicoRepository::delete);
         usuarioRepository.findByLogin(LOGIN_TITULAR).ifPresent(usuarioRepository::delete);
         usuarioRepository.findByLogin(LOGIN_MEDICO).ifPresent(usuarioRepository::delete);
+    }
+
+    @Test
+    void buscaPorPrecCpDeDependenteVigente_devolveOBlocoDoDependente() throws Exception {
+        mockMvc.perform(get("/medicos/beneficiarios").param("precCp", PREC_CP_DEPENDENTE)
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_MEDICO))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.cpf").value(CPF_DEPENDENTE))
+                .andExpect(jsonPath("$.dependente.titularNome").value("Titular Dependente"))
+                .andExpect(jsonPath("$.dependente.titularPrecCp").value(PREC_CP_TITULAR))
+                .andExpect(jsonPath("$.dependente.menor").value(true))
+                .andExpect(jsonPath("$.dependente.responsavel").value("Titular Dependente"));
+    }
+
+    @Test
+    void buscaPorPrecCpDeDependenteComVigenciaVencida_retorna404() throws Exception {
+        mockMvc.perform(get("/medicos/beneficiarios").param("precCp", PREC_CP_VENCIDO)
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_MEDICO))
+                .andExpect(status().isNotFound());
     }
 
     @Test
