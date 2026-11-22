@@ -157,6 +157,8 @@ class FaturaConsultaControllerTest {
                 .andExpect(jsonPath("$[?(@.numeroFatura == '003/2026')].dataEnvioOcs").value("2026-11-11T09:00:00"))
                 .andExpect(jsonPath("$[?(@.numeroFatura == '003/2026')].prazoOcs").value("2026-11-16T23:59:59"))
                 .andExpect(jsonPath("$[?(@.numeroFatura == '003/2026')].dataCiencia").value("2026-11-12T10:00:00"))
+                .andExpect(jsonPath("$[?(@.numeroFatura == '003/2026')].responsavelCiencia").value("Bruno Lima"))
+                .andExpect(jsonPath("$[?(@.numeroFatura == '001/2026')].responsavelCiencia").value(org.hamcrest.Matchers.contains(nullValue())))
                 .andExpect(jsonPath("$[?(@.numeroFatura == '001/2026')].prazoOcs").value(org.hamcrest.Matchers.contains(nullValue())));
     }
 
