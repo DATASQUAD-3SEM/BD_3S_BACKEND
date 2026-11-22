@@ -113,6 +113,7 @@ public class FaturaConsultaService {
                 espelho.getDataEnvio(), eventos, ControleFluxoFatura.valorInformado(itens),
                 ControleFluxoFatura.valorFinal(itens));
 
-        return FaturaDetalheResponse.fromEntity(espelho, itens, eventos, etapas);
+        return FaturaDetalheResponse.fromEntity(espelho, itens, eventos, etapas,
+                LocalDateTime.now(fatec.fusex.nexus.beneficiario.Beneficiario.FUSO));
     }
 }

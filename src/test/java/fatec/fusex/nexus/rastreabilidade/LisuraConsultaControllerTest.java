@@ -1,6 +1,7 @@
 package fatec.fusex.nexus.rastreabilidade;
 
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -238,6 +239,33 @@ class LisuraConsultaControllerTest {
 
         mockMvc.perform(get(URL_DETALHE, espelho.getIdEspelho()).header(SimulacaoLoginFilter.HEADER, LOGIN_SETOR))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void detalheTragDecisaoDaOcsPrazoECienciaDoEnvioMaisRecente() throws Exception {
+        Espelho espelho = novoEspelho(SituacaoFatura.AGUARDANDO_OCS, LocalDateTime.of(2026, 11, 2, 9, 0), "003/2026");
+        EspelhoItem aceita = novoItem(espelho, "41001201", new BigDecimal("100.00"), 1, new BigDecimal("80.00"),
+                OrigemContrato.MANUAL, null);
+        aceita.setDecisaoOcs("OK");
+        espelhoItemRepository.save(aceita);
+        EspelhoItem contestada = novoItem(espelho, "41001202", new BigDecimal("100.00"), 1, new BigDecimal("80.00"),
+                OrigemContrato.MANUAL, null);
+        contestada.setDecisaoOcs("CONTESTADA");
+        contestada.setMotivoContestacaoOcs("Valor do contrato correto e atual");
+        espelhoItemRepository.save(contestada);
+        registrarEvento(espelho, TipoFaturaEvento.ENVIADA_OCS, LocalDateTime.of(2026, 11, 11, 9, 0));
+        registrarEvento(espelho, TipoFaturaEvento.CIENTE_OCS, LocalDateTime.of(2026, 11, 12, 10, 0));
+
+        mockMvc.perform(get(URL_DETALHE, espelho.getIdEspelho())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_RASTREABILIDADE))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dataEnvioOcs").value("2026-11-11T09:00:00"))
+                .andExpect(jsonPath("$.prazoOcs").value("2026-11-16T23:59:59"))
+                .andExpect(jsonPath("$.dataCiencia").value("2026-11-12T10:00:00"))
+                .andExpect(jsonPath("$.responsavelCiencia").value("Ana Silva"))
+                .andExpect(jsonPath("$.linhas[?(@.decisaoOcs == 'OK')]", hasSize(1)))
+                .andExpect(jsonPath("$.linhas[?(@.decisaoOcs == 'CONTESTADA')].motivoContestacaoOcs",
+                        hasItem("Valor do contrato correto e atual")));
     }
 
     private Espelho novoEspelho(SituacaoFatura situacao, LocalDateTime envio, String numero) {

@@ -12,7 +12,10 @@ import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;
 import fatec.fusex.nexus.setorFatura.ControleFluxoFatura;
 import fatec.fusex.nexus.setorFatura.EtapaFluxo;
+import fatec.fusex.nexus.rastreabilidade.dto.FaturaLisuraResumoResponse;
 import fatec.fusex.nexus.setorFatura.FaturaEvento;
+import fatec.fusex.nexus.setorFatura.FaturaTransicaoService;
+import fatec.fusex.nexus.setorFatura.TipoFaturaEvento;
 
 public record FaturaDetalheResponse(
         Long id,
@@ -26,13 +29,31 @@ public record FaturaDetalheResponse(
         List<LinhaResponse> linhas,
         TotaisResponse totais,
         List<EventoResponse> eventos,
-        List<EtapaResponse> controleFluxo) {
+        List<EtapaResponse> controleFluxo,
+        LocalDateTime dataEnvioOcs,
+        LocalDateTime prazoOcs,
+        LocalDateTime dataCiencia,
+        String responsavelCiencia,
+        boolean liberadaParaAuditoria) {
 
     public static FaturaDetalheResponse fromEntity(Espelho espelho, List<EspelhoItem> itens,
-                                                   List<FaturaEvento> eventos, List<EtapaFluxo> etapas) {
+                                                   List<FaturaEvento> eventos, List<EtapaFluxo> etapas,
+                                                   LocalDateTime agora) {
         BigDecimal informado = ControleFluxoFatura.valorInformado(itens).setScale(2);
         BigDecimal valorFinal = ControleFluxoFatura.valorFinal(itens);
         BigDecimal glosa = valorFinal == null ? null : informado.subtract(valorFinal).setScale(2);
+        // Envio mais recente à OCS e a ciência que veio depois dele (o que liberou a fatura).
+        FaturaEvento envio = null;
+        FaturaEvento ciencia = null;
+        for (FaturaEvento evento : eventos) {
+            if (evento.getTipo() == TipoFaturaEvento.ENVIADA_OCS) {
+                envio = evento;
+                ciencia = null;
+            } else if (envio != null && evento.getTipo() == TipoFaturaEvento.CIENTE_OCS) {
+                ciencia = evento;
+            }
+        }
+        LocalDateTime envioOcs = envio == null ? null : envio.getDataEvento();
         return new FaturaDetalheResponse(
                 espelho.getIdEspelho(),
                 espelho.getOcs().getNome(),
@@ -45,7 +66,12 @@ public record FaturaDetalheResponse(
                 itens.stream().map(LinhaResponse::fromEntity).toList(),
                 new TotaisResponse(informado, glosa, valorFinal),
                 eventos.stream().map(EventoResponse::fromEntity).toList(),
-                etapas.stream().map(EtapaResponse::fromEntity).toList());
+                etapas.stream().map(EtapaResponse::fromEntity).toList(),
+                envioOcs,
+                envioOcs == null ? null : FaturaTransicaoService.somarDiasUteis(envioOcs, FaturaTransicaoService.PRAZO_OCS_DIAS_UTEIS),
+                ciencia == null ? null : ciencia.getDataEvento(),
+                ciencia == null ? null : ciencia.getResponsavel(),
+                FaturaLisuraResumoResponse.liberada(espelho.getSituacaoFatura(), itens, eventos, agora));
     }
 
     public record LinhaResponse(
@@ -62,7 +88,9 @@ public record FaturaDetalheResponse(
             String origemContrato,
             String observacao,
             BigDecimal glosa,
-            String comparacao) {
+            String comparacao,
+            String decisaoOcs,
+            String motivoContestacaoOcs) {
 
         public static LinhaResponse fromEntity(EspelhoItem item) {
             GuiaProcedimento procedimento = item.getGuiaProcedimento();
@@ -85,7 +113,9 @@ public record FaturaDetalheResponse(
                     item.getOrigemContrato() == null ? null : item.getOrigemContrato().name(),
                     item.getObservacao(),
                     ControleFluxoFatura.glosaDaLinha(item),
-                    comparacao(item.getValorSessao(), contrato));
+                    comparacao(item.getValorSessao(), contrato),
+                    item.getDecisaoOcs(),
+                    item.getMotivoContestacaoOcs());
         }
 
         private static String comparacao(BigDecimal valorSessao, BigDecimal contrato) {
