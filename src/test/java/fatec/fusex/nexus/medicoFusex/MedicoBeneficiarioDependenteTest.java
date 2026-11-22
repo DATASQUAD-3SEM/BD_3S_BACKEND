@@ -54,7 +54,8 @@ class MedicoBeneficiarioDependenteTest {
                 new BeneficiarioService(beneficiarioRepository, usuarioRepository, simulacaoLogin);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new MedicoBeneficiarioController(beneficiarioService, simulacaoLogin, medicoService,
-                        dependenteRepository, responsavelExternoRepository))
+                        dependenteRepository, responsavelExternoRepository,
+                        org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class)))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
         when(simulacaoLogin.loginAtual()).thenReturn(LOGIN_MEDICO);
