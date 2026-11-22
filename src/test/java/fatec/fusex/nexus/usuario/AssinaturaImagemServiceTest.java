@@ -42,8 +42,9 @@ class AssinaturaImagemServiceTest {
                 new ByteArrayInputStream(resultado));
 
         assertThat(imagem).isNotNull();
-        assertThat(imagem.getWidth()).isEqualTo(640);
-        assertThat(imagem.getHeight()).isEqualTo(180);
+        // T37-BE1: toda assinatura guardada tem 900 x 300
+        assertThat(imagem.getWidth()).isEqualTo(900);
+        assertThat(imagem.getHeight()).isEqualTo(300);
 
         Color canto = new Color(imagem.getRGB(0, 0), true);
         assertThat(canto.getAlpha()).isEqualTo(0);
@@ -66,14 +67,14 @@ class AssinaturaImagemServiceTest {
                 new ByteArrayInputStream(resultado));
 
         assertThat(imagem).isNotNull();
-        assertThat(imagem.getWidth()).isEqualTo(300);
+        assertThat(imagem.getWidth()).isEqualTo(900);
         assertThat(resultado.length).isLessThanOrEqualTo(2 * 1024 * 1024);
         assertThat(new Color(imagem.getRGB(0, 0), true).getAlpha()).isEqualTo(0);
         assertThat(contarPixelsOpacos(imagem)).isGreaterThan(0);
     }
 
     @Test
-    void normalizarUpload_quandoImagemExcedeDimensoes_reduzImagem()
+    void normalizarUpload_quandoImagemExcedeDimensoesDeLeitura_leReduzidaESaiNoTamanhoFixo()
             throws IOException {
 
         MockMultipartFile arquivo = new MockMultipartFile(
@@ -92,8 +93,45 @@ class AssinaturaImagemServiceTest {
         BufferedImage imagem = ImageIO.read(
                 new ByteArrayInputStream(resultado));
 
-        assertThat(imagem.getWidth()).isLessThanOrEqualTo(120);
-        assertThat(imagem.getHeight()).isLessThanOrEqualTo(60);
+        assertThat(imagem.getWidth()).isEqualTo(900);
+        assertThat(imagem.getHeight()).isEqualTo(300);
+    }
+
+    @Test
+    void normalizar_tracoPequenoNumCantoEGrandeNoCentro_saemComAMesmaLarguraUtil() throws IOException {
+        // Mesmo traco (proporcao 4:1) desenhado pequeno no canto de um quadro grande e grande no centro.
+        byte[] pequeno = criarTraco(1000, 500, 20, 20, 120, 30);
+        byte[] grande = criarTraco(1000, 500, 100, 150, 800, 200);
+
+        BufferedImage a = lerPng(service.normalizarUpload(new MockMultipartFile("arquivo", "a.png", "image/png", pequeno)));
+        BufferedImage b = lerPng(service.normalizarUpload(new MockMultipartFile("arquivo", "b.png", "image/png", grande)));
+
+        assertThat(a.getWidth()).isEqualTo(900);
+        assertThat(b.getWidth()).isEqualTo(900);
+        int larguraA = larguraDoTraco(a);
+        int larguraB = larguraDoTraco(b);
+        assertThat(Math.abs(larguraA - larguraB)).isLessThanOrEqualTo((int) Math.ceil(larguraB * 0.02));
+        // o traco preenche a largura util (900 menos 4% de cada lado)
+        assertThat(larguraB).isBetween(810, 830);
+    }
+
+    @Test
+    void normalizar_imagemLargaEImagemAlta_naoSaoEsticadas() throws IOException {
+        byte[] larga = criarTraco(1000, 400, 50, 150, 900, 60);
+        byte[] alta = criarTraco(400, 1000, 150, 50, 60, 900);
+
+        BufferedImage l = lerPng(service.normalizarUpload(new MockMultipartFile("arquivo", "l.png", "image/png", larga)));
+        BufferedImage t = lerPng(service.normalizarUpload(new MockMultipartFile("arquivo", "t.png", "image/png", alta)));
+
+        int[] caixaL = AssinaturaImagemService.caixaDoTraco(l);
+        int[] caixaT = AssinaturaImagemService.caixaDoTraco(t);
+        double proporcaoL = (caixaL[2] - caixaL[0] + 1.0) / (caixaL[3] - caixaL[1] + 1.0);
+        double proporcaoT = (caixaT[2] - caixaT[0] + 1.0) / (caixaT[3] - caixaT[1] + 1.0);
+        assertThat(proporcaoL).isCloseTo(900.0 / 60, org.assertj.core.data.Percentage.withPercentage(8));
+        assertThat(proporcaoT).isCloseTo(60.0 / 900, org.assertj.core.data.Percentage.withPercentage(8));
+        // a alta fica centralizada na horizontal, ocupando a altura util
+        assertThat(caixaT[3] - caixaT[1] + 1).isBetween(270, 280);
+        assertThat((caixaT[0] + caixaT[2]) / 2).isBetween(440, 460);
     }
 
     @Test
@@ -184,7 +222,32 @@ class AssinaturaImagemServiceTest {
                 saida.toByteArray());
 
         assertThatThrownBy(() -> service.normalizarUpload(arquivo))
-                .isInstanceOf(DadosInvalidosException.class);
+                .isInstanceOf(DadosInvalidosException.class)
+                .hasMessageContaining("Desenhe ou envie uma assinatura.");
+    }
+
+    private static BufferedImage lerPng(byte[] png) throws IOException {
+        return ImageIO.read(new ByteArrayInputStream(png));
+    }
+
+    private static int larguraDoTraco(BufferedImage imagem) {
+        int[] caixa = AssinaturaImagemService.caixaDoTraco(imagem);
+        return caixa[2] - caixa[0] + 1;
+    }
+
+    /** Quadro transparente com um retangulo preto (o "traco") na posicao e no tamanho pedidos. */
+    private static byte[] criarTraco(int largura, int altura, int x, int y, int w, int h) throws IOException {
+        BufferedImage imagem = new BufferedImage(largura, altura, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graficos = imagem.createGraphics();
+        try {
+            graficos.setColor(Color.BLACK);
+            graficos.fillRect(x, y, w, h);
+        } finally {
+            graficos.dispose();
+        }
+        ByteArrayOutputStream saida = new ByteArrayOutputStream();
+        ImageIO.write(imagem, "png", saida);
+        return saida.toByteArray();
     }
 
     private long contarPixelsOpacos(BufferedImage imagem) {
