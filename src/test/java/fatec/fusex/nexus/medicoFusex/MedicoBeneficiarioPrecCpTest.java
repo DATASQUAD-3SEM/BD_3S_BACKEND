@@ -61,7 +61,9 @@ class MedicoBeneficiarioPrecCpTest {
                 new BeneficiarioService(beneficiarioRepository, usuarioRepository, simulacaoLogin);
 
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new MedicoBeneficiarioController(beneficiarioService, simulacaoLogin, medicoService))
+                .standaloneSetup(new MedicoBeneficiarioController(beneficiarioService, simulacaoLogin, medicoService,
+                        org.mockito.Mockito.mock(fatec.fusex.nexus.dependente.DependenteRepository.class),
+                        org.mockito.Mockito.mock(fatec.fusex.nexus.dependente.ResponsavelExternoRepository.class)))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
 

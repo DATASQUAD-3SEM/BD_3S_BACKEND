@@ -41,6 +41,7 @@ public class MedicoPreGuiaService {
     private final PreGuiaRepository preGuiaRepository;
     private final PreGuiaProcedimentoRepository preGuiaProcedimentoRepository;
     private final PreGuiaHistoricoRepository historicoRepository;
+    private final fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository;
 
     public MedicoPreGuiaService(MedicoFusexService medicoService,
                                 BeneficiarioRepository beneficiarioRepository,
@@ -48,7 +49,9 @@ public class MedicoPreGuiaService {
                                 ProcedimentoExameRepository procedimentoRepository,
                                 PreGuiaRepository preGuiaRepository,
                                 PreGuiaProcedimentoRepository preGuiaProcedimentoRepository,
-                                PreGuiaHistoricoRepository historicoRepository) {
+                                PreGuiaHistoricoRepository historicoRepository,
+                                fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository) {
+        this.dependenteRepository = dependenteRepository;
         this.medicoService = medicoService;
         this.beneficiarioRepository = beneficiarioRepository;
         this.ocsRepository = ocsRepository;
@@ -63,7 +66,8 @@ public class MedicoPreGuiaService {
     public PreGuiaMedicoResponse criar(String login, CriarPreGuiaMedicoRequest request) {
         MedicoFusex medico = medicoService.validarAcessoMedico(login);
 
-        Beneficiario beneficiario = buscarBeneficiarioAtivo(request.beneficiarioId());
+        fatec.fusex.nexus.dependente.Dependente dependente = request.dependenteId() == null ? null : buscarDependenteVigente(request.dependenteId());
+        Beneficiario beneficiario = dependente != null ? dependente.getTitular() : buscarBeneficiarioAtivo(request.beneficiarioId());
         Ocs ocs = buscarOcsAtiva(request.ocsId());
         List<ProcedimentoExame> procedimentos = buscarProcedimentos(request.procedimentos());
 
@@ -72,6 +76,8 @@ public class MedicoPreGuiaService {
         preGuia.setBeneficiario(beneficiario);
         preGuia.setOcs(ocs);
         preGuia.setMedicoFusex(medico);
+        preGuia.setDependente(dependente);
+        preGuia.setCriadaPor(medico.getUsuario());
         preGuia.setStatus(PreGuiaStatus.PENDENTE);
         preGuiaRepository.save(preGuia);
 
@@ -88,6 +94,14 @@ public class MedicoPreGuiaService {
 
         // O numero sai do id (IDENTITY): dois envios ao mesmo tempo nunca recebem o mesmo
         return PreGuiaMedicoResponse.de(preGuia);
+    }
+
+    /** Dependente vigente (T30-BE7). Vigencia vencida ou inexistente: 404, como Prec CP inexistente. */
+    private fatec.fusex.nexus.dependente.Dependente buscarDependenteVigente(Long dependenteId) {
+        java.time.LocalDate hoje = Beneficiario.hoje();
+        return dependenteRepository.findById(dependenteId)
+                .filter(d -> d.getVigenciaFim() == null || !d.getVigenciaFim().isBefore(hoje))
+                .orElseThrow(() -> new fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException("Beneficiario nao encontrado"));
     }
 
     private Beneficiario buscarBeneficiarioAtivo(Long beneficiarioId) {
