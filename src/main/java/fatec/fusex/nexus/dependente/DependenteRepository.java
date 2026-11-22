@@ -16,6 +16,8 @@ public interface DependenteRepository extends JpaRepository<Dependente, Long> {
 
     Optional<Dependente> findByPrecCp(String precCp);
 
+    boolean existsByCpf(String cpf);
+
     List<Dependente> findByTitularUsuarioIdOrderByIdDependenteAsc(Long titularId);
 
     List<Dependente> findByTitularUsuarioIdIn(Collection<Long> titularIds);
