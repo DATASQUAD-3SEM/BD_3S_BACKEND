@@ -1,6 +1,7 @@
 package fatec.fusex.nexus.guiaBeneficiario;
 
 import fatec.fusex.nexus.preGuia.AcessoPaciente;
+import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.preGuia.dto.PacienteDto;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
@@ -81,7 +82,8 @@ public class GuiaBeneficiarioService {
     /**
      * T30-BE3: guias que o usuario pode ver e agir (AcessoPaciente). O titular nao ve as guias do dependente
      * maior nem as do menor sob responsavel legal; o responsavel ve as dos menores que acompanha; o maior ve as
-     * proprias. Ordem: mais recente primeiro.
+     * proprias. T18-BE1: so as guias ja assinadas pelo medico e pelo chefe (pre-guia CONCLUIDA); a Guia recem-inserida
+     * pelo setor de Guias, ainda sem as duas assinaturas, nao aparece (regras 2, 4 e 6.2). Ordem: mais recente primeiro.
      */
     private List<Guia> guiasQuePodeAgir(Usuario usuario) {
         Map<Long, Guia> porId = new java.util.LinkedHashMap<>();
@@ -96,6 +98,7 @@ public class GuiaBeneficiarioService {
         }
         return porId.values().stream()
                 .filter(guia -> AcessoPaciente.podeAgir(usuario, guia.getPreGuia()))
+                .filter(guia -> guia.getPreGuia().getStatus() == PreGuiaStatus.CONCLUIDA)
                 .sorted(java.util.Comparator.comparing(Guia::getDataInsercao).reversed()
                         .thenComparing(Guia::getIdGuia, java.util.Comparator.reverseOrder()))
                 .toList();
