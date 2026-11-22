@@ -9,6 +9,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import fatec.fusex.nexus.preGuia.dto.PacienteDto;
+
 /**
  * Guia do beneficiario (T18-BE1): cabecalho, situacao, procedimentos e sessoes.
  * {@code validadeAte} e nulo em Guia antiga sem validade gravada (ver T16).
@@ -21,7 +23,8 @@ public record GuiaBeneficiarioResponse(
         LocalDateTime dataEnvio,
         SituacaoExecucao situacao,
         List<ProcedimentoDto> procedimentos,
-        List<SessaoDto> sessoes) {
+        List<SessaoDto> sessoes,
+        PacienteDto paciente) {
 
     public record ProcedimentoDto(String codDgp, String descricao, Integer quantidade) {
 
@@ -55,7 +58,8 @@ public record GuiaBeneficiarioResponse(
 
     public static GuiaBeneficiarioResponse fromEntity(Guia guia,
                                                       List<ProcedimentoDto> procedimentos,
-                                                      List<SessaoDto> sessoes) {
+                                                      List<SessaoDto> sessoes,
+                                                      PacienteDto paciente) {
         return new GuiaBeneficiarioResponse(
                 guia.getIdGuia(),
                 guia.getNumero(),
@@ -64,6 +68,7 @@ public record GuiaBeneficiarioResponse(
                 guia.getDataEnvio(),
                 guia.getSituacaoExecucao(),
                 procedimentos,
-                sessoes);
+                sessoes,
+                paciente);
     }
 }

@@ -12,6 +12,7 @@ import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
 import fatec.fusex.nexus.minhasPreGuias.ModoDownload;
+import fatec.fusex.nexus.preGuia.AcessoPaciente;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
@@ -44,12 +45,14 @@ public class GuiaPdfAssinadoService {
     @Transactional(readOnly = true)
     public PdfGuiaAssinada pdfDaGuia(Long guiaId, String modo) {
         Usuario usuario = usuarioLogado.exigirPerfil(
-                PerfilUsuario.MEDICO, PerfilUsuario.CHEFE_FUSEX, PerfilUsuario.BENEFICIARIO);
+                PerfilUsuario.MEDICO, PerfilUsuario.CHEFE_FUSEX, PerfilUsuario.BENEFICIARIO,
+                PerfilUsuario.RESPONSAVEL_EXTERNO);
 
         Guia guia = guiaRepository.findById(guiaId)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Guia nao encontrada: id " + guiaId));
 
-        if (usuario.getPerfil() == PerfilUsuario.BENEFICIARIO) {
+        if (usuario.getPerfil() == PerfilUsuario.BENEFICIARIO
+                || usuario.getPerfil() == PerfilUsuario.RESPONSAVEL_EXTERNO) {
             return pdfDoBeneficiario(guia, usuario);
         }
 
@@ -61,7 +64,8 @@ public class GuiaPdfAssinadoService {
     }
 
     private PdfGuiaAssinada pdfDoBeneficiario(Guia guia, Usuario beneficiario) {
-        if (!guia.getPreGuia().getBeneficiario().getUsuarioId().equals(beneficiario.getIdUsuario())) {
+        // T30-BE3: quem age no paciente da pre-guia (titular, responsavel legal ou o proprio dependente maior).
+        if (!AcessoPaciente.podeAgir(beneficiario, guia.getPreGuia())) {
             throw new AcessoNegadoException("Guia de outro beneficiario: acesso negado");
         }
         if (guia.getPreGuia().getStatus() != PreGuiaStatus.CONCLUIDA) {

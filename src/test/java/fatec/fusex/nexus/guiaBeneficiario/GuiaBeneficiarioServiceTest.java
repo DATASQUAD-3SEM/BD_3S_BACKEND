@@ -52,7 +52,7 @@ class GuiaBeneficiarioServiceTest {
 
         Usuario usuario = new Usuario();
         usuario.setIdUsuario(1L);
-        when(usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO)).thenReturn(usuario);
+        when(usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO)).thenReturn(usuario);
 
 
         Guia guia = new Guia();

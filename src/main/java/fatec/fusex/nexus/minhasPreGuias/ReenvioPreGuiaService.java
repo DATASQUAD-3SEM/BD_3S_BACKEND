@@ -58,11 +58,11 @@ public class ReenvioPreGuiaService {
     // Ordem: perfil (403) -> de outro ou inexistente (404) -> origem medico (403) -> status (409) -> corpo (422)
     @Transactional
     public ReenvioPreGuiaResponse reenviar(Long id, Long ocsId, MultipartFile arquivo) {
-        Usuario beneficiario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
+        Usuario beneficiario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
 
         // Trava a linha ate o fim da transacao (dois reenvios simultaneos geram uma unica mudanca)
         PreGuia preGuia = preGuiaRepository.buscarParaReenviar(id)
-                .filter(p -> p.getBeneficiario().getUsuarioId().equals(beneficiario.getIdUsuario()))
+                .filter(p -> fatec.fusex.nexus.preGuia.AcessoPaciente.podeAgir(beneficiario, p))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada"));
 
         if (preGuia.getMedicoFusex() != null) {

@@ -4,6 +4,7 @@ import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import fatec.fusex.nexus.preGuia.dto.PacienteDto;
 
 /**
  * Item da lista Minhas pre-guias (T1-BE1). A observacao so vem em Atencao e a Guia so vem em Concluida;
@@ -18,12 +19,14 @@ public record MinhaPreGuiaResponse(
         LocalDateTime dataCriacao,
         PreGuiaStatus status,
         String observacao,
-        GuiaDto guia
+        GuiaDto guia,
+        PacienteDto paciente
 ) {
     public record CriadoPorMedicoDto(String nome, String patente) {}
     public record GuiaDto(String numero, LocalDate validadeAte) {}
 
-    public static MinhaPreGuiaResponse fromEntity(PreGuia preGuia, String observacao, GuiaDto guiaDto) {
+    public static MinhaPreGuiaResponse fromEntity(PreGuia preGuia, String observacao, GuiaDto guiaDto,
+                                                  PacienteDto paciente) {
 
         // Deduz a origem: se tem médico, é MEDICO. Se não, é BENEFICIARIO.
         String origem = preGuia.getMedicoFusex() != null ? "MEDICO" : "BENEFICIARIO";
@@ -45,7 +48,8 @@ public record MinhaPreGuiaResponse(
                 preGuia.getDataCriacao(),
                 preGuia.getStatus(),
                 observacao,
-                guiaDto
+                guiaDto,
+                paciente
         );
     }
 }

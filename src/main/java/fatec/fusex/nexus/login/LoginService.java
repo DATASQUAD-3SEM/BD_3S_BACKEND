@@ -36,13 +36,16 @@ public class LoginService {
     private final ChefeFusexRepository chefeRepository;
     private final ContaOcsRepository contaOcsRepository;
     private final PasswordEncoder passwordEncoder;
+    private final fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository;
 
     public LoginService(UsuarioRepository usuarioRepository,
                         BeneficiarioRepository beneficiarioRepository,
                         MedicoFusexRepository medicoRepository,
                         ChefeFusexRepository chefeRepository,
                         ContaOcsRepository contaOcsRepository,
-                        PasswordEncoder passwordEncoder) {
+                        PasswordEncoder passwordEncoder,
+                        fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository) {
+        this.dependenteRepository = dependenteRepository;
         this.usuarioRepository = usuarioRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.medicoRepository = medicoRepository;
@@ -78,7 +81,9 @@ public class LoginService {
     private String nomeDe(Usuario usuario) {
         Long id = usuario.getIdUsuario();
         return switch (usuario.getPerfil()) {
-            case BENEFICIARIO -> beneficiarioRepository.findById(id).map(b -> b.getNome()).orElse(usuario.getLogin());
+            case BENEFICIARIO -> beneficiarioRepository.findById(id).map(b -> b.getNome())
+                    .or(() -> dependenteRepository.findByUsuarioIdUsuario(id).map(d -> d.getNome()))
+                    .orElse(usuario.getLogin());
             case MEDICO -> medicoRepository.findById(id).map(m -> m.getNome()).orElse(usuario.getLogin());
             case CHEFE_FUSEX -> chefeRepository.findById(id).map(c -> c.getNome()).orElse(usuario.getLogin());
             case SETOR_GUIAS -> "Setor de Guias";

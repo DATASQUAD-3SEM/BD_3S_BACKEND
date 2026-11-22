@@ -1,5 +1,7 @@
 package fatec.fusex.nexus.guiaBeneficiario;
 
+import fatec.fusex.nexus.preGuia.AcessoPaciente;
+import fatec.fusex.nexus.preGuia.dto.PacienteDto;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
@@ -67,19 +69,39 @@ public class GuiaBeneficiarioService {
     }
 
     public List<GuiaBeneficiarioResponse> listar() {
-        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
-        Long usuarioId = usuario.getIdUsuario();
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
         LocalDate hoje = Beneficiario.hoje();
 
-        List<Guia> guias = transacaoLeitura.execute(status ->
-                guiaRepository.findByPreGuiaBeneficiarioUsuarioIdOrderByDataInsercaoDescIdGuiaDesc(usuarioId));
+        List<Guia> guias = transacaoLeitura.execute(status -> guiasQuePodeAgir(usuario));
         viradaValidade.virarVencidas(guias, hoje);
 
-        return transacaoLeitura.execute(status -> montar(usuarioId));
+        return transacaoLeitura.execute(status -> montar(guiasQuePodeAgir(usuario), usuario));
     }
 
-    private List<GuiaBeneficiarioResponse> montar(Long usuarioId) {
-        List<Guia> guias = guiaRepository.findByPreGuiaBeneficiarioUsuarioIdOrderByDataInsercaoDescIdGuiaDesc(usuarioId);
+    /**
+     * T30-BE3: guias que o usuario pode ver e agir (AcessoPaciente). O titular nao ve as guias do dependente
+     * maior nem as do menor sob responsavel legal; o responsavel ve as dos menores que acompanha; o maior ve as
+     * proprias. Ordem: mais recente primeiro.
+     */
+    private List<Guia> guiasQuePodeAgir(Usuario usuario) {
+        Map<Long, Guia> porId = new java.util.LinkedHashMap<>();
+        for (Guia guia : guiaRepository.findByPreGuiaBeneficiarioUsuarioIdOrderByDataInsercaoDescIdGuiaDesc(usuario.getIdUsuario())) {
+            porId.put(guia.getIdGuia(), guia);
+        }
+        for (Guia guia : guiaRepository.findByPreGuiaDependenteResponsavelIdUsuarioOrderByDataInsercaoDescIdGuiaDesc(usuario.getIdUsuario())) {
+            porId.put(guia.getIdGuia(), guia);
+        }
+        for (Guia guia : guiaRepository.findByPreGuiaDependenteUsuarioIdUsuarioOrderByDataInsercaoDescIdGuiaDesc(usuario.getIdUsuario())) {
+            porId.put(guia.getIdGuia(), guia);
+        }
+        return porId.values().stream()
+                .filter(guia -> AcessoPaciente.podeAgir(usuario, guia.getPreGuia()))
+                .sorted(java.util.Comparator.comparing(Guia::getDataInsercao).reversed()
+                        .thenComparing(Guia::getIdGuia, java.util.Comparator.reverseOrder()))
+                .toList();
+    }
+
+    private List<GuiaBeneficiarioResponse> montar(List<Guia> guias, Usuario usuario) {
         if (guias.isEmpty()) {
             return List.of();
         }
@@ -101,7 +123,8 @@ public class GuiaBeneficiarioService {
                 .map(guia -> GuiaBeneficiarioResponse.fromEntity(
                         guia,
                         procedimentos.getOrDefault(guia.getIdGuia(), List.of()),
-                        sessoes.getOrDefault(guia.getIdGuia(), List.of())))
+                        sessoes.getOrDefault(guia.getIdGuia(), List.of()),
+                        PacienteDto.de(guia.getPreGuia(), usuario)))
                 .toList();
     }
 
@@ -110,12 +133,12 @@ public class GuiaBeneficiarioService {
 
     @Transactional(rollbackFor = Exception.class)
     public GuiaBeneficiarioResponse enviar(Long idGuia) {
-        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
 
         Guia guia = guiaRepository.findByIdComLock(idGuia)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Guia nao encontrada: id " + idGuia));
 
-        if (!guia.getPreGuia().getBeneficiario().getUsuarioId().equals(usuario.getIdUsuario())) {
+        if (!AcessoPaciente.podeAgir(usuario, guia.getPreGuia())) {
             throw new AcessoNegadoException("A Guia nao pertence ao usuario logado");
         }
 
@@ -159,19 +182,20 @@ public class GuiaBeneficiarioService {
                 .map(SessaoDto::fromEntity)
                 .toList();
 
-        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
+        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto,
+                PacienteDto.de(guia.getPreGuia(), usuario));
     }
 
     // Ordem: perfil (403) -> guia existe (404) -> dono (403) -> sessao da guia (404)
     //     -> status SOLICITADA (409) -> assinatura cadastrada (422) -> regra 25 (409).
     @Transactional(rollbackFor = Exception.class)
     public GuiaBeneficiarioResponse assinar(Long idGuia, Long idSessao) {
-        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
 
         Guia guia = guiaRepository.findByIdComLock(idGuia)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Guia nao encontrada: id " + idGuia));
 
-        if (!guia.getPreGuia().getBeneficiario().getUsuarioId().equals(usuario.getIdUsuario())) {
+        if (!AcessoPaciente.podeAgir(usuario, guia.getPreGuia())) {
             throw new AcessoNegadoException("A Guia nao pertence ao usuario logado");
         }
 
@@ -225,6 +249,7 @@ public class GuiaBeneficiarioService {
                 .map(SessaoDto::fromEntity)
                 .toList();
 
-        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto);
+        return GuiaBeneficiarioResponse.fromEntity(guia, procedimentosDto, sessoesDto,
+                PacienteDto.de(guia.getPreGuia(), usuario));
     }
 }

@@ -2,7 +2,6 @@ package fatec.fusex.nexus.minhasPreGuias;
 
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.beneficiario.Beneficiario;
-import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.common.auth.UsuarioLogado;
 import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ConflitoException;
@@ -43,7 +42,6 @@ import java.util.Locale;
 public class MinhasPreGuiasService {
 
     private final PreGuiaRepository preGuiaRepository;
-    private final BeneficiarioRepository beneficiarioRepository;
     private final PreGuiaHistoricoRepository historicoRepository;
     private final GuiaRepository guiaRepository;
     private final UsuarioLogado usuarioLogado;
@@ -52,7 +50,6 @@ public class MinhasPreGuiasService {
     private final MontagemPdfGuia montagemPdfGuia;
 
     public MinhasPreGuiasService(PreGuiaRepository preGuiaRepository,
-                                 BeneficiarioRepository beneficiarioRepository,
                                  PreGuiaHistoricoRepository historicoRepository,
                                  GuiaRepository guiaRepository,
                                  UsuarioLogado usuarioLogado,
@@ -60,7 +57,6 @@ public class MinhasPreGuiasService {
                                  ArmazenamentoArquivo armazenamentoArquivo,
                                  MontagemPdfGuia montagemPdfGuia) {
         this.preGuiaRepository = preGuiaRepository;
-        this.beneficiarioRepository = beneficiarioRepository;
         this.historicoRepository = historicoRepository;
         this.guiaRepository = guiaRepository;
         this.usuarioLogado = usuarioLogado;
@@ -71,10 +67,8 @@ public class MinhasPreGuiasService {
 
     @Transactional(readOnly = true)
     public List<MinhaPreGuiaResponse> listar() {
-        Beneficiario beneficiario = beneficiarioLogado();
-
-        List<PreGuia> preGuias = preGuiaRepository
-                .findByBeneficiarioUsuarioIdOrderByDataCriacaoDesc(beneficiario.getUsuarioId());
+        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
+        List<PreGuia> preGuias = preGuiasQuePodeAgir(usuario);
 
         return preGuias.stream().map(preGuia -> {
 
@@ -97,16 +91,17 @@ public class MinhasPreGuiasService {
                         .orElse(null);
             }
 
-            return MinhaPreGuiaResponse.fromEntity(preGuia, obs, guiaDto);
+            return MinhaPreGuiaResponse.fromEntity(preGuia, obs, guiaDto,
+                    fatec.fusex.nexus.preGuia.dto.PacienteDto.de(preGuia, usuario));
         }).toList();
     }
 
     @Transactional(readOnly = true)
     public CorrecaoPreGuiaResponse buscarCorrecao(Long idPreGuia) {
-        Beneficiario beneficiario = beneficiarioLogado();
+        Usuario usuario = pacienteLogado();
 
         PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
-                .filter(p -> p.getBeneficiario().getUsuarioId().equals(beneficiario.getUsuarioId()))
+                .filter(p -> fatec.fusex.nexus.preGuia.AcessoPaciente.podeAgir(usuario, p))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada"));
 
         if (preGuia.getMedicoFusex() != null) {
@@ -141,10 +136,10 @@ public class MinhasPreGuiasService {
 
     @Transactional(readOnly = true)
     public EncaminhamentoArquivo baixarEncaminhamento(Long idPreGuia) {
-        Beneficiario beneficiario = beneficiarioLogado();
+        Usuario usuario = pacienteLogado();
 
         PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
-                .filter(p -> p.getBeneficiario().getUsuarioId().equals(beneficiario.getUsuarioId()))
+                .filter(p -> fatec.fusex.nexus.preGuia.AcessoPaciente.podeAgir(usuario, p))
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Pre-guia nao encontrada"));
 
         if (preGuia.getMedicoFusex() != null) {
@@ -168,14 +163,15 @@ public class MinhasPreGuiasService {
     @Transactional(readOnly = true)
     public GuiaPdf baixarGuiaPdf(Long idPreGuia, String modoRaw) {
         ModoDownload modo = ModoDownload.from(modoRaw);
-        Beneficiario beneficiario = beneficiarioLogado();
+        Usuario usuario = pacienteLogado();
 
         PreGuia preGuia = preGuiaRepository.findById(idPreGuia)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
                         "Pre-guia nao encontrada"));
 
-        // T23-BE2: guia de outro beneficiario responde 403 (acesso negado), conforme a spec
-        if (!preGuia.getBeneficiario().getUsuarioId().equals(beneficiario.getUsuarioId())) {
+        // T23-BE2: guia de outro beneficiario responde 403 (acesso negado), conforme a spec.
+        // T30-BE3: vale a regra unica de quem age no paciente (titular, responsavel legal ou dependente maior).
+        if (!fatec.fusex.nexus.preGuia.AcessoPaciente.podeAgir(usuario, preGuia)) {
             throw new AcessoNegadoException("Guia de outro beneficiario: acesso negado");
         }
 
@@ -249,12 +245,32 @@ public class MinhasPreGuiasService {
         };
     }
 
-    private Beneficiario beneficiarioLogado() {
-        Usuario usuario = usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO);
+    /**
+     * T30-BE3: pre-guias que o usuario pode ver (AcessoPaciente). Titular: as suas e as dos menores sob sua
+     * guarda, sem as do maior nem as do menor sob responsavel. Responsavel externo: as dos menores que acompanha.
+     * Dependente maior: as proprias. Mais recente primeiro.
+     */
+    private List<PreGuia> preGuiasQuePodeAgir(Usuario usuario) {
+        java.util.Map<Long, PreGuia> porId = new java.util.LinkedHashMap<>();
+        for (PreGuia p : preGuiaRepository.findByBeneficiarioUsuarioIdOrderByDataCriacaoDesc(usuario.getIdUsuario())) {
+            porId.put(p.getIdPreGuia(), p);
+        }
+        for (PreGuia p : preGuiaRepository.findByDependenteResponsavelIdUsuarioOrderByDataCriacaoDesc(usuario.getIdUsuario())) {
+            porId.put(p.getIdPreGuia(), p);
+        }
+        for (PreGuia p : preGuiaRepository.findByDependenteUsuarioIdUsuarioOrderByDataCriacaoDesc(usuario.getIdUsuario())) {
+            porId.put(p.getIdPreGuia(), p);
+        }
+        return porId.values().stream()
+                .filter(p -> fatec.fusex.nexus.preGuia.AcessoPaciente.podeAgir(usuario, p))
+                .sorted(java.util.Comparator.comparing(PreGuia::getDataCriacao).reversed()
+                        .thenComparing(PreGuia::getIdPreGuia, java.util.Comparator.reverseOrder()))
+                .toList();
+    }
 
-        return beneficiarioRepository.findById(usuario.getIdUsuario())
-                .orElseThrow(() -> new RecursoNaoEncontradoException(
-                        "Beneficiario nao encontrado"));
+    /** Usuario que age em nome do paciente: titular, dependente maior (BENEFICIARIO) ou responsavel externo. */
+    private Usuario pacienteLogado() {
+        return usuarioLogado.exigirPerfil(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO);
     }
 
     private static String sanitizar(String valor) {
