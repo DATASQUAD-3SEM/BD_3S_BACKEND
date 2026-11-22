@@ -146,14 +146,20 @@ WHERE senha_hash = 'HASH_BCRYPT_AQUI';
 -- vigencia determinada (ambos com conta propria) e um dependente com vigencia vencida.
 -- Responsavel externo: conta propria pelo CPF, perfil RESPONSAVEL_EXTERNO, sem Prec CP.
 -- ---------------------------------------------------------------------
+-- CPFs com digitos verificadores validos (o cadastro e a consulta de conta pelo CPF recusam CPF invalido).
+-- Bancos criados antes desta correcao tinham Helena com 41282945067 e Sofia com 39053344806: os UPDATEs abaixo
+-- trocam so essas duas linhas, mantendo senha, assinatura, pre-guias e Guias.
+UPDATE Usuario SET login = '41282945009' WHERE login = '41282945067' AND perfil = 'RESPONSAVEL_EXTERNO';
+UPDATE Dependente SET cpf = '39053344888' WHERE cpf = '39053344806' AND prec_cp = '12345678903';
+
 INSERT INTO Usuario (login, senha_hash, perfil)
-SELECT '41282945067', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RESPONSAVEL_EXTERNO' FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '41282945067');
+SELECT '41282945009', '$2a$10$HejWOVIFVuEHjfYru8lEcexIDdtnkDhjKbbX7rR6.wysdw4BNrwXO', 'RESPONSAVEL_EXTERNO' FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM Usuario WHERE login = '41282945009');
 
 INSERT INTO ResponsavelExterno (usuario_id, nome, telefone)
 SELECT u.id_usuario, 'Helena Costa', '12998765432'
 FROM Usuario u
-WHERE u.login = '41282945067'
+WHERE u.login = '41282945009'
   AND NOT EXISTS (SELECT 1 FROM ResponsavelExterno r WHERE r.usuario_id = u.id_usuario);
 
 -- Maior de idade com conta propria (login pelo CPF, perfil BENEFICIARIO), sem linha em Beneficiario.
@@ -174,11 +180,11 @@ WHERE t.login = '52998224725'
 -- Sofia: menor sob a guarda da responsavel externa Helena (MENOR_RESPONSAVEL), titular Antonio.
 INSERT INTO Dependente (titular_id, usuario_id, responsavel_id, nome, data_nascimento, cpf, telefone,
                         prec_cp, vinculo, tipo, vigencia_fim)
-SELECT b.usuario_id, NULL, r.id_usuario, 'Sofia Ferreira', '2017-05-15', '39053344806', NULL,
+SELECT b.usuario_id, NULL, r.id_usuario, 'Sofia Ferreira', '2017-05-15', '39053344888', NULL,
        '12345678903', 'Filha', 'MENOR_RESPONSAVEL', '2039-05-14'
 FROM Beneficiario b
 JOIN Usuario t ON t.id_usuario = b.usuario_id
-JOIN Usuario r ON r.login = '41282945067'
+JOIN Usuario r ON r.login = '41282945009'
 WHERE t.login = '52998224725'
   AND NOT EXISTS (SELECT 1 FROM Dependente d WHERE d.prec_cp = '12345678903');
 
