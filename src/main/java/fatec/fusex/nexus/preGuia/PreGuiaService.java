@@ -87,6 +87,8 @@ public class PreGuiaService {
      * T30-BE2: pacientes que o usuario logado pode escolher para a nova pre-guia. Titular: ele mesmo (se
      * tiver cadastro de beneficiario) e os menores sob sua guarda. Responsavel externo: os menores que
      * acompanha. Dependente maior: so ele mesmo. Vigencia vencida e maiores (exceto o proprio) nao aparecem.
+     * Cada paciente traz os dados do bloco "Dados do paciente" (nascimento, idade, faixa etaria, Prec CP, CPF e
+     * telefone), para a tela nao depender de GET /beneficiarios/me, que so existe para o titular.
      */
     @Transactional(readOnly = true)
     public List<PacienteResponse> listarPacientes() {
@@ -96,11 +98,10 @@ public class PreGuiaService {
 
         if (usuario.getPerfil() == PerfilUsuario.BENEFICIARIO) {
             beneficiarioRepository.findById(usuario.getIdUsuario())
-                    .ifPresent(b -> pacientes.add(new PacienteResponse(null, b.getNome(), "Você (titular)")));
+                    .ifPresent(b -> pacientes.add(PacienteResponse.doTitular(b, "Você (titular)", hoje)));
         }
         for (Dependente dependente : pacientesPermitidos(usuario, hoje)) {
-            pacientes.add(new PacienteResponse(dependente.getIdDependente(), dependente.getNome(),
-                    rotulo(dependente, usuario)));
+            pacientes.add(PacienteResponse.doDependente(dependente, rotulo(dependente, usuario), hoje));
         }
         return pacientes;
     }
@@ -124,8 +125,15 @@ public class PreGuiaService {
             if (usuario.getPerfil() == PerfilUsuario.RESPONSAVEL_EXTERNO) {
                 throw new DadosInvalidosException("dependenteId", "Escolha o paciente");
             }
-            beneficiario = beneficiarioRepository.findById(usuario.getIdUsuario())
-                    .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
+            Beneficiario titular = beneficiarioRepository.findById(usuario.getIdUsuario()).orElse(null);
+            if (titular != null) {
+                beneficiario = titular;
+            } else {
+                // Dependente maior logado, sem dependenteId: a pre-guia e dele mesmo (T30-BE2).
+                dependente = dependenteMaiorDoUsuario(usuario)
+                        .orElseThrow(() -> new RecursoNaoEncontradoException("Beneficiario nao encontrado"));
+                beneficiario = dependente.getTitular();
+            }
         }
 
         Ocs ocs = buscarOcsAtiva(ocsId);
@@ -151,6 +159,13 @@ public class PreGuiaService {
             armazenamentoArquivo.removerSemFalhar(encaminhamentoUrl); // nao deixa arquivo orfao se o banco falhar
             throw e;
         }
+    }
+
+    /** O proprio cadastro de dependente maior vigente do usuario logado, quando ele nao e titular. */
+    private java.util.Optional<Dependente> dependenteMaiorDoUsuario(Usuario usuario) {
+        LocalDate hoje = LocalDate.now(Beneficiario.FUSO);
+        return dependenteRepository.findByUsuarioIdUsuario(usuario.getIdUsuario())
+                .filter(d -> d.getTipo() == TipoDependente.MAIOR && vigente(d, hoje));
     }
 
     /** Dependente da lista de pacientes permitidos; fora dela (outro menor, maior alheio, vencido): 403. */
@@ -188,6 +203,9 @@ public class PreGuiaService {
     private static String rotulo(Dependente dependente, Usuario usuario) {
         if (dependente.getTipo() == TipoDependente.MAIOR) {
             return "Você (dependente maior)";
+        }
+        if (dependente.getTipo() == TipoDependente.MENOR_RESPONSAVEL) {
+            return "Menor que você acompanha como responsável legal";
         }
         return "Seu dependente (menor sob sua guarda)";
     }
