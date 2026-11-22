@@ -147,6 +147,20 @@ class GuiaBeneficiarioControllerTest {
     }
 
     @Test
+    void guiaDePreGuiaAindaSemAsDuasAssinaturas_naoAparece() throws Exception {
+        Guia assinada = criarGuia(joao, LocalDateTime.of(2026, 10, 1, 10, 0), FUTURA, SituacaoExecucao.NAO_ENVIADA);
+        Guia semAssinaturas = criarGuia(joao, LocalDateTime.of(2026, 10, 20, 10, 0), FUTURA,
+                SituacaoExecucao.NAO_ENVIADA);
+        semAssinaturas.getPreGuia().setStatus(PreGuiaStatus.EM_ANALISE);
+        preGuiaRepository.save(semAssinaturas.getPreGuia());
+
+        mockMvc.perform(get("/guias/minhas").header(SimulacaoLoginFilter.HEADER, "11111111111"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id").value(assinada.getIdGuia()));
+    }
+
+    @Test
     void semGuias_devolveListaVazia() throws Exception {
         mockMvc.perform(get("/guias/minhas").header(SimulacaoLoginFilter.HEADER, "11111111111"))
                 .andExpect(status().isOk())
