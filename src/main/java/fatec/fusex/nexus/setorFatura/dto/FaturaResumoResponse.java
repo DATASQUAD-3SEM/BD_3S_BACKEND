@@ -23,7 +23,9 @@ public record FaturaResumoResponse(
         // T24-BE2 (regra 12.8): prazo da OCS para o aviso do setor de Faturas. Nulos quando nao houve envio a OCS.
         LocalDateTime dataEnvioOcs,
         LocalDateTime prazoOcs,
-        LocalDateTime dataCiencia) {
+        LocalDateTime dataCiencia,
+        // T24-BE2: quem deu a ciencia, para o aviso "A OCS deu ciencia das glosas em dd/mm/aaaa ([responsavel])." do cartao
+        String responsavelCiencia) {
 
     /** Eventos da fatura em ordem de data: o envio a OCS mais recente e a ciencia que veio depois dele. */
     public static FaturaResumoResponse fromEntity(Espelho espelho, List<EspelhoItem> itens, List<FaturaEvento> eventos) {
@@ -50,6 +52,7 @@ public record FaturaResumoResponse(
                 envioOcs,
                 envioOcs == null ? null
                         : FaturaTransicaoService.somarDiasUteis(envioOcs, FaturaTransicaoService.PRAZO_OCS_DIAS_UTEIS),
-                ciencia == null ? null : ciencia.getDataEvento());
+                ciencia == null ? null : ciencia.getDataEvento(),
+                ciencia == null ? null : ciencia.getResponsavel());
     }
 }
