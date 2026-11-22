@@ -3,6 +3,8 @@ package fatec.fusex.nexus.medicoFusex;
 import java.time.LocalDate;
 import java.util.Optional;
 
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,6 +23,8 @@ import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 /**
  * GET /medicos/beneficiarios?precCp= (T2-BE1, T30-BE7): o medico busca o beneficiario pelo Prec CP durante a consulta.
  * Sem beneficiario com esse Prec CP, procura um dependente vigente (T30-BE7); dependente com vigencia vencida: 404.
+ * A busca do dependente roda numa transacao somente leitura: o titular e o responsavel sao carregados sob demanda e,
+ * com open-in-view desligado, nao podem ser lidos fora dela.
  */
 @RestController
 @RequestMapping("/medicos/beneficiarios")
@@ -31,17 +35,21 @@ public class MedicoBeneficiarioController {
     private final MedicoFusexService medicoService;
     private final DependenteRepository dependenteRepository;
     private final ResponsavelExternoRepository responsavelExternoRepository;
+    private final TransactionTemplate transacaoLeitura;
 
     public MedicoBeneficiarioController(BeneficiarioService beneficiarioService,
                                         SimulacaoLogin simulacaoLogin,
                                         MedicoFusexService medicoService,
                                         DependenteRepository dependenteRepository,
-                                        ResponsavelExternoRepository responsavelExternoRepository) {
+                                        ResponsavelExternoRepository responsavelExternoRepository,
+                                        PlatformTransactionManager transactionManager) {
         this.beneficiarioService = beneficiarioService;
         this.simulacaoLogin = simulacaoLogin;
         this.medicoService = medicoService;
         this.dependenteRepository = dependenteRepository;
         this.responsavelExternoRepository = responsavelExternoRepository;
+        this.transacaoLeitura = new TransactionTemplate(transactionManager);
+        this.transacaoLeitura.setReadOnly(true);
     }
 
     @GetMapping
@@ -53,7 +61,7 @@ public class MedicoBeneficiarioController {
         try {
             return BeneficiarioMedicoResponse.de(beneficiarioService.buscarAtivoPorPrecCp(precCp));
         } catch (RecursoNaoEncontradoException e) {
-            return buscarDependentePorPrecCp(precCp).orElseThrow(() -> e);
+            return transacaoLeitura.execute(status -> buscarDependentePorPrecCp(precCp)).orElseThrow(() -> e);
         }
     }
 
