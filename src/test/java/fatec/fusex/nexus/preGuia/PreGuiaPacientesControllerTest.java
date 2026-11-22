@@ -41,9 +41,12 @@ class PreGuiaPacientesControllerTest {
     @Autowired private UsuarioRepository usuarioRepository;
     @Autowired private BeneficiarioRepository beneficiarioRepository;
     @Autowired private DependenteRepository dependenteRepository;
+    @Autowired private fatec.fusex.nexus.ocs.OcsRepository ocsRepository;
+    @Autowired private PreGuiaRepository preGuiaRepository;
 
     private Dependente miguel;
     private Dependente sofia;
+    private Dependente carla;
 
     @BeforeEach
     void cenario() {
@@ -63,7 +66,7 @@ class PreGuiaPacientesControllerTest {
                 "39053344705", "12345678902", TipoDependente.MENOR_TITULAR, LocalDate.of(2048, 3, 20));
         sofia = dependente(beneficiario, null, responsavel, "Sofia Ferreira", LocalDate.of(2017, 5, 15),
                 "39053344806", "12345678903", TipoDependente.MENOR_RESPONSAVEL, LocalDate.of(2039, 5, 14));
-        dependente(beneficiario, maior, null, "Carla Ferreira", LocalDate.of(1985, 2, 8),
+        carla = dependente(beneficiario, maior, null, "Carla Ferreira", LocalDate.of(1985, 2, 8),
                 "98765432100", "12345678901", TipoDependente.MAIOR, null);
     }
 
@@ -91,6 +94,80 @@ class PreGuiaPacientesControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].nome").value("Carla Ferreira"))
                 .andExpect(jsonPath("$[0].relacao").value("Você (dependente maior)"));
+    }
+
+    @Test
+    void titularRecebeOsPropriosDadosParaOBlocoDadosDoPaciente() throws Exception {
+        mockMvc.perform(get(BASE + "/pacientes").header(SimulacaoLoginFilter.HEADER, LOGIN_TITULAR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].nome").value("Antonio Titular"))
+                .andExpect(jsonPath("$[0].dataNascimento").value("1968-03-15"))
+                .andExpect(jsonPath("$[0].idade").isNumber())
+                .andExpect(jsonPath("$[0].faixaEtaria").isString())
+                .andExpect(jsonPath("$[0].precCp").value("45872213300"))
+                .andExpect(jsonPath("$[0].cpf").value(LOGIN_TITULAR))
+                .andExpect(jsonPath("$[0].telefone").value("12987654321"))
+                .andExpect(jsonPath("$[1].precCp").value("12345678902"))
+                .andExpect(jsonPath("$[1].cpf").value("39053344705"))
+                .andExpect(jsonPath("$[1].dataNascimento").value("2026-03-21"));
+    }
+
+    @Test
+    void responsavelRecebeOsDadosDoMenorQueAcompanha() throws Exception {
+        mockMvc.perform(get(BASE + "/pacientes").header(SimulacaoLoginFilter.HEADER, LOGIN_RESPONSAVEL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].relacao").value("Menor que você acompanha como responsável legal"))
+                .andExpect(jsonPath("$[0].precCp").value("12345678903"))
+                .andExpect(jsonPath("$[0].cpf").value("39053344806"))
+                .andExpect(jsonPath("$[0].telefone").doesNotExist());
+    }
+
+    @Test
+    void maiorRecebeOsPropriosDados() throws Exception {
+        mockMvc.perform(get(BASE + "/pacientes").header(SimulacaoLoginFilter.HEADER, LOGIN_MAIOR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].dependenteId").value(carla.getIdDependente()))
+                .andExpect(jsonPath("$[0].precCp").value("12345678901"))
+                .andExpect(jsonPath("$[0].cpf").value("98765432100"));
+    }
+
+    @Test
+    void maiorCriaAPropriaPreGuiaComESemDependenteId() throws Exception {
+        Long ocsId = ocsAtiva();
+
+        String semId = mockMvc.perform(multipart(BASE).file(encaminhamento())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_MAIOR)
+                        .param("ocsId", String.valueOf(ocsId)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+        String comId = mockMvc.perform(multipart(BASE).file(encaminhamento())
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_MAIOR)
+                        .param("ocsId", String.valueOf(ocsId))
+                        .param("dependenteId", String.valueOf(carla.getIdDependente())))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        for (String resposta : new String[] {semId, comId}) {
+            Long id = Long.valueOf(resposta.replaceAll(".*\"id\":(\\d+).*", "$1"));
+            PreGuia criada = preGuiaRepository.findById(id).orElseThrow();
+            org.assertj.core.api.Assertions.assertThat(criada.getDependente().getIdDependente())
+                    .isEqualTo(carla.getIdDependente());
+            org.assertj.core.api.Assertions.assertThat(criada.getBeneficiario().getNome()).isEqualTo("Antonio Titular");
+        }
+    }
+
+    private Long ocsAtiva() {
+        fatec.fusex.nexus.ocs.Ocs ocs = new fatec.fusex.nexus.ocs.Ocs();
+        ocs.setNome("OCS Pacientes");
+        ocs.setContratoNum("PAC-001");
+        ocs.setTipo(fatec.fusex.nexus.ocs.OcsTipo.OCS);
+        ocs.setAtivo(true);
+        return ocsRepository.save(ocs).getIdOcs();
+    }
+
+    private static org.springframework.mock.web.MockMultipartFile encaminhamento() {
+        return new org.springframework.mock.web.MockMultipartFile("arquivo", "encaminhamento.pdf", "application/pdf",
+                "%PDF-1.4 conteudo".getBytes());
     }
 
     @Test
