@@ -169,6 +169,47 @@ class ChefeDependenteCadastroServiceTest {
     }
 
     @Test
+    void menorComOCpfDoTitularEhRecusadoSemGravarNada() {
+        Usuario titular = new Usuario();
+        titular.setLogin(CPF_MENOR);
+        titular.setPerfil(PerfilUsuario.BENEFICIARIO);
+        when(usuarioRepository.findByLogin(CPF_MENOR)).thenReturn(Optional.of(titular));
+        CriarDependenteRequest req = requisicao(LocalDate.now().minusYears(5), "DETERMINADA",
+                LocalDate.now().plusYears(17), new CriarDependenteRequest.ResponsavelRequest("TITULAR", null, null, null), null);
+
+        assertThatThrownBy(() -> service.criar(TITULAR, req))
+                .isInstanceOf(DadosInvalidosException.class)
+                .hasMessageContaining("Este CPF já pertence a outra pessoa cadastrada no Nexus.");
+        verify(dependenteRepository, org.mockito.Mockito.never()).save(any(Dependente.class));
+    }
+
+    @Test
+    void menorComOCpfDeUmMedicoEhRecusado() {
+        Usuario medico = new Usuario();
+        medico.setLogin(CPF_MENOR);
+        medico.setPerfil(PerfilUsuario.MEDICO);
+        when(usuarioRepository.findByLogin(CPF_MENOR)).thenReturn(Optional.of(medico));
+        CriarDependenteRequest req = requisicao(LocalDate.now().minusYears(5), "DETERMINADA",
+                LocalDate.now().plusYears(17), new CriarDependenteRequest.ResponsavelRequest("TITULAR", null, null, null), null);
+
+        assertThatThrownBy(() -> service.criar(TITULAR, req))
+                .isInstanceOf(DadosInvalidosException.class)
+                .hasMessageContaining("Este CPF já pertence a outra pessoa cadastrada no Nexus.");
+        verify(dependenteRepository, org.mockito.Mockito.never()).save(any(Dependente.class));
+    }
+
+    @Test
+    void cpfDeOutroDependenteEhRecusado() {
+        when(dependenteRepository.existsByCpf(CPF_MENOR)).thenReturn(true);
+        CriarDependenteRequest req = requisicao(LocalDate.now().minusYears(5), "DETERMINADA",
+                LocalDate.now().plusYears(17), new CriarDependenteRequest.ResponsavelRequest("TITULAR", null, null, null), null);
+
+        assertThatThrownBy(() -> service.criar(TITULAR, req))
+                .isInstanceOf(DadosInvalidosException.class)
+                .hasMessageContaining("Este CPF já pertence a outra pessoa cadastrada no Nexus.");
+    }
+
+    @Test
     void maiorComCpfDeOutroPerfilEhRecusado() {
         Usuario medico = new Usuario();
         medico.setLogin(CPF_MAIOR);
