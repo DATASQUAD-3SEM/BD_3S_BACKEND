@@ -154,7 +154,7 @@ class UsuarioAssinaturaServiceTest {
     @ParameterizedTest
     @EnumSource(
             value = PerfilUsuario.class,
-            names = {"BENEFICIARIO", "MEDICO", "CHEFE_FUSEX"})
+            names = {"BENEFICIARIO", "MEDICO", "CHEFE_FUSEX", "RESPONSAVEL_EXTERNO"})
     void atualizarComArquivo_quandoPerfilPermitido_aceitaAssinatura(
             PerfilUsuario perfil) throws IOException {
 
