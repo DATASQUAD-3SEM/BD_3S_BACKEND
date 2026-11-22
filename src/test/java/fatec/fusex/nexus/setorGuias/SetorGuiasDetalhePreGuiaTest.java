@@ -176,6 +176,7 @@ class SetorGuiasDetalhePreGuiaTest {
                 .andExpect(jsonPath("$.medicoCriador.patente").value("Capitao"))
                 .andExpect(jsonPath("$.medicoCriador.nome").value("Cap Med Ribeiro"))
                 .andExpect(jsonPath("$.medicoCriador.crm").value("CRM-TESTE-1"))
+                .andExpect(jsonPath("$.medicoCriador.precCp").value("11122233344"))
                 .andExpect(jsonPath("$.encaminhamento").value(nullValue()))
                 .andExpect(jsonPath("$.procedimentos", hasSize(2)))
                 .andExpect(jsonPath("$.procedimentos[0].codigoTuss").value("99999911"))
