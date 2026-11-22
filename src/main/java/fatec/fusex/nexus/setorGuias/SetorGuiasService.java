@@ -131,7 +131,8 @@ public class SetorGuiasService {
             medicoCriador = new DetalhePreGuiaResponse.MedicoCriadorDto(
                     preGuia.getMedicoFusex().getPatente(),
                     preGuia.getMedicoFusex().getNome(),
-                    preGuia.getMedicoFusex().getCrm());
+                    preGuia.getMedicoFusex().getCrm(),
+                    preGuia.getMedicoFusex().getPrecCp());
         }
 
         DetalhePreGuiaResponse.EncaminhamentoDto encaminhamento =

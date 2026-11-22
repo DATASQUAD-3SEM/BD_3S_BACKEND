@@ -29,7 +29,8 @@ public record DetalhePreGuiaResponse(
 
     public record ProcedimentoDto(String codigoTuss, String nome) {}
 
-    public record MedicoCriadorDto(String patente, String nome, String crm) {}
+    /** Medico que criou a pre-guia (regra 3.2): patente, nome, CRM e Prec CP (so digitos). */
+    public record MedicoCriadorDto(String patente, String nome, String crm, String precCp) {}
 
     public record EncaminhamentoDto(String nome, String tipo, long tamanhoBytes) {}
 
