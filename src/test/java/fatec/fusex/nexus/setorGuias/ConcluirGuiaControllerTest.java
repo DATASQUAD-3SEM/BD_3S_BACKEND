@@ -192,7 +192,7 @@ class ConcluirGuiaControllerTest {
                 .extracting(Guia::getNumero).contains("2026001234");
     }
 
-    // T22-BE2: os exames do rascunho viram GuiaProcedimento, com valor_unitario nulo
+    // T22-BE2: os exames do rascunho viram GuiaProcedimento (o V.Unit nao e guardado, T28-BE3)
     @Test
     void sucesso_copiaOsExamesDoRascunhoParaAGuia() throws Exception {
         PreGuia p = preGuia(PreGuiaStatus.EM_ANALISE);
@@ -205,9 +205,9 @@ class ConcluirGuiaControllerTest {
         Long guiaId = guiaRepository.findByPreGuiaIdPreGuia(p.getIdPreGuia()).orElseThrow().getIdGuia();
         assertThat(guiaProcedimentoRepository.findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(List.of(guiaId)))
                 .extracting(gp -> gp.getCodDgp(), gp -> gp.getDescricaoProcedimento(),
-                        gp -> gp.getQuantidadeAutorizada(), gp -> gp.getValorUnitario())
-                .containsExactly(tuple("41001109", "TC - Abdome superior", 1, null),
-                        tuple("50011015", "Consulta pediatra", 2, null));
+                        gp -> gp.getQuantidadeAutorizada())
+                .containsExactly(tuple("41001109", "TC - Abdome superior", 1),
+                        tuple("50011015", "Consulta pediatra", 2));
     }
 
     // T16-BE3: rascunho gravado antes da T16-BE2 nao tem validade: 409 e nenhuma Guia criada

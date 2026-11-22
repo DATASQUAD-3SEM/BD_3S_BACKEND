@@ -97,7 +97,6 @@ public class ConcluirGuiaService {
             throw new ConflitoException("A Guia desta pre-guia ja foi criada");
         }
 
-        // valor_unitario nao e preenchido (decisao do produto)
         List<GuiaProcedimento> procedimentos = exames.stream()
                 .map(e -> {
                     GuiaProcedimento procedimento = new GuiaProcedimento();
