@@ -2,6 +2,7 @@ package fatec.fusex.nexus.guiaBeneficiario;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -37,7 +38,7 @@ import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
 /**
- * T18 (SCRUM-167): Minhas guias sem transacao de teste envolvendo a requisicao, como na aplicacao real (open-in-view
+ * T18 (SCRUM-167 e SCRUM-168): Minhas guias e envio a OCS sem transacao de teste envolvendo a requisicao, como na aplicacao real (open-in-view
  * desligado). Grava no H2 de verdade; o @AfterEach apaga tudo o que o teste criou.
  */
 @SpringBootTest
@@ -124,6 +125,24 @@ class GuiaBeneficiarioIntegracaoTest {
                 .andExpect(jsonPath("$[0].ocs").value("OCS Minhas Guias"))
                 .andExpect(jsonPath("$[0].procedimentos[0].quantidade").value(2))
                 .andExpect(jsonPath("$[0].paciente.nome").value("Titular Minhas Guias"));
+    }
+
+    @Test
+    void envio_guiaDePreGuiaConcluida_criaAsSessoes() throws Exception {
+        mockMvc.perform(post("/guias/" + guiaConcluida.getIdGuia() + "/envio")
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_TITULAR))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.situacao").value("ENVIADA"))
+                .andExpect(jsonPath("$.sessoes", hasSize(2)));
+    }
+
+    @Test
+    void envio_guiaAindaSemAsDuasAssinaturas_retorna409() throws Exception {
+        mockMvc.perform(post("/guias/" + guiaSemAssinaturas.getIdGuia() + "/envio")
+                        .header(SimulacaoLoginFilter.HEADER, LOGIN_TITULAR))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem")
+                        .value("A Guia ainda não foi assinada pelo médico e pelo chefe do FUSEX"));
     }
 
     private Guia guia(String numero, PreGuiaStatus statusPreGuia, LocalDateTime insercao) {

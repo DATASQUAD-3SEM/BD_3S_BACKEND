@@ -177,6 +177,25 @@ class GuiaBeneficiarioEnvioControllerTest {
 
     // 409 
     @Test
+    void guiaAindaSemAsDuasAssinaturas_retorna409_semAlterar_semCriarSessoes() throws Exception {
+        Guia guia = criarGuia(beneficiario, SituacaoExecucao.NAO_ENVIADA, VALIDADE_FUTURA);
+        criarProcedimento(guia, "41001109", 1);
+        guia.getPreGuia().setStatus(PreGuiaStatus.EM_ANALISE);
+        preGuiaRepository.save(guia.getPreGuia());
+
+        mockMvc.perform(post("/guias/" + guia.getIdGuia() + "/envio")
+                        .header(SimulacaoLoginFilter.HEADER, BENEFICIARIO))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.mensagem")
+                        .value("A Guia ainda não foi assinada pelo médico e pelo chefe do FUSEX"));
+
+        Guia noBanco = recarregar(guia.getIdGuia());
+        assertThat(noBanco.getSituacaoExecucao()).isEqualTo(SituacaoExecucao.NAO_ENVIADA);
+        assertThat(noBanco.getDataEnvio()).isNull();
+        assertThat(sessoesDaGuia(guia.getIdGuia())).isEmpty();
+    }
+
+    @Test
     void guiaSemValidade_retorna409_semAlterar_semCriarSessoes() throws Exception {
         Guia guia = criarGuia(beneficiario, SituacaoExecucao.NAO_ENVIADA, null);
         criarProcedimento(guia, "41001109", 1);

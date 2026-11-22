@@ -8,6 +8,7 @@ import fatec.fusex.nexus.guia.SituacaoExecucao;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimento;
 import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.preGuia.PreGuia;
+import fatec.fusex.nexus.preGuia.PreGuiaStatus;
 import fatec.fusex.nexus.sessao.SessaoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
@@ -66,6 +67,7 @@ class GuiaBeneficiarioServiceTest {
         
         PreGuia preGuia = new PreGuia();
         preGuia.setBeneficiario(beneficiario);
+        preGuia.setStatus(PreGuiaStatus.CONCLUIDA);
         
         guia.setPreGuia(preGuia); 
 
