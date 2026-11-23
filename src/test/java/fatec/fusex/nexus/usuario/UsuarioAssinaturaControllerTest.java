@@ -2,8 +2,12 @@ package fatec.fusex.nexus.usuario;
 
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,10 +21,13 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.common.auth.SimulacaoLoginFilter;
+import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
+import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
 
 /**
- * Testes HTTP de PUT /usuarios/me/assinatura (T13-BE2) com arquivo e com imagem em base64.
+ * Testes HTTP de PUT /usuarios/me/assinatura (T13-BE2) com arquivo e com imagem em base64
+ * e de GET /usuarios/me/assinatura (T37-BE3).
  */
 @WebMvcTest(UsuarioAssinaturaController.class)
 @Import(SimulacaoLogin.class)
@@ -97,5 +104,54 @@ class UsuarioAssinaturaControllerTest {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.detalhes[0]")
                         .value("assinatura: Imagem Base64 inválida"));
+    }
+
+    @Test
+    void buscarAtual_quandoTemAssinatura_devolvePngSemCache()
+            throws Exception {
+
+        byte[] png = {(byte) 0x89, 'P', 'N', 'G'};
+
+        when(assinaturaService.buscarImagemAtual()).thenReturn(png);
+
+        mockMvc.perform(
+                        get("/usuarios/me/assinatura")
+                                .header(
+                                        SimulacaoLoginFilter.HEADER,
+                                        "usuario-teste"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_PNG))
+                .andExpect(header().string("Cache-Control", "no-store"))
+                .andExpect(content().bytes(png));
+    }
+
+    @Test
+    void buscarAtual_quandoSemAssinatura_devolve404() throws Exception {
+        when(assinaturaService.buscarImagemAtual())
+                .thenThrow(new RecursoNaoEncontradoException(
+                        "Assinatura não cadastrada."));
+
+        mockMvc.perform(
+                        get("/usuarios/me/assinatura")
+                                .header(
+                                        SimulacaoLoginFilter.HEADER,
+                                        "usuario-teste"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.mensagem")
+                        .value("Assinatura não cadastrada."));
+    }
+
+    @Test
+    void buscarAtual_quandoContaDeSetor_devolve403() throws Exception {
+        when(assinaturaService.buscarImagemAtual())
+                .thenThrow(new AcessoNegadoException(
+                        "Este perfil nao tem assinatura"));
+
+        mockMvc.perform(
+                        get("/usuarios/me/assinatura")
+                                .header(
+                                        SimulacaoLoginFilter.HEADER,
+                                        "setor-guias"))
+                .andExpect(status().isForbidden());
     }
 }
