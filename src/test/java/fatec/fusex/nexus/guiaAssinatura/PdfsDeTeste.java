@@ -18,12 +18,16 @@ import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 /**
  * Utilitario dos testes: gera PDFs com as linhas de assinatura e imagens PNG de assinatura em memoria.
  */
-final class PdfsDeTeste {
+public final class PdfsDeTeste {
 
     private PdfsDeTeste() {
     }
 
-    static byte[] pdfComRotulos(boolean medico, boolean chefe) throws IOException {
+    public static byte[] pdfComRotulos(boolean medico, boolean chefe) throws IOException {
+        return pdfComRotulos(medico, chefe, false);
+    }
+
+    public static byte[] pdfComRotulos(boolean medico, boolean chefe, boolean responsavel) throws IOException {
         try (PDDocument documento = new PDDocument();
              ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
 
@@ -38,6 +42,9 @@ final class PdfsDeTeste {
                 if (chefe) {
                     escrever(conteudo, fonte, 360, 300, "Chefe do FuSEx");
                 }
+                if (responsavel) {
+                    escrever(conteudo, fonte, 60, 150, "Assinatura do Responsável:");
+                }
             }
 
             documento.save(saida);
@@ -45,7 +52,27 @@ final class PdfsDeTeste {
         }
     }
 
-    static byte[] assinaturaPng() throws IOException {
+    /** PDF com uma linha de texto por argumento (texto selecionavel). Sem argumentos, a pagina fica em branco, como um escaneado. */
+    public static byte[] pdfComTexto(String... linhas) throws IOException {
+        try (PDDocument documento = new PDDocument();
+             ByteArrayOutputStream saida = new ByteArrayOutputStream()) {
+
+            PDPage pagina = new PDPage(PDRectangle.A4);
+            documento.addPage(pagina);
+            PDType1Font fonte = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+
+            try (PDPageContentStream conteudo = new PDPageContentStream(documento, pagina)) {
+                for (int i = 0; i < linhas.length; i++) {
+                    escrever(conteudo, fonte, 50, 780 - i * 14, linhas[i]);
+                }
+            }
+
+            documento.save(saida);
+            return saida.toByteArray();
+        }
+    }
+
+    public static byte[] assinaturaPng() throws IOException {
         BufferedImage imagem = new BufferedImage(120, 40, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = imagem.createGraphics();
         g.setColor(Color.BLUE);

@@ -59,7 +59,8 @@ class PreGuiaServiceTest {
     @BeforeEach
     void preparar() {
         preGuiaService = new PreGuiaService(preGuiaRepository, beneficiarioRepository, ocsRepository,
-                historicoRepository, armazenamentoArquivo, usuarioLogado, new ValidacaoEncaminhamento(10_485_760));
+                historicoRepository, armazenamentoArquivo, usuarioLogado, new ValidacaoEncaminhamento(10_485_760),
+                org.mockito.Mockito.mock(fatec.fusex.nexus.dependente.DependenteRepository.class));
         usuario = new Usuario();
         usuario.setIdUsuario(1L);
         usuario.setPerfil(PerfilUsuario.BENEFICIARIO);
@@ -87,7 +88,7 @@ class PreGuiaServiceTest {
     }
 
     private void beneficiarioLogado() {
-        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO)).thenReturn(usuario);
+        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO)).thenReturn(usuario);
         when(beneficiarioRepository.findById(1L)).thenReturn(Optional.of(beneficiarioComId(1L)));
     }
 
@@ -159,7 +160,7 @@ class PreGuiaServiceTest {
 
     @Test
     void criar_perfilErrado_lanca403SemGravarNada() {
-        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO))
+        when(usuarioLogado.exigirPerfilAtivo(PerfilUsuario.BENEFICIARIO, PerfilUsuario.RESPONSAVEL_EXTERNO))
                 .thenThrow(new AcessoNegadoException("Acesso negado"));
 
         assertThatThrownBy(() -> preGuiaService.criar(10L, pdf)).isInstanceOf(AcessoNegadoException.class);

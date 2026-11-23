@@ -30,6 +30,7 @@ import fatec.fusex.nexus.guiaAssinatura.CarimboAssinaturaPdf;
 import fatec.fusex.nexus.guiaAssinatura.MontagemPdfGuia;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.preGuia.PreGuiaStatus;
+import fatec.fusex.nexus.sessao.SessaoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
@@ -57,6 +58,9 @@ class RecepcaoGuiaPdfServiceTest {
     @Mock
     private AssinaturaGuiaRepository assinaturaGuiaRepository;
 
+    @Mock
+    private SessaoRepository sessaoRepository;
+
     private AutoCloseable mocks;
 
     private RecepcaoGuiaPdfService service;
@@ -65,7 +69,8 @@ class RecepcaoGuiaPdfServiceTest {
     void configurar() {
         mocks = MockitoAnnotations.openMocks(this);
         service = new RecepcaoGuiaPdfService(guiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository),
-                new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, new CarimboAssinaturaPdf()));
+                new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, new CarimboAssinaturaPdf(),
+                        sessaoRepository));
 
         when(simulacaoLogin.loginAtual()).thenReturn("recepcao");
         when(usuarioRepository.findByLogin("recepcao")).thenReturn(Optional.of(usuario(PerfilUsuario.RECEPCAO)));

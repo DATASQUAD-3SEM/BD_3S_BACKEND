@@ -24,9 +24,20 @@ import fatec.fusex.nexus.common.exception.DadosInvalidosException;
 /**
  * Valida e normaliza a imagem da assinatura digital (T13-BE2): aceita PNG ou JPG, rejeita imagem em branco
  * (422), aplica fundo transparente e limita o tamanho maximo.
+ *
+ * T37-BE1: a imagem e recortada na caixa do traco (pixels transparentes e quase brancos ficam fora), recebe uma
+ * margem fixa de 4% de cada lado e e centralizada, sem esticar, numa imagem PNG transparente de 900 x 300 pixels.
  */
 @Service
 public class AssinaturaImagemService {
+
+    /** Tamanho fixo de toda assinatura guardada (proporcao 3:1). */
+    static final int LARGURA_FINAL = 900;
+    static final int ALTURA_FINAL = 300;
+    /** Margem de cada lado, em fracao da largura e da altura finais. */
+    static final double MARGEM = 0.04;
+
+    static final String MSG_SEM_TRACO = "Desenhe ou envie uma assinatura.";
 
     private final long limiteBytes;
     private final int larguraMaxima;
@@ -186,41 +197,18 @@ public class AssinaturaImagemService {
                 }
 
                 if (!contemAssinatura(imagem)) {
-                    throw erro("A imagem não contém uma assinatura visível");
+                    throw erro(MSG_SEM_TRACO);
                 }
 
-                int largura = Math.min(larguraMaxima, imagem.getWidth());
-                int altura = Math.min(alturaMaxima, imagem.getHeight());
+                // T37-BE1: todas as assinaturas saem no mesmo formato, so com o traco: o tamanho final nao depende
+                // da area ocupada ao assinar (desenho pequeno num canto ou grande no centro dao o mesmo resultado).
+                byte[] resultado = escreverPng(enquadrar(imagem));
 
-                double escala = Math.min(
-                        (double) larguraMaxima / imagem.getWidth(),
-                        (double) alturaMaxima / imagem.getHeight());
-
-                largura = Math.max(1, (int) Math.round(
-                        imagem.getWidth() * Math.min(1.0, escala)));
-
-                altura = Math.max(1, (int) Math.round(
-                        imagem.getHeight() * Math.min(1.0, escala)));
-
-                for (int tentativa = 0; tentativa < 30; tentativa++) {
-                    BufferedImage normalizada = desenharSobreFundoTransparente(
-                            imagem, largura, altura);
-
-                    byte[] resultado = escreverPng(normalizada);
-
-                    if (resultado.length <= limiteBytes) {
-                        return resultado;
-                    }
-
-                    if (largura == 1 && altura == 1) {
-                        break;
-                    }
-
-                    largura = Math.max(1, (int) (largura * 0.8));
-                    altura = Math.max(1, (int) (altura * 0.8));
+                if (resultado.length > limiteBytes) {
+                    throw erro("Não foi possível adequar a imagem ao limite permitido");
                 }
 
-                throw erro("Não foi possível adequar a imagem ao limite permitido");
+                return resultado;
 
             } finally {
                 leitor.dispose();
@@ -231,36 +219,75 @@ public class AssinaturaImagemService {
         }
     }
 
-    private BufferedImage desenharSobreFundoTransparente(
-            BufferedImage original, int largura, int altura) {
-
-        BufferedImage resultado = new BufferedImage(
-                largura, altura, BufferedImage.TYPE_INT_ARGB);
-
-        Graphics2D graficos = resultado.createGraphics();
-
+    /**
+     * Converte para ARGB com o fundo claro transparente, recorta na caixa do traco e centraliza o recorte, mantendo
+     * a proporcao, na area util (tamanho final menos as margens) de uma imagem de 900 x 300.
+     */
+    static BufferedImage enquadrar(BufferedImage lida) {
+        BufferedImage argb = new BufferedImage(lida.getWidth(), lida.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        Graphics2D copia = argb.createGraphics();
         try {
-            graficos.setComposite(AlphaComposite.Src);
+            copia.setComposite(AlphaComposite.Src);
+            copia.drawImage(lida, 0, 0, null);
+        } finally {
+            copia.dispose();
+        }
+        tornarFundoClaroTransparente(argb);
 
-            graficos.setRenderingHint(
-                    RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+        int[] caixa = caixaDoTraco(argb);
+        if (caixa == null) {
+            throw new DadosInvalidosException("assinatura", MSG_SEM_TRACO);
+        }
+        BufferedImage traco = argb.getSubimage(caixa[0], caixa[1], caixa[2] - caixa[0] + 1, caixa[3] - caixa[1] + 1);
 
-            graficos.setRenderingHint(
-                    RenderingHints.KEY_RENDERING,
-                    RenderingHints.VALUE_RENDER_QUALITY);
+        double larguraUtil = LARGURA_FINAL * (1 - 2 * MARGEM);
+        double alturaUtil = ALTURA_FINAL * (1 - 2 * MARGEM);
+        double escala = Math.min(larguraUtil / traco.getWidth(), alturaUtil / traco.getHeight());
+        int largura = Math.max(1, (int) Math.round(traco.getWidth() * escala));
+        int altura = Math.max(1, (int) Math.round(traco.getHeight() * escala));
 
-            graficos.drawImage(original, 0, 0, largura, altura, null);
+        BufferedImage resultado = new BufferedImage(LARGURA_FINAL, ALTURA_FINAL, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D graficos = resultado.createGraphics();
+        try {
+            graficos.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            graficos.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            graficos.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            graficos.drawImage(traco, (LARGURA_FINAL - largura) / 2, (ALTURA_FINAL - altura) / 2, largura, altura, null);
         } finally {
             graficos.dispose();
         }
-
-        tornarFundoClaroTransparente(resultado);
-
         return resultado;
     }
 
-    private void tornarFundoClaroTransparente(BufferedImage imagem) {
+    /** Menor retangulo {x0, y0, x1, y1} que contem os pixels do traco, ou null se nao houver traco. */
+    public static int[] caixaDoTraco(BufferedImage imagem) {
+        int x0 = Integer.MAX_VALUE;
+        int y0 = Integer.MAX_VALUE;
+        int x1 = -1;
+        int y1 = -1;
+        for (int y = 0; y < imagem.getHeight(); y++) {
+            for (int x = 0; x < imagem.getWidth(); x++) {
+                if (ehTraco(imagem.getRGB(x, y))) {
+                    x0 = Math.min(x0, x);
+                    y0 = Math.min(y0, y);
+                    x1 = Math.max(x1, x);
+                    y1 = Math.max(y1, y);
+                }
+            }
+        }
+        return x1 < 0 ? null : new int[] {x0, y0, x1, y1};
+    }
+
+    /** Pixel do traco: nao transparente e nao quase branco (ignora sujeira clara de JPEG e o antisserrilhado fraco). */
+    private static boolean ehTraco(int cor) {
+        int alfa = (cor >>> 24) & 0xFF;
+        int vermelho = (cor >>> 16) & 0xFF;
+        int verde = (cor >>> 8) & 0xFF;
+        int azul = cor & 0xFF;
+        return alfa > 32 && Math.min(vermelho, Math.min(verde, azul)) < 225;
+    }
+
+    private static void tornarFundoClaroTransparente(BufferedImage imagem) {
         for (int y = 0; y < imagem.getHeight(); y++) {
             for (int x = 0; x < imagem.getWidth(); x++) {
                 int cor = imagem.getRGB(x, y);

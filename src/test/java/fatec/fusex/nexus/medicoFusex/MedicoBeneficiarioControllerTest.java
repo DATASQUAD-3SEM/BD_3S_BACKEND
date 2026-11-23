@@ -42,7 +42,10 @@ class MedicoBeneficiarioControllerTest {
     void configurar() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders
-                .standaloneSetup(new MedicoBeneficiarioController(beneficiarioService, simulacaoLogin, medicoService))
+                .standaloneSetup(new MedicoBeneficiarioController(beneficiarioService, simulacaoLogin, medicoService,
+                        org.mockito.Mockito.mock(fatec.fusex.nexus.dependente.DependenteRepository.class),
+                        org.mockito.Mockito.mock(fatec.fusex.nexus.dependente.ResponsavelExternoRepository.class),
+                        org.mockito.Mockito.mock(org.springframework.transaction.PlatformTransactionManager.class)))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }

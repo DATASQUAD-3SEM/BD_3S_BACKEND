@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.List;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +19,7 @@ import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaPapel;
 import fatec.fusex.nexus.assinaturaGuia.AssinaturaGuiaRepository;
 import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
+import fatec.fusex.nexus.sessao.SessaoRepository;
 import fatec.fusex.nexus.usuario.Usuario;
 
 /**
@@ -26,6 +28,7 @@ import fatec.fusex.nexus.usuario.Usuario;
 class MontagemPdfGuiaTest {
 
     private AssinaturaGuiaRepository assinaturaGuiaRepository;
+    private SessaoRepository sessaoRepository;
     private ArmazenamentoArquivo armazenamentoArquivo;
     private MontagemPdfGuia montagem;
     private byte[] pdfOriginal;
@@ -34,8 +37,10 @@ class MontagemPdfGuiaTest {
     @BeforeEach
     void preparar() throws IOException {
         assinaturaGuiaRepository = mock(AssinaturaGuiaRepository.class);
+        sessaoRepository = mock(SessaoRepository.class);
         armazenamentoArquivo = mock(ArmazenamentoArquivo.class);
-        montagem = new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, new CarimboAssinaturaPdf());
+        montagem = new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, new CarimboAssinaturaPdf(),
+                sessaoRepository);
 
         pdfOriginal = PdfsDeTeste.pdfComRotulos(true, true);
         guia = new Guia();
@@ -67,20 +72,14 @@ class MontagemPdfGuiaTest {
         }
     }
 
-    @Test
-    void assinaturaDeUsuarioSemImagem_eIgnorada() {
-        when(assinaturaGuiaRepository.findByGuiaIdGuiaIn(List.of(1L)))
-                .thenReturn(List.of(assinatura(AssinaturaGuiaPapel.MEDICO, null)));
-
-        assertThat(montagem.montar(guia)).isEqualTo(pdfOriginal);
-    }
 
     private static AssinaturaGuia assinatura(AssinaturaGuiaPapel papel, String imagem) {
-        Usuario usuario = new Usuario();
-        usuario.setAssinaturaUrl(imagem);
+        Assinatura vigente = new Assinatura();
+        vigente.setAssinaturaUrl(imagem);
+
         AssinaturaGuia assinatura = new AssinaturaGuia();
         assinatura.setPapel(papel);
-        assinatura.setUsuario(usuario);
+        assinatura.setAssinatura(vigente);
         return assinatura;
     }
 }

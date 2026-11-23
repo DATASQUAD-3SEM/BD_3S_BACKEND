@@ -26,8 +26,12 @@ import fatec.fusex.nexus.common.exception.AcessoNegadoException;
 import fatec.fusex.nexus.common.exception.ApiExceptionHandler;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.common.exception.DadosInvalidosException;
+import fatec.fusex.nexus.common.exception.LimiteRequisicoesException;
 import fatec.fusex.nexus.common.exception.RecursoNaoEncontradoException;
+import fatec.fusex.nexus.common.exception.RegraDeNegocioException;
 import fatec.fusex.nexus.guiaAssinatura.dto.AssinaturaRegistradaResponse;
+import fatec.fusex.nexus.guiaAssinatura.dto.AssinarLoteResponse;
+import fatec.fusex.nexus.guiaAssinatura.dto.FalhaAssinaturaLote;
 import fatec.fusex.nexus.guiaAssinatura.dto.GuiaParaAssinarResponse;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
 
@@ -47,12 +51,16 @@ class GuiaAssinaturaControllerTest {
     @Mock
     private RegistrarAssinaturaGuiaService registrarAssinaturaGuiaService;
 
+    @Mock
+    private AssinarLoteService assinarLoteService;
+
     @BeforeEach
     void configurar() {
         MockitoAnnotations.openMocks(this);
         mockMvc = MockMvcBuilders
                 .standaloneSetup(new GuiaAssinaturaController(
-                        guiaAssinaturaService, guiaPdfAssinadoService, registrarAssinaturaGuiaService))
+                        guiaAssinaturaService, guiaPdfAssinadoService, registrarAssinaturaGuiaService,
+                        assinarLoteService))
                 .setControllerAdvice(new ApiExceptionHandler())
                 .build();
     }
@@ -159,5 +167,68 @@ class GuiaAssinaturaControllerTest {
 
         mockMvc.perform(post("/guias/9/assinaturas"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void assinarLote_tudoAssinado_devolve200SemFalhas() throws Exception {
+        when(assinarLoteService.assinar(List.of(1L, 2L)))
+                .thenReturn(new AssinarLoteResponse(List.of(1L, 2L), List.of()));
+
+        mockMvc.perform(post("/guias/assinar-lote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"guiaIds\":[1,2]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.assinadas[0]").value(1))
+                .andExpect(jsonPath("$.assinadas[1]").value(2))
+                .andExpect(jsonPath("$.falhas").isEmpty());
+    }
+
+    @Test
+    void assinarLote_comFalha_devolve207ComMotivo() throws Exception {
+        when(assinarLoteService.assinar(List.of(1L, 2L)))
+                .thenReturn(new AssinarLoteResponse(List.of(1L),
+                        List.of(new FalhaAssinaturaLote(2L, "ja_assinada_pelo_chefe"))));
+
+        mockMvc.perform(post("/guias/assinar-lote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"guiaIds\":[1,2]}"))
+                .andExpect(status().isMultiStatus())
+                .andExpect(jsonPath("$.assinadas[0]").value(1))
+                .andExpect(jsonPath("$.falhas[0].guiaId").value(2))
+                .andExpect(jsonPath("$.falhas[0].motivo").value("ja_assinada_pelo_chefe"));
+    }
+
+    @Test
+    void assinarLote_listaInvalida_devolve400() throws Exception {
+        when(assinarLoteService.assinar(List.of()))
+                .thenThrow(new RegraDeNegocioException("Selecione ao menos uma Guia para assinar"));
+
+        mockMvc.perform(post("/guias/assinar-lote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"guiaIds\":[]}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void assinarLote_perfilSemPermissao_devolve403() throws Exception {
+        when(assinarLoteService.assinar(List.of(1L)))
+                .thenThrow(new AcessoNegadoException("Acesso negado: este endpoint e exclusivo do perfil CHEFE_FUSEX"));
+
+        mockMvc.perform(post("/guias/assinar-lote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"guiaIds\":[1]}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void assinarLote_excessoDeRequisicoes_devolve429() throws Exception {
+        when(assinarLoteService.assinar(List.of(1L)))
+                .thenThrow(new LimiteRequisicoesException("Muitos lotes de assinatura em pouco tempo."));
+
+        mockMvc.perform(post("/guias/assinar-lote")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"guiaIds\":[1]}"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().string("Retry-After", "60"));
     }
 }

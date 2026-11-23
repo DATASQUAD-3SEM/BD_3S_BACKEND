@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceException;
 
@@ -84,7 +85,16 @@ class AssinaturaGuiaUnicaRepositoryTest {
         assinatura.setGuia(guia);
         assinatura.setPapel(papel);
         assinatura.setUsuario(usuario);
+        assinatura.setAssinatura(novaAssinatura(usuario));
         em.persist(assinatura);
+    }
+
+    private Assinatura novaAssinatura(Usuario usuario) {
+        Assinatura assinatura = new fatec.fusex.nexus.assinatura.Assinatura();
+        assinatura.setUsuario(usuario);
+        assinatura.setAssinaturaUrl("assinaturas/" + usuario.getLogin() + ".png");
+        em.persist(assinatura);
+        return assinatura;
     }
 
     private Guia novaGuia(String numero) {
@@ -106,6 +116,7 @@ class AssinaturaGuiaUnicaRepositoryTest {
         PreGuia preGuia = new PreGuia();
         preGuia.setBeneficiario(beneficiario);
         preGuia.setOcs(ocs);
+        preGuia.setEncaminhamentoUrl("encaminhamentos/teste.pdf");
         em.persist(preGuia);
 
         Usuario inseridaPor = novoUsuario("setor-" + numero, PerfilUsuario.SETOR_GUIAS);

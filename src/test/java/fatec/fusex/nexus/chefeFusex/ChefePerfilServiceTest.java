@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Optional;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,7 +59,7 @@ class ChefePerfilServiceTest {
     @Test
     void buscarPerfilLogado_quandoChefeCadastrado_retornaDados() {
         Usuario usuario = usuarioChefe();
-        usuario.setAssinaturaUrl("assinaturas/chefe.png");
+        usuario.setAssinatura(assinatura("assinaturas/chefe.png"));
 
         ChefeFusex chefe = chefe(usuario);
         prepararUsuario(usuario);
@@ -148,5 +149,11 @@ class ChefePerfilServiceTest {
         chefe.setNome("Maria Oliveira");
         chefe.setPatente("Major");
         return chefe;
+    }
+
+    private static Assinatura assinatura(String url) {
+        Assinatura assinatura = new Assinatura();
+        assinatura.setAssinaturaUrl(url);
+        return assinatura;
     }
 }

@@ -31,11 +31,14 @@ public class ChefeBeneficiarioService {
     private static final int SIZE_MAXIMO = 100;
 
     private final BeneficiarioRepository beneficiarioRepository;
+    private final fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository;
     private final UsuarioLogado usuarioLogado;
 
     public ChefeBeneficiarioService(BeneficiarioRepository beneficiarioRepository,
+                                    fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository,
                                     UsuarioLogado usuarioLogado) {
         this.beneficiarioRepository = beneficiarioRepository;
+        this.dependenteRepository = dependenteRepository;
         this.usuarioLogado = usuarioLogado;
     }
 
@@ -64,6 +67,21 @@ public class ChefeBeneficiarioService {
 
         Page<Beneficiario> pageResult = beneficiarioRepository.buscarComFiltros(
                 buscaNormalizada, digitosDaBusca(termo), ativo, pageable);
-        return BeneficiarioListaResponse.de(pageResult.map(BeneficiarioItemResponse::de));
+        java.util.Map<Long, Long> ativosPorTitular = contarDependentesAtivos(pageResult.getContent());
+        return BeneficiarioListaResponse.de(pageResult.map(b ->
+                BeneficiarioItemResponse.de(b, ativosPorTitular.getOrDefault(b.getUsuarioId(), 0L).intValue())));
+    }
+
+    /** Dependentes vigentes por titular (T31-BE1). */
+    private java.util.Map<Long, Long> contarDependentesAtivos(java.util.List<Beneficiario> titulares) {
+        if (titulares.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.time.LocalDate hoje = Beneficiario.hoje();
+        return dependenteRepository.findByTitularUsuarioIdIn(titulares.stream().map(Beneficiario::getUsuarioId).toList())
+                .stream()
+                .filter(d -> d.getVigenciaFim() == null || !d.getVigenciaFim().isBefore(hoje))
+                .collect(java.util.stream.Collectors.groupingBy(d -> d.getTitular().getUsuarioId(),
+                        java.util.stream.Collectors.counting()));
     }
 }

@@ -20,6 +20,19 @@ public interface GuiaRepository extends JpaRepository<Guia, Long> {
 
     Optional<Guia> findByPreGuiaIdPreGuia(Long idPreGuia);
 
+    /** Guias do beneficiario (dono da pre-guia), da mais recente para a mais antiga (T18-BE1). */
+    List<Guia> findByPreGuiaBeneficiarioUsuarioIdOrderByDataInsercaoDescIdGuiaDesc(Long usuarioId);
+
+    List<Guia> findByPreGuiaDependenteResponsavelIdUsuarioOrderByDataInsercaoDescIdGuiaDesc(Long responsavelId);
+
+    List<Guia> findByPreGuiaDependenteUsuarioIdUsuarioOrderByDataInsercaoDescIdGuiaDesc(Long usuarioId);
+
+    /** Guias enviadas a uma OCS (com data de envio), da envio mais recente para a mais antiga (T19-BE1). */
+    List<Guia> findByPreGuiaOcsIdOcsAndDataEnvioIsNotNullOrderByDataEnvioDescIdGuiaDesc(Long idOcs);
+
+    /** Guia enviada a uma OCS, buscada por id. Vazio se a guia nao for dessa OCS ou nao foi enviada (T19-BE2). */
+    Optional<Guia> findByIdGuiaAndPreGuiaOcsIdOcsAndDataEnvioIsNotNull(Long idGuia, Long idOcs);
+
     @Query("""
             select g from Guia g
             join fetch g.preGuia pg
@@ -46,6 +59,9 @@ public interface GuiaRepository extends JpaRepository<Guia, Long> {
             order by g.dataInsercao asc, g.idGuia asc
             """)
     List<Guia> buscarSemAssinatura(@Param("papel") AssinaturaGuiaPapel papel);
+
+    /** Guias sem validade gravada (concluidas antes da T16-BE3): alvo da correcao das Guias antigas. */
+    List<Guia> findByDataValidadeAteIsNull();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select g from Guia g where g.idGuia = :id")

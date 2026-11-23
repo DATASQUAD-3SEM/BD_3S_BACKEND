@@ -6,6 +6,7 @@ import fatec.fusex.nexus.minhasPreGuias.dto.GuiaPdf;
 import fatec.fusex.nexus.minhasPreGuias.dto.MinhaPreGuiaResponse;
 
 import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -70,7 +71,9 @@ public class MinhasPreGuiasController {
                 .filename(pdf.filename())
                 .build();
 
+        // T23-BE2: o PDF muda quando a Guia e finalizada, entao nao pode ficar em cache
         return ResponseEntity.ok()
+                .cacheControl(CacheControl.noStore())
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(pdf.resource());

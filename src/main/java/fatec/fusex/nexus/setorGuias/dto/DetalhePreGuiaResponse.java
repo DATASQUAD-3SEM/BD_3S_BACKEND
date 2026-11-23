@@ -19,13 +19,23 @@ public record DetalhePreGuiaResponse(
         GuiaRascunhoDto guiaRascunho,
         boolean guiaConcluida) {
 
-    public record BeneficiarioDto(String nome, String precCp, String faixaEtaria) {}
+    public record BeneficiarioDto(String nome, String cpf, String precCp, String faixaEtaria) {
+        // O toString omite o CPF para que ele nao apareca em log.
+        @Override
+        public String toString() {
+            return "BeneficiarioDto[nome=" + nome + ", precCp=" + precCp + ", faixaEtaria=" + faixaEtaria + "]";
+        }
+    }
 
     public record ProcedimentoDto(String codigoTuss, String nome) {}
 
-    public record MedicoCriadorDto(String patente, String nome, String crm) {}
+    /** Medico que criou a pre-guia (regra 3.2): patente, nome, CRM e Prec CP (so digitos). */
+    public record MedicoCriadorDto(String patente, String nome, String crm, String precCp) {}
 
     public record EncaminhamentoDto(String nome, String tipo, long tamanhoBytes) {}
 
-    public record GuiaRascunhoDto(String numero, String nomeArquivo) {}
+    // exames: na ordem gravada; lista vazia quando o rascunho e anterior aos exames (T22-BE1)
+    public record GuiaRascunhoDto(String numero, String nomeArquivo, List<ExameDto> exames) {}
+
+    public record ExameDto(String codDgp, String descricao, Integer quantidade) {}
 }

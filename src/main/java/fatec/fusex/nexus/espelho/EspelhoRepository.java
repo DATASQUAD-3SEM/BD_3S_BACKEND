@@ -1,0 +1,40 @@
+package fatec.fusex.nexus.espelho;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+public interface EspelhoRepository extends JpaRepository<Espelho, Long> {
+
+    Optional<Espelho> findByOcsIdOcsAndStatus(Long idOcs, StatusEspelho status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from Espelho e where e.ocs.idOcs = :idOcs and e.status = :status")
+    Optional<Espelho> buscarComLockPorOcsEStatus(@Param("idOcs") Long idOcs,
+                                                 @Param("status") StatusEspelho status);
+
+    List<Espelho> findByOcsIdOcsAndStatusOrderByDataEnvioDescIdEspelhoDesc(Long idOcs, StatusEspelho status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from Espelho e where e.idEspelho = :idEspelho")
+    Optional<Espelho> buscarComLockPorId(@Param("idEspelho") Long idEspelho);
+
+    @Query("select e from Espelho e where e.situacaoFatura is not null and e.situacaoFatura <> :excluida "
+            + "order by e.dataEnvio desc, e.idEspelho desc")
+    List<Espelho> buscarComSituacaoFaturaExceto(@Param("excluida") SituacaoFatura excluida);
+
+    boolean existsByOcsIdOcsAndNumeroFatura(Long idOcs, String numeroFatura);
+
+    @Query("select e.numeroFatura from Espelho e where e.ocs.idOcs = :idOcs "
+            + "and e.numeroFatura like :padraoAno")
+    List<String> buscarNumerosFaturaDaOcsPorAno(@Param("idOcs") Long idOcs,
+                                                @Param("padraoAno") String padraoAno);
+
+    List<Espelho> findBySituacaoFaturaInOrderByDataEnvioAscIdEspelhoAsc(Collection<SituacaoFatura> situacoes);
+}

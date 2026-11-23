@@ -3,8 +3,10 @@ package fatec.fusex.nexus.preGuia;
 import java.time.LocalDateTime;
 
 import fatec.fusex.nexus.beneficiario.Beneficiario;
+import fatec.fusex.nexus.dependente.Dependente;
 import fatec.fusex.nexus.medicoFusex.MedicoFusex;
 import fatec.fusex.nexus.ocs.Ocs;
+import fatec.fusex.nexus.usuario.Usuario;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -62,4 +64,14 @@ public class PreGuia {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "medico_id")
     private MedicoFusex medicoFusex;
+
+    /** Paciente dependente; nulo quando o paciente e o proprio titular (T30-BE1). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "dependente_id")
+    private Dependente dependente;
+
+    /** Quem criou a pre-guia (pode ser o responsavel externo, o dependente maior ou o medico). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "criada_por")
+    private Usuario criadaPor;
 }

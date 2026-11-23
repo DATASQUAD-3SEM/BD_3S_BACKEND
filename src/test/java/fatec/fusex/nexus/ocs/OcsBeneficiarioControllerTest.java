@@ -36,6 +36,7 @@ class OcsBeneficiarioControllerTest {
     private static final String LOGIN_BENEFICIARIO = "44444444444";
     private static final String LOGIN_SETOR = "setor.be3";
     private static final String LOGIN_MEDICO = "medico.be3";
+    private static final String LOGIN_RESPONSAVEL = "55555555555";
 
     private final MockMvc mockMvc;
     private final OcsRepository ocsRepository;
@@ -52,6 +53,7 @@ class OcsBeneficiarioControllerTest {
         criarUsuario(LOGIN_BENEFICIARIO, PerfilUsuario.BENEFICIARIO);
         criarUsuario(LOGIN_SETOR, PerfilUsuario.SETOR_GUIAS);
         criarUsuario(LOGIN_MEDICO, PerfilUsuario.MEDICO);
+        criarUsuario(LOGIN_RESPONSAVEL, PerfilUsuario.RESPONSAVEL_EXTERNO);
 
         criarOcs("Laboratório Ômega be3", "CTR-BE3-001", OcsTipo.OCS, true);
         criarOcs("Hospital Alfa be3", "CTR-BE3-002", OcsTipo.PSA, true);
@@ -132,6 +134,15 @@ class OcsBeneficiarioControllerTest {
                         .header(HEADER, LOGIN_BENEFICIARIO))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(30)));
+    }
+
+    @Test
+    @DisplayName("T30-BE2: responsavel legal tambem busca as OCS ativas")
+    void responsavelLegal_buscaOcsAtivas() throws Exception {
+        mockMvc.perform(get(URL).param("busca", "be3")
+                        .header(HEADER, LOGIN_RESPONSAVEL))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
     }
 
     @Test

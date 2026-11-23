@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDate;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.Test;
 
 import fatec.fusex.nexus.beneficiario.dto.BeneficiarioResponse;
-import fatec.fusex.nexus.medicoFusex.dto.BeneficiarioMedicoResponse;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 
@@ -33,11 +33,11 @@ class BeneficiarioResponseTest {
     }
 
     @Test
-    void de_grupoESempreOTextoFixoDoFusex_eNaoOPerfil() {
-        BeneficiarioResponse resposta = BeneficiarioResponse.de(beneficiario(LocalDate.of(1978, 5, 10)));
-
-        assertThat(resposta.grupo()).isEqualTo(BeneficiarioMedicoResponse.GRUPO);
-        assertThat(resposta.grupo()).isEqualTo("Ex\u00e9rcito Brasileiro \u00b7 FUSEX");
+    void de_naoTemOCampoGrupo() {
+        // T33-BE1: o campo grupo (texto fixo sem origem nas regras) foi removido.
+        assertThat(BeneficiarioResponse.class.getRecordComponents())
+                .extracting(java.lang.reflect.RecordComponent::getName)
+                .doesNotContain("grupo");
     }
 
     @Test
@@ -58,14 +58,9 @@ class BeneficiarioResponseTest {
     }
 
     @Test
-    void de_assinaturaCadastrada_refleteSeExisteAssinaturaUrl() {
+    void de_assinaturaCadastrada_refleteSeExisteAssinatura() {
         Beneficiario comAssinatura = beneficiario(LocalDate.of(1968, 5, 10));
-        comAssinatura.getUsuario().setAssinaturaUrl("uploads/assinatura.png");
-
-        Beneficiario semAssinatura = beneficiario(LocalDate.of(1968, 5, 10));
-
-        assertThat(BeneficiarioResponse.de(comAssinatura, HOJE).assinaturaCadastrada()).isTrue();
-        assertThat(BeneficiarioResponse.de(semAssinatura, HOJE).assinaturaCadastrada()).isFalse();
+        comAssinatura.getUsuario().setAssinatura(assinatura("uploads/assinatura.png"));
     }
 
     @Test
@@ -74,5 +69,11 @@ class BeneficiarioResponseTest {
                 beneficiario(LocalDate.of(1968, 5, 10)), HOJE);
 
         assertThat(resposta.toString()).doesNotContain("52998224725", "45872213300", "12987654321");
+    }
+
+    private static Assinatura assinatura(String url) {
+        Assinatura assinatura = new Assinatura();
+        assinatura.setAssinaturaUrl(url);
+        return assinatura;
     }
 }

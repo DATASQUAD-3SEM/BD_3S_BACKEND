@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -31,6 +32,7 @@ import fatec.fusex.nexus.common.storage.ArmazenamentoArquivo;
 import fatec.fusex.nexus.guia.Guia;
 import fatec.fusex.nexus.guia.GuiaRepository;
 import fatec.fusex.nexus.guiaAssinatura.dto.PdfGuiaAssinada;
+import fatec.fusex.nexus.sessao.SessaoRepository;
 import fatec.fusex.nexus.usuario.PerfilUsuario;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
@@ -58,14 +60,19 @@ class GuiaPdfAssinadoServiceTest {
     @Mock
     private CarimboAssinaturaPdf carimboAssinaturaPdf;
 
+    @Mock
+    private SessaoRepository sessaoRepository;
+
     private GuiaPdfAssinadoService service;
     private byte[] pdfOriginal;
 
     @BeforeEach
     void configurar() throws Exception {
         MockitoAnnotations.openMocks(this);
-        service = new GuiaPdfAssinadoService(guiaRepository, new UsuarioLogado(simulacaoLogin, usuarioRepository),
-                new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, carimboAssinaturaPdf));
+        service = new GuiaPdfAssinadoService(guiaRepository, assinaturaGuiaRepository,
+                new UsuarioLogado(simulacaoLogin, usuarioRepository),
+                new MontagemPdfGuia(assinaturaGuiaRepository, armazenamentoArquivo, carimboAssinaturaPdf,
+                        sessaoRepository));
 
         pdfOriginal = PdfsDeTeste.pdfComRotulos(true, true);
 
@@ -95,13 +102,13 @@ class GuiaPdfAssinadoServiceTest {
                 .thenReturn(List.of(assinatura(AssinaturaGuiaPapel.MEDICO, medico)));
         when(armazenamentoArquivo.carregar("assinaturas/medico.png"))
                 .thenReturn(new ByteArrayResource(png));
-        when(carimboAssinaturaPdf.aplicar(any(), anyMap())).thenReturn(new byte[] {1});
+        when(carimboAssinaturaPdf.aplicar(any(), anyMap(), any())).thenReturn(new byte[] {1});
 
         service.pdfDaGuia(1L, "baixar");
 
         verify(carimboAssinaturaPdf).aplicar(any(), argThat(
                 (Map<AssinaturaGuiaPapel, byte[]> mapa) ->
-                        mapa.size() == 1 && mapa.containsKey(AssinaturaGuiaPapel.MEDICO)));
+                        mapa.size() == 1 && mapa.containsKey(AssinaturaGuiaPapel.MEDICO)), any());
     }
 
     @Test
@@ -146,7 +153,9 @@ class GuiaPdfAssinadoServiceTest {
     private static Usuario usuario(PerfilUsuario perfil, String assinaturaUrl) {
         Usuario usuario = new Usuario();
         usuario.setPerfil(perfil);
-        usuario.setAssinaturaUrl(assinaturaUrl);
+        if (assinaturaUrl != null) {
+            usuario.setAssinatura(assinatura(assinaturaUrl));
+        }
         return usuario;
     }
 
@@ -154,6 +163,13 @@ class GuiaPdfAssinadoServiceTest {
         AssinaturaGuia assinatura = new AssinaturaGuia();
         assinatura.setPapel(papel);
         assinatura.setUsuario(usuario);
+        assinatura.setAssinatura(usuario.getAssinatura());
+        return assinatura;
+    }
+
+    private static Assinatura assinatura(String url) {
+        Assinatura assinatura = new Assinatura();
+        assinatura.setAssinaturaUrl(url);
         return assinatura;
     }
 

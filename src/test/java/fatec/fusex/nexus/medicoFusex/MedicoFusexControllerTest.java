@@ -53,10 +53,10 @@ class MedicoFusexControllerTest {
     }
 
     @Test
-    void me_comMedicoLogado_retorna200ComDadosSemPrecCp() throws Exception {
+    void me_comMedicoLogado_retorna200ComCpfEPrecCp() throws Exception {
         when(simulacaoLogin.loginAtual()).thenReturn("11144477735");
         when(service.buscarLogado("11144477735")).thenReturn(
-                new MedicoMeResponse("Carlos Eduardo Lima", "Capitao", "123456-SP"));
+                new MedicoMeResponse("Carlos Eduardo Lima", "Capitao", "123456-SP", "11144477735", "11122233344"));
 
         mockMvc.perform(get("/medicos/me")
                         .header("X-Usuario-Login", "11144477735"))
@@ -64,8 +64,9 @@ class MedicoFusexControllerTest {
                 .andExpect(jsonPath("$.nome").value("Carlos Eduardo Lima"))
                 .andExpect(jsonPath("$.patente").value("Capitao"))
                 .andExpect(jsonPath("$.crm").value("123456-SP"))
-                .andExpect(jsonPath("$.id").doesNotExist())
-                .andExpect(jsonPath("$.precCp").doesNotExist());
+                .andExpect(jsonPath("$.cpf").value("11144477735"))
+                .andExpect(jsonPath("$.precCp").value("11122233344"))
+                .andExpect(jsonPath("$.id").doesNotExist());
     }
 
     @Test

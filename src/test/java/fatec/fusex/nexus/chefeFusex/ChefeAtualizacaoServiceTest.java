@@ -6,6 +6,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.Optional;
 
+import fatec.fusex.nexus.assinatura.Assinatura;
 import fatec.fusex.nexus.chefeFusex.dto.AtualizarChefeRequest;
 import fatec.fusex.nexus.chefeFusex.dto.ChefePerfilResponse;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
@@ -57,7 +58,7 @@ class ChefeAtualizacaoServiceTest {
         usuario.setSenhaHash("hash-antigo");
         usuario.setPerfil(PerfilUsuario.CHEFE_FUSEX);
         usuario.setAtivo(false);
-        usuario.setAssinaturaUrl("assinaturas/chefe.png");
+        usuario.setAssinatura(assinatura("assinaturas/chefe.png"));
 
         chefe = new ChefeFusex();
         chefe.setUsuarioId(1L);
@@ -227,5 +228,11 @@ class ChefeAtualizacaoServiceTest {
 
         verify(chefeFusexRepository, never()).save(any(ChefeFusex.class));
         verify(usuarioRepository, never()).save(any(Usuario.class));
+    }
+
+    private static Assinatura assinatura(String url) {
+        Assinatura assinatura = new Assinatura();
+        assinatura.setAssinaturaUrl(url);
+        return assinatura;
     }
 }

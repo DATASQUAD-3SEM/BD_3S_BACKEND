@@ -13,6 +13,7 @@ import fatec.fusex.nexus.common.exception.NaoAutenticadoException;
 import fatec.fusex.nexus.login.dto.LoginRequest;
 import fatec.fusex.nexus.login.dto.LoginResponse;
 import fatec.fusex.nexus.medicoFusex.MedicoFusexRepository;
+import fatec.fusex.nexus.ocs.ContaOcsRepository;
 import fatec.fusex.nexus.usuario.Usuario;
 import fatec.fusex.nexus.usuario.UsuarioRepository;
 
@@ -33,17 +34,23 @@ public class LoginService {
     private final BeneficiarioRepository beneficiarioRepository;
     private final MedicoFusexRepository medicoRepository;
     private final ChefeFusexRepository chefeRepository;
+    private final ContaOcsRepository contaOcsRepository;
     private final PasswordEncoder passwordEncoder;
+    private final fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository;
 
     public LoginService(UsuarioRepository usuarioRepository,
                         BeneficiarioRepository beneficiarioRepository,
                         MedicoFusexRepository medicoRepository,
                         ChefeFusexRepository chefeRepository,
-                        PasswordEncoder passwordEncoder) {
+                        ContaOcsRepository contaOcsRepository,
+                        PasswordEncoder passwordEncoder,
+                        fatec.fusex.nexus.dependente.DependenteRepository dependenteRepository) {
+        this.dependenteRepository = dependenteRepository;
         this.usuarioRepository = usuarioRepository;
         this.beneficiarioRepository = beneficiarioRepository;
         this.medicoRepository = medicoRepository;
         this.chefeRepository = chefeRepository;
+        this.contaOcsRepository = contaOcsRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
@@ -74,11 +81,19 @@ public class LoginService {
     private String nomeDe(Usuario usuario) {
         Long id = usuario.getIdUsuario();
         return switch (usuario.getPerfil()) {
-            case BENEFICIARIO -> beneficiarioRepository.findById(id).map(b -> b.getNome()).orElse(usuario.getLogin());
+            case BENEFICIARIO -> beneficiarioRepository.findById(id).map(b -> b.getNome())
+                    .or(() -> dependenteRepository.findByUsuarioIdUsuario(id).map(d -> d.getNome()))
+                    .orElse(usuario.getLogin());
             case MEDICO -> medicoRepository.findById(id).map(m -> m.getNome()).orElse(usuario.getLogin());
             case CHEFE_FUSEX -> chefeRepository.findById(id).map(c -> c.getNome()).orElse(usuario.getLogin());
             case SETOR_GUIAS -> "Setor de Guias";
             case RECEPCAO -> "Recepcao";
+            case OCS -> contaOcsRepository.findById(id).map(c -> c.getOcs().getNome()).orElse(usuario.getLogin());
+            // Responsavel externo nao tem pessoa cadastrada ainda (T31): exibe o login, que e o CPF
+            case RESPONSAVEL_EXTERNO -> usuario.getLogin();
+            case SETOR_FATURA -> "Setor de Faturas";
+            case RASTREABILIDADE -> "Rastreabilidade";
+            case AUDITORIA -> "Auditoria";
         };
     }
 }

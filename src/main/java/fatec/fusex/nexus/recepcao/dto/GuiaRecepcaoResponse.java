@@ -22,6 +22,6 @@ public record GuiaRecepcaoResponse(
                 guia.getPreGuia().getBeneficiario().getNome(),
                 guia.getPreGuia().getBeneficiario().getPrecCp(),
                 guia.getPreGuia().getOcs().getNome(),
-                guia.validadeAte());
+                guia.getDataValidadeAte());
     }
 }

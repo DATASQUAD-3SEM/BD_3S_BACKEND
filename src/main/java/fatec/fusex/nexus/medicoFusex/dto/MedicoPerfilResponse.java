@@ -14,15 +14,13 @@ public record MedicoPerfilResponse(
         boolean assinaturaCadastrada) {
 
     public static MedicoPerfilResponse de(MedicoFusex medico) {
-        String assinaturaUrl = medico.getUsuario().getAssinaturaUrl();
-
         return new MedicoPerfilResponse(
                 medico.getNome(),
                 medico.getPatente(),
                 medico.getUsuario().getLogin(),
                 medico.getPrecCp(),
                 medico.getCrm(),
-                assinaturaUrl != null && !assinaturaUrl.isBlank()
+                medico.getUsuario().getAssinatura() != null
         );
     }
 

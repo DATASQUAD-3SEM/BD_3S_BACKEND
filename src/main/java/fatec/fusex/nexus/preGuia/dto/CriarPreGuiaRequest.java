@@ -11,9 +11,13 @@ public class CriarPreGuiaRequest {
 
     private Long ocsId;
 
+    private Long dependenteId;
+
     private MultipartFile arquivo;
 
     public Long getOcsId() { return ocsId; }
+    public Long getDependenteId() { return dependenteId; }
+    public void setDependenteId(Long dependenteId) { this.dependenteId = dependenteId; }
     public void setOcsId(Long ocsId) { this.ocsId = ocsId; }
 
     public MultipartFile getArquivo() { return arquivo; }

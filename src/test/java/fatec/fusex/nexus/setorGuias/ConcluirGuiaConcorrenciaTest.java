@@ -24,7 +24,11 @@ import fatec.fusex.nexus.beneficiario.BeneficiarioRepository;
 import fatec.fusex.nexus.common.auth.SimulacaoLogin;
 import fatec.fusex.nexus.common.exception.ConflitoException;
 import fatec.fusex.nexus.guia.GuiaRepository;
+import fatec.fusex.nexus.guiaProcedimento.GuiaProcedimentoRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunho;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimento;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimentoId;
+import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoProcedimentoRepository;
 import fatec.fusex.nexus.guiaRascunho.GuiaRascunhoRepository;
 import fatec.fusex.nexus.ocs.Ocs;
 import fatec.fusex.nexus.ocs.OcsRepository;
@@ -55,6 +59,8 @@ class ConcluirGuiaConcorrenciaTest {
     private final PreGuiaRepository preGuiaRepository;
     private final GuiaRepository guiaRepository;
     private final GuiaRascunhoRepository guiaRascunhoRepository;
+    private final GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository;
+    private final GuiaProcedimentoRepository guiaProcedimentoRepository;
 
     private Long idPreGuia;
     private Long idBeneficiario;
@@ -68,7 +74,9 @@ class ConcluirGuiaConcorrenciaTest {
             OcsRepository ocsRepository,
             PreGuiaRepository preGuiaRepository,
             GuiaRepository guiaRepository,
-            GuiaRascunhoRepository guiaRascunhoRepository) {
+            GuiaRascunhoRepository guiaRascunhoRepository,
+            GuiaRascunhoProcedimentoRepository guiaRascunhoProcedimentoRepository,
+            GuiaProcedimentoRepository guiaProcedimentoRepository) {
         this.service = service;
         this.simulacaoLogin = simulacaoLogin;
         this.usuarioRepository = usuarioRepository;
@@ -77,6 +85,8 @@ class ConcluirGuiaConcorrenciaTest {
         this.preGuiaRepository = preGuiaRepository;
         this.guiaRepository = guiaRepository;
         this.guiaRascunhoRepository = guiaRascunhoRepository;
+        this.guiaRascunhoProcedimentoRepository = guiaRascunhoProcedimentoRepository;
+        this.guiaProcedimentoRepository = guiaProcedimentoRepository;
     }
 
     @BeforeEach
@@ -111,12 +121,20 @@ class ConcluirGuiaConcorrenciaTest {
         r.setArquivoUrl("guias-rascunho/concorrencia.pdf");
         r.setNomeArquivo("concorrencia.pdf");
         r.setDataAtualizacao(LocalDateTime.now());
+        r.setValidadeAte(LocalDate.of(2099, 1, 1));
         guiaRascunhoRepository.saveAndFlush(r);
+        guiaRascunhoProcedimentoRepository.saveAndFlush(new GuiaRascunhoProcedimento(
+                new GuiaRascunhoProcedimentoId(idPreGuia, 1), "41001109", "TC - Abdome superior", 1));
     }
 
     @AfterEach
     void limpar() {
-        guiaRepository.findByPreGuiaIdPreGuia(idPreGuia).ifPresent(guiaRepository::delete);
+        guiaRepository.findByPreGuiaIdPreGuia(idPreGuia).ifPresent(g -> {
+            guiaProcedimentoRepository.deleteAll(
+                    guiaProcedimentoRepository.findByGuiaIdGuiaInOrderByIdGuiaProcedimentoAsc(List.of(g.getIdGuia())));
+            guiaRepository.delete(g);
+        });
+        guiaRascunhoProcedimentoRepository.deleteAll(guiaRascunhoProcedimentoRepository.listarDaPreGuia(idPreGuia));
         guiaRascunhoRepository.deleteById(idPreGuia);
         preGuiaRepository.deleteById(idPreGuia);
         ocsRepository.deleteById(idOcs);

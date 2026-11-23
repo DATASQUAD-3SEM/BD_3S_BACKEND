@@ -1,5 +1,6 @@
 package fatec.fusex.nexus.guia;
 
+import fatec.fusex.nexus.espelho.Espelho;
 import fatec.fusex.nexus.preGuia.PreGuia;
 import fatec.fusex.nexus.usuario.Usuario;
 import jakarta.persistence.*;
@@ -7,13 +8,15 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
  * Entidade da tabela Guia. A Guia e emitida fora do Nexus (no SIRE); aqui ficam o numero, o PDF e a data de insercao.
- * Cada pre-guia gera no maximo uma Guia (pre_guia_id UNIQUE). A validade e de dois meses a partir da insercao.
+ * Cada pre-guia gera no maximo uma Guia (pre_guia_id UNIQUE). A validade e a data impressa em NAO RECEBER APOS (T16-BE3).
  */
 @Entity
 @Table(name = "Guia")
@@ -45,7 +48,24 @@ public class Guia {
     @JoinColumn(name = "inserida_por", nullable = false)
     private Usuario usuario;
 
-    public LocalDate validadeAte() {
-        return dataInsercao.toLocalDate().plusMonths(2);
-    }
+    // Data impressa em NAO RECEBER APOS (coluna validade_ate, V9). Nula em Guias antigas ate a correcao da T16.
+    @Column(name = "validade_ate")
+    private LocalDate dataValidadeAte;
+
+    @Column(name = "data_envio")
+    private LocalDateTime dataEnvio;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "enviada_por")
+    private Usuario enviadaPor;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
+    @Column(name = "situacao_execucao", nullable = false, length = 20)
+    private SituacaoExecucao situacaoExecucao = SituacaoExecucao.NAO_ENVIADA;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "espelho_id")
+    private Espelho espelho;
+
 }
